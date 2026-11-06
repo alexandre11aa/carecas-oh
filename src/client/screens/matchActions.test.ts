@@ -5,8 +5,10 @@ import { playerView, type PlayerView } from "../../engine/playerView.js";
 import type { MatchState, MonsterOnField, PlayerId, PlayerState } from "../../engine/types.js";
 import { slotPosition, type Side, type Slot, type SlotKind } from "../scene/layout.js";
 import {
+  connectionNotice,
   handClick,
   highlightKeys,
+  opponentInRoom,
   phaseCommands,
   responseCommands,
   selectionCommands,
@@ -330,5 +332,17 @@ describe("janela de resposta", () => {
     const view = defender("ATTACK_DECLARED");
     expect(phaseCommands(view)).toEqual([]);
     expect(selectionHint(view, null)).toBe("O oponente declarou um ataque.");
+  });
+});
+
+describe("connectionNotice e opponentInRoom", () => {
+  it("avisa só quando não está online", () => {
+    expect(connectionNotice("online")).toBe("");
+    expect(connectionNotice("offline")).toBe("Reconectando ao servidor...");
+    expect(connectionNotice("connecting")).toBe("Reconectando ao servidor...");
+  });
+  it("revanche exige dois jogadores na sala", () => {
+    expect(opponentInRoom([{}])).toBe(false);
+    expect(opponentInRoom([{}, {}])).toBe(true);
   });
 });

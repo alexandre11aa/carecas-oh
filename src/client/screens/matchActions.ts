@@ -256,3 +256,10 @@ export const selectionHint = (view: PlayerView, selection: Selection | null): st
     }
   }
 };
+
+/** Aviso de conexão exibido acima da dica (vazio quando online). */
+export const connectionNotice = (connection: "connecting" | "online" | "offline"): string =>
+  connection === "online" ? "" : "Reconectando ao servidor...";
+
+/** Há outro jogador na sala (condição para a revanche). */
+export const opponentInRoom = (players: readonly unknown[]): boolean => players.length >= 2;
