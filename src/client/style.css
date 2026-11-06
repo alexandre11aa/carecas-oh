@@ -41,7 +41,7 @@ html { scroll-behavior: smooth; }
 .tutorial-nav a { color: #aaa; text-decoration: none; padding: 0.25rem 0.5rem; border-radius: 0.3rem; font-size: 0.9rem; }
 .tutorial-nav a:hover { color: #eee; }
 .tutorial-nav a[aria-current] { color: #1b1b2a; background: #c8a23a; font-weight: 600; }
-.tutorial-section { min-height: 70vh; padding: 3rem 0.5rem; scroll-margin-top: 4.5rem; border-bottom: 1px solid #2a2a40; }
+.tutorial-section { padding: 2rem 0.5rem; scroll-margin-top: 4.5rem; border-bottom: 1px solid #2a2a40; }
 .tutorial-section h2 { margin: 0 0 1rem; font-size: 1.8rem; }
 .tutorial-section p { margin: 0; color: #ccc; line-height: 1.6; }
 .tutorial-section .tutorial-summary { margin-bottom: 1rem; }
@@ -52,8 +52,9 @@ html { scroll-behavior: smooth; }
 .tutorial-table th { background: #22223a; color: #eee; }
 .tutorial-group-title { margin: 1.5rem 0 0.75rem; font-size: 1.2rem; color: #c8a23a; }
 .tutorial-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 0.75rem; }
+.tutorial-section > :last-child { margin-bottom: 0; }
 @media (max-width: 30rem) {
-  .tutorial-section { min-height: 55vh; padding: 2rem 0.25rem; }
+  .tutorial-section { padding: 1.5rem 0.25rem; scroll-margin-top: 6rem; }
   .tutorial-section h2 { font-size: 1.4rem; }
 }
 
