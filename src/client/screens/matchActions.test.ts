@@ -279,6 +279,27 @@ describe("fase e turno", () => {
     expect(commands.map((c) => c.action)).toEqual([{ type: "NEXT_PHASE" }, { type: "END_TURN" }]);
   });
 
+  it.each([
+    ["DRAW", "Principal 1"],
+    ["MAIN_1", "Batalha"],
+    ["BATTLE", "Principal 2"],
+    ["MAIN_2", "Fim"],
+  ] as const)("fase_%s_oferece_avancar_e_encerrar", (phase, next) => {
+    expect(phaseCommands(viewOf({ phase }))).toEqual([
+      { label: `Avançar fase (${next})`, action: { type: "NEXT_PHASE" } },
+      { label: "Encerrar turno", action: { type: "END_TURN" } },
+    ]);
+  });
+
+  it("fase_END_oferece_so_encerrar_turno", () => {
+    expect(phaseCommands(viewOf({ phase: "END" }))).toEqual([{ label: "Encerrar turno", action: { type: "END_TURN" } }]);
+  });
+
+  it("sem_botoes_na_fase_END_fora_do_turno", () => {
+    const opponentView: PlayerView = { ...viewOf({ phase: "END" }), viewer: "P2" };
+    expect(phaseCommands(opponentView)).toEqual([]);
+  });
+
   it("sem_botoes_quando_a_partida_acabou", () => {
     expect(phaseCommands(viewOf({ winner: "P2" }))).toEqual([]);
   });
