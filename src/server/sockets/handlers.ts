@@ -1,0 +1,91 @@
+// src/server/sockets/handlers.ts
+import type { Server, Socket } from "socket.io";
+import type { RoomChange, RoomResult, RoomService } from "../services/roomService.js";
+import { createRoomSchema, joinRoomSchema, rejoinRoomSchema } from "./schemas.js";
+
+export type HandlerOptions = {
+  /** Tempo até remover uma sala em que todos os jogadores estão desconectados. */
+  abandonTimeoutMs: number;
+};
+
+const channel = (code: string) => `room:${code}`;
+
+/** Registra os eventos de sala em cada nova conexão. */
+export const registerHandlers = (io: Server, service: RoomService, { abandonTimeoutMs }: HandlerOptions) => {
+  const timers = new Map<string, NodeJS.Timeout>();
+
+  const cancelTimer = (code: string) => {
+    const timer = timers.get(code);
+    if (timer) clearTimeout(timer);
+    timers.delete(code);
+  };
+
+  const scheduleAbandonCheck = (code: string) => {
+    cancelTimer(code);
+    const timer = setTimeout(() => {
+      timers.delete(code);
+      service.removeAbandonedRoom({ code });
+    }, abandonTimeoutMs);
+    timer.unref();
+    timers.set(code, timer);
+  };
+
+  const broadcastChange = (change: RoomChange) => {
+    if (change.room) io.to(channel(change.code)).emit("room:updated", { room: change.room });
+    else cancelTimer(change.code);
+  };
+
+  io.on("connection", (socket: Socket) => {
+    const fail = (event: string, code: string) => {
+      socket.emit("app:error", { event, code });
+    };
+
+    const succeed = (reply: string, result: Extract<RoomResult, { ok: true }>) => {
+      const { room, token } = result;
+      cancelTimer(room.code);
+      void socket.join(channel(room.code));
+      socket.emit(reply, { room, token });
+      socket.to(channel(room.code)).emit("room:updated", { room });
+    };
+
+    socket.on("room:create", (payload: unknown) => {
+      const parsed = createRoomSchema.safeParse(payload);
+      if (!parsed.success) return fail("room:create", "INVALID_PAYLOAD");
+      const result = service.createRoom({ ...parsed.data, connectionId: socket.id });
+      if (!result.ok) return fail("room:create", result.code);
+      succeed("room:created", result);
+    });
+
+    socket.on("room:join", (payload: unknown) => {
+      const parsed = joinRoomSchema.safeParse(payload);
+      if (!parsed.success) return fail("room:join", "INVALID_PAYLOAD");
+      const result = service.joinRoom({ ...parsed.data, connectionId: socket.id });
+      if (!result.ok) return fail("room:join", result.code);
+      succeed("room:joined", result);
+    });
+
+    socket.on("room:rejoin", (payload: unknown) => {
+      const parsed = rejoinRoomSchema.safeParse(payload);
+      if (!parsed.success) return fail("room:rejoin", "INVALID_PAYLOAD");
+      const result = service.rejoinRoom({ ...parsed.data, connectionId: socket.id });
+      if (!result.ok) return fail("room:rejoin", result.code);
+      succeed("room:rejoined", result);
+    });
+
+    socket.on("room:leave", () => {
+      const change = service.leaveRoom({ connectionId: socket.id });
+      if (!change) return;
+      void socket.leave(channel(change.code));
+      broadcastChange(change);
+      // Sobrou só gente desconectada: agenda a remoção para a sala não vazar.
+      if (change.room && !change.room.players.some((p) => p.connected)) scheduleAbandonCheck(change.code);
+    });
+
+    socket.on("disconnect", () => {
+      const change = service.disconnectPlayer({ connectionId: socket.id });
+      if (!change) return;
+      broadcastChange(change);
+      scheduleAbandonCheck(change.code);
+    });
+  });
+};
