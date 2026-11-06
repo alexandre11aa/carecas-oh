@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { createMatch } from "../engine/createMatch.js";
 import { playerView } from "../engine/playerView.js";
-import { matchForRoom, type PublicRoom } from "./state.js";
+import { lobbyRoomsFromPayload, matchForRoom, type PublicRoom } from "./state.js";
 
 const room = (hasMatch: boolean, ready: boolean[] = []): PublicRoom => ({
   code: "ABCD",
@@ -26,5 +26,27 @@ describe("matchForRoom", () => {
 
   it("mantem_null_quando_nao_ha_partida", () => {
     expect(matchForRoom(room(true), null)).toBeNull();
+  });
+});
+
+describe("lobbyRoomsFromPayload", () => {
+  it("converte_a_lista_de_salas_do_payload", () => {
+    expect(lobbyRoomsFromPayload({ rooms: [{ code: "X7K2", hostNickname: "Ana" }] })).toEqual([
+      { code: "X7K2", hostNickname: "Ana" },
+    ]);
+  });
+
+  it("devolve_lista_vazia_quando_nao_ha_salas", () => {
+    expect(lobbyRoomsFromPayload({ rooms: [] })).toEqual([]);
+  });
+
+  it("descarta_itens_malformados_e_ignora_campos_extras", () => {
+    const payload = { rooms: [{ code: "AAAA" }, null, { code: 1, hostNickname: "x" }, { code: "BBBB", hostNickname: "Bia", token: "t" }] };
+    expect(lobbyRoomsFromPayload(payload)).toEqual([{ code: "BBBB", hostNickname: "Bia" }]);
+  });
+
+  it("devolve_lista_vazia_para_payload_invalido", () => {
+    expect(lobbyRoomsFromPayload(null)).toEqual([]);
+    expect(lobbyRoomsFromPayload({ rooms: "x" })).toEqual([]);
   });
 });
