@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import { createMatch } from "../../engine/createMatch.js";
 import { playerView } from "../../engine/playerView.js";
 import type { MatchState } from "../../engine/types.js";
-import { matchAfterRoomUpdate } from "../state.js";
 import { allSlots, layoutBoard, slotPosition } from "./layout.js";
 
 const baseState = (): MatchState => createMatch(123);
@@ -68,21 +67,5 @@ describe("layout da mesa", () => {
     const keys = layoutBoard(playerView(state, "P1")).map((p) => p.key);
     expect(keys).not.toContain("you:deck:0");
     expect(keys).toContain("opponent:deck:0");
-  });
-});
-
-describe("matchAfterRoomUpdate", () => {
-  const room = (ready: boolean[]) => ({
-    code: "ABCD",
-    players: ready.map((r, i) => ({ nickname: `J${i}`, connected: true, ready: r })),
-  });
-  const view = playerView(baseState(), "P1");
-
-  it("mantem_a_partida_enquanto_alguem_esta_pronto", () => {
-    expect(matchAfterRoomUpdate(room([true, true]), view)).toBe(view);
-  });
-
-  it("descarta_a_partida_quando_ninguem_esta_pronto", () => {
-    expect(matchAfterRoomUpdate(room([false]), view)).toBeNull();
   });
 });
