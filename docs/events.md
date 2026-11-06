@@ -77,9 +77,14 @@ Direção: cliente → servidor
 
 Payload: nenhum
 
-Remove o jogador da sala. Se a sala ficar vazia, ela é removida. Se havia partida em andamento, ela é encerrada e todos voltam a "não pronto".
+Volta ao lobby: remove o jogador da sala; se a sala ficar vazia, ela é removida. Quem ficou volta a "não pronto". Decisão sobre a partida:
 
-Respostas: `room:updated` para os jogadores restantes (nenhuma para quem saiu)
+- **Partida em andamento:** sair é desistência. Quem ficou vence com motivo `OPPONENT_LEFT` e recebe `match:state` (`winner` preenchido, evento `MATCH_ENDED`) e `match:ended`. A partida encerrada fica na sala só para ele ver o resultado; não há revanche sem oponente (`REMATCH_UNAVAILABLE`).
+- **Partida já encerrada (tela de fim):** o resultado permanece para quem ficou, os votos de revanche são apagados e o restante recebe `match:ended` atualizado.
+- Se outro jogador entrar numa sala com partida encerrada, a partida antiga é descartada e a sala volta ao estado de espera (todos "não pronto").
+- Perder a conexão (sem `room:leave`) não é desistência: o lugar é mantido para `room:rejoin`.
+
+Respostas: `room:updated` para os jogadores restantes (nenhuma para quem saiu) e, se havia partida, `match:state`/`match:ended` para quem ficou
 Erros: nenhum (sem efeito se o jogador não estiver em sala)
 
 ### room:updated
@@ -126,6 +131,27 @@ Payload:
 
 `view` é o resultado de `playerView` para o destinatário; `events` são os eventos da jogada passados por `eventView` (o servidor nunca envia `GameEvent` bruto). Para eventos do oponente, ids de cartas ocultas viram `null`: `CARD_DRAWN`, `MONSTER_SUMMONED`/`POSITION_CHANGED` com carta virada, `SPELL_TRAP_SET` e `cardId` de `ATTACK_BOOSTED` (que traz também `zone`). `ATTACK_DECLARED` e `SPELL_ACTIVATED` identificam o alvo por `targetZone`, público. Nunca inclui a semente nem a mão/deck do oponente. Enviado ao iniciar a partida (`events: []`), após cada ação válida e na reconexão (`events: []`, restaura o estado atual).
 
+### match:rematch
+
+Direção: cliente → servidor
+
+Payload (opcional):
+{ "accept": false }
+
+Só vale com a partida encerrada. Sem payload, vota por revanche; `{ "accept": false }` retira o voto. Com os votos dos dois jogadores (ambos conectados), o servidor cria uma nova partida: novo sorteio das 20 cartas com nova semente (nunca enviada), vida em 8000, e os lados P1/P2 são trocados. Um só voto não inicia nada. Não é preciso passar por `room:ready`. Se o oponente já saiu da sala, não há revanche.
+
+Respostas: `match:ended` para os dois (votos atualizados) ou, quando a partida recomeça, `match:state` para cada jogador (`events: []`, `winner: null`)
+Erros: `INVALID_PAYLOAD`, `NOT_IN_ROOM`, `MATCH_NOT_STARTED`, `MATCH_NOT_ENDED`, `REMATCH_UNAVAILABLE`
+
+### match:ended
+
+Direção: servidor → cliente
+
+Payload:
+{ "winner": "P2", "reason": "DECK_OUT", "rematch": { "you": true, "opponent": false } }
+
+Estado de fim, enviado a cada jogador conectado quando a partida termina (logo depois do `match:state` da jogada final), a cada voto de revanche retirado ou dado, na saída do oponente, ao perder a conexão (o voto some) e na reconexão com a partida já encerrada. `winner` é `P1` ou `P2` (compare com `view.viewer` do `match:state`). `reason`: `LIFE_ZERO` (vida do perdedor chegou a 0), `DECK_OUT` (perdedor sem carta para comprar) ou `OPPONENT_LEFT` (o oponente saiu com `room:leave`). `rematch` indica quem já votou por revanche (`you` é o próprio destinatário).
+
 ## Erros
 
 ### app:error
@@ -146,4 +172,6 @@ Payload:
 | `NOT_IN_ROOM` | A conexão não pertence a nenhuma sala |
 | `MATCH_NOT_STARTED` | `match:action` antes de a partida começar |
 | `MATCH_ALREADY_STARTED` | `room:ready` com a partida em andamento |
+| `MATCH_NOT_ENDED` | `match:rematch` com a partida em andamento |
+| `REMATCH_UNAVAILABLE` | `match:rematch` sem o oponente na sala |
 | (códigos da engine) | Jogada inválida, por exemplo `NOT_YOUR_TURN` e `INVALID_PHASE` |

@@ -19,6 +19,9 @@ export const rejoinRoomSchema = z.object({ token: z.string().min(1).max(100) });
 /** `room:ready` sem payload marca pronto; `{ ready: false }` desmarca. */
 export const readySchema = z.union([z.undefined().transform(() => ({ ready: true })), z.object({ ready: z.boolean() })]);
 
+/** `match:rematch` sem payload vota por revanche; `{ accept: false }` retira o voto. */
+export const rematchSchema = z.union([z.undefined().transform(() => ({ accept: true })), z.object({ accept: z.boolean() }).strict()]);
+
 const cardId = z.string().min(1).max(100);
 const cardIds = z.array(cardId).max(10);
 const zone = z.number().int().min(0).max(4);
