@@ -1,6 +1,7 @@
 // src/client/scene/cardArt.test.ts
 import { describe, expect, it } from "vitest";
 import { CARDS } from "../../engine/cards.js";
+import { CARD_BACK_PATH } from "./texturePaths.js";
 import { chooseFace, faceImageUrl } from "./cardArt.js";
 
 describe("cardArt", () => {
@@ -23,5 +24,10 @@ describe("cardArt", () => {
 
   it("usa_imagem_quando_carregou", () => {
     expect(chooseFace("/cards/x.png", true)).toBe("image");
+  });
+
+  it("verso_usa_canvas_ate_o_png_carregar_e_depois_o_png", () => {
+    expect(chooseFace(CARD_BACK_PATH, false)).toBe("fallback");
+    expect(chooseFace(CARD_BACK_PATH, true)).toBe("image");
   });
 });

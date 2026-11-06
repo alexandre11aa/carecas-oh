@@ -1,7 +1,7 @@
 // src/client/scene/texturePaths.ts
 // Lógica pura (sem WebGL/DOM): caminhos das texturas e cálculo do tamanho alvo.
 
-/** Verso das cartas (opcional: sem o arquivo, usa o desenho provisório). */
+/** Verso das cartas (PNG 1030x1500; sem o arquivo, usa o desenho provisório em canvas). */
 export const CARD_BACK_PATH = "/cards/back.png";
 /** Fundo da página/cena, recomendado 16:9 (opcional). */
 export const BACKGROUND_PATH = "/textures/background.png";
