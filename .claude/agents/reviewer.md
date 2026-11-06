@@ -52,8 +52,10 @@ O modo de merge é **opção da sprint**, informado pelo orquestrador como `modo
 - Se `modo_merge = automático`:
   ```
   gh pr merge <PR> --<merge_estrategia> --delete-branch
-  gh issue close <N> --comment "Concluída em #<PR>"
+  gh issue edit <N> --remove-label "<label_em_andamento>" --remove-label "<label_pendente>"
+  gh issue close <N> --reason completed --comment "Concluída em #<PR>"
   ```
+  (O merge e o `--delete-branch` apagam a branch remota; se a branch local ainda existir, `git branch -D <branch>` é opcional. Se alguma label não estiver na issue, ignore o erro.)
   Retorne `APROVADO_E_MERGEADO` (destino: `branch_integracao`).
 - Se `modo_merge = manual`: **não faça merge.** Retorne `APROVADO_AGUARDANDO_MERGE` com o link do PR.
 
