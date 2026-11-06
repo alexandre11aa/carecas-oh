@@ -77,6 +77,8 @@ export const registerHandlers = (io: Server, service: RoomService, { abandonTime
       if (!change) return;
       void socket.leave(channel(change.code));
       broadcastChange(change);
+      // Sobrou só gente desconectada: agenda a remoção para a sala não vazar.
+      if (change.room && !change.room.players.some((p) => p.connected)) scheduleAbandonCheck(change.code);
     });
 
     socket.on("disconnect", () => {

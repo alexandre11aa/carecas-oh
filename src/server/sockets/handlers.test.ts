@@ -201,6 +201,25 @@ describe("limpeza de salas", () => {
     expect(await error).toEqual({ event: "room:join", code: "ROOM_NOT_FOUND" });
   });
 
+  it("remove_sala_quando_o_ultimo_conectado_sai_e_sobra_so_desconectado", async () => {
+    const a = await client();
+    const b = await client();
+    const created = await createRoom(a);
+    const joined = once(b, "room:joined");
+    b.emit("room:join", { code: created.room.code, nickname: "Bia" });
+    const { token } = await joined;
+    const offline = once(a, "room:updated");
+    b.close();
+    await offline;
+    await sleep(150); // timer dispara, mas A ainda está conectado
+    a.emit("room:leave");
+    await sleep(150);
+    const b2 = await client();
+    const error = once(b2, "app:error");
+    b2.emit("room:rejoin", { token });
+    expect(await error).toEqual({ event: "room:rejoin", code: "INVALID_TOKEN" });
+  });
+
   it("libera_vaga_quando_um_jogador_sai", async () => {
     const a = await client();
     const b = await client();
