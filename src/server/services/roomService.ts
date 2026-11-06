@@ -16,6 +16,8 @@ import {
 import type { EndReason, MatchOutcome, Room, RoomMatch, RoomStore } from "../store/roomStore.js";
 
 export const MAX_PLAYERS = 2;
+/** Tempo que o jogador do turno (ou o defensor, com resposta pendente) tem para agir. */
+export const TURN_TIME_MS = 30_000;
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const CODE_LENGTH = 4;
 const SEED_LIMIT = 2 ** 31 - 1;
@@ -40,7 +42,16 @@ export type MatchEnd = { winner: PlayerId; reason: EndReason; rematch: { you: bo
  * Estado e eventos já filtrados para um jogador; `connectionId` indica para onde enviar.
  * `view` é null quando só o `ended` mudou (voto de revanche); `ended` é null com a partida em andamento.
  */
-export type Delivery = { connectionId: string; view: PlayerView | null; events: EventView[]; ended: MatchEnd | null };
+export type Delivery = {
+  connectionId: string;
+  view: PlayerView | null;
+  events: EventView[];
+  ended: MatchEnd | null;
+  /** Prazo (ms, relógio do servidor) da ação em curso; null com a partida encerrada. Público. */
+  turnDeadline: number | null;
+  /** Hora do servidor no envio (ms), para o cliente calcular o tempo restante sem depender do próprio relógio. */
+  serverNow: number;
+};
 
 export type RoomResult =
   | {
@@ -51,6 +62,9 @@ export type RoomResult =
       view?: PlayerView;
       /** Presente ao reconectar com a partida já encerrada. */
       ended?: MatchEnd;
+      /** Prazo do turno e hora do servidor; presentes junto com `view`. */
+      turnDeadline?: number | null;
+      serverNow?: number;
     }
   | { ok: false; code: RoomErrorCode };
 
@@ -61,7 +75,21 @@ export type MatchResult =
 /** Sala afetada por uma saída; `room` é null quando a sala foi removida. */
 export type RoomChange = { code: string; room: PublicRoom | null; deliveries?: Delivery[] };
 
+/** Relógio e agendador do servidor; injetáveis para testar sem esperar o tempo real. */
+export type Clock = {
+  now: () => number;
+  setTimeout: (callback: () => void, ms: number) => unknown;
+  clearTimeout: (handle: unknown) => void;
+};
+
+export type RoomServiceOptions = { clock?: Clock; turnTimeMs?: number };
+
+/** Resultado de um turno que expirou: entregas já filtradas por jogador. */
+export type TurnExpiry = { code: string; room: PublicRoom; deliveries: Delivery[] };
+
 export type RoomService = {
+  /** Registra quem recebe o resultado quando o prazo do turno expira (o servidor aplica a ação por conta própria). */
+  onTurnExpired: (listener: (expiry: TurnExpiry) => void) => void;
   /** Salas abertas: 1 jogador conectado e sem partida. */
   listOpenRooms: () => LobbyRoom[];
   createRoom: (input: { nickname: string; connectionId: string }) => RoomResult;
@@ -103,7 +131,7 @@ const endFor = (match: RoomMatch, token: string): MatchEnd | null => {
 };
 
 /** Estado e eventos filtrados para cada jogador conectado. Nada bruto sai daqui. */
-const deliver = (room: Room, match: RoomMatch, events: GameEvent[], withState = true): Delivery[] =>
+const deliver = (room: Room, match: RoomMatch, events: GameEvent[], withState: boolean, serverNow: number): Delivery[] =>
   room.players.flatMap((p) => {
     const side = sideOf(match, p.token);
     if (!side || p.connectionId === null) return [];
@@ -113,6 +141,8 @@ const deliver = (room: Room, match: RoomMatch, events: GameEvent[], withState = 
         view: withState ? playerView(match.state, side) : null,
         events: events.map((event) => eventView(event, side)),
         ended: endFor(match, p.token),
+        turnDeadline: match.outcome ? null : match.turnDeadline,
+        serverNow,
       },
     ];
   });
@@ -124,7 +154,70 @@ const outcomeOf = (state: MatchState): MatchOutcome | null => {
   return { winner: state.winner, reason: state.players[loser].lifePoints <= 0 ? "LIFE_ZERO" : "DECK_OUT" };
 };
 
-export const createRoomService = (store: RoomStore): RoomService => {
+const realClock: Clock = {
+  now: () => Date.now(),
+  setTimeout: (callback, ms) => {
+    const handle = setTimeout(callback, ms);
+    handle.unref();
+    return handle;
+  },
+  clearTimeout: (handle) => clearTimeout(handle as NodeJS.Timeout),
+};
+
+export const createRoomService = (
+  store: RoomStore,
+  { clock = realClock, turnTimeMs = TURN_TIME_MS }: RoomServiceOptions = {},
+): RoomService => {
+  const turnTimers = new Map<string, unknown>();
+  let expiryListener: (expiry: TurnExpiry) => void = () => {};
+
+  const send = (room: Room, match: RoomMatch, events: GameEvent[], withState = true): Delivery[] =>
+    deliver(room, match, events, withState, clock.now());
+
+  const cancelTurnTimer = (code: string) => {
+    if (turnTimers.has(code)) clock.clearTimeout(turnTimers.get(code));
+    turnTimers.delete(code);
+  };
+
+  /** Ações que o servidor aplica quando o prazo acaba: passar a resposta pendente ou encerrar o turno. */
+  const expiryPlan = (state: MatchState): { side: PlayerId; action: Action }[] => {
+    if (state.pendingResponse) return [{ side: state.pendingResponse.responder, action: { type: "PASS_RESPONSE" } }];
+    const side = state.currentPlayer;
+    // Na compra, END_TURN não vale: avança a fase (que compra) antes.
+    return state.phase === "DRAW"
+      ? [{ side, action: { type: "NEXT_PHASE" } }, { side, action: { type: "END_TURN" } }]
+      : [{ side, action: { type: "END_TURN" } }];
+  };
+
+  /** Cancela o prazo anterior e, com a partida em andamento, abre um novo de `turnTimeMs`. Devolve a partida com `turnDeadline` atualizado. */
+  const armTurnTimer = (code: string, match: RoomMatch): RoomMatch => {
+    cancelTurnTimer(code);
+    if (match.outcome) return { ...match, turnDeadline: null };
+    const turnDeadline = clock.now() + turnTimeMs;
+    turnTimers.set(code, clock.setTimeout(() => expireTurn(code, turnDeadline), turnTimeMs));
+    return { ...match, turnDeadline };
+  };
+
+  const expireTurn = (code: string, deadline: number) => {
+    turnTimers.delete(code);
+    const room = store.getRoom(code);
+    // Prazo antigo (a jogada já renovou ou encerrou): ignora.
+    if (!room?.match || room.match.outcome || room.match.turnDeadline !== deadline) return;
+    let state = room.match.state;
+    const events: GameEvent[] = [];
+    for (const { side, action } of expiryPlan(state)) {
+      const result = applyAction(state, side, action);
+      if (!result.ok) break;
+      state = result.state;
+      events.push(...result.events);
+      if (state.winner) break;
+    }
+    const match = armTurnTimer(code, { ...room.match, state, outcome: outcomeOf(state), rematchVotes: [] });
+    const updated: Room = { ...room, match };
+    store.saveRoom(updated);
+    expiryListener({ code, room: toPublicRoom(updated), deliveries: send(updated, match, events) });
+  };
+
   const generateCode = (): string => {
     for (;;) {
       let code = "";
@@ -134,14 +227,20 @@ export const createRoomService = (store: RoomStore): RoomService => {
   };
 
   /** A semente nasce no servidor e nunca é enviada aos jogadores. */
-  const newMatch = (tokens: RoomMatch["tokens"]): RoomMatch => ({
-    state: createMatch(randomInt(1, SEED_LIMIT)),
-    tokens,
-    outcome: null,
-    rematchVotes: [],
-  });
+  const newMatch = (code: string, tokens: RoomMatch["tokens"]): RoomMatch =>
+    armTurnTimer(code, {
+      state: createMatch(randomInt(1, SEED_LIMIT)),
+      tokens,
+      outcome: null,
+      rematchVotes: [],
+      turnDeadline: null,
+    });
 
   return {
+    onTurnExpired: (listener) => {
+      expiryListener = listener;
+    },
+
     listOpenRooms: () =>
       store.listRooms().flatMap((room) => {
         const [host] = room.players;
@@ -168,6 +267,7 @@ export const createRoomService = (store: RoomStore): RoomService => {
       const token = randomUUID();
       // Quem entra numa sala cuja partida já terminou (o outro saiu) começa do zero: sem partida e sem "pronto".
       const reset = Boolean(room.match?.outcome);
+      if (reset) cancelTurnTimer(code);
       const updated: Room = {
         ...room,
         match: reset ? null : room.match,
@@ -191,7 +291,11 @@ export const createRoomService = (store: RoomStore): RoomService => {
       const side = updated.match ? sideOf(updated.match, token) : null;
       const view = updated.match && side ? playerView(updated.match.state, side) : undefined;
       const ended = updated.match ? endFor(updated.match, token) : null;
-      return { ok: true, room: toPublicRoom(updated), token, ...(view ? { view } : {}), ...(ended ? { ended } : {}) };
+      const timing =
+        view && updated.match
+          ? { turnDeadline: updated.match.outcome ? null : updated.match.turnDeadline, serverNow: clock.now() }
+          : {};
+      return { ok: true, room: toPublicRoom(updated), token, ...(view ? { view } : {}), ...(ended ? { ended } : {}), ...timing };
     },
 
     setReady: ({ connectionId, ready }) => {
@@ -204,10 +308,10 @@ export const createRoomService = (store: RoomStore): RoomService => {
       };
       const [first, second] = updated.players;
       if (first && second && updated.players.every((p) => p.ready && p.connectionId !== null)) {
-        const match = newMatch({ P1: first.token, P2: second.token });
+        const match = newMatch(room.code, { P1: first.token, P2: second.token });
         updated = { ...updated, match };
         store.saveRoom(updated);
-        return { ok: true, room: toPublicRoom(updated), deliveries: deliver(updated, match, []) };
+        return { ok: true, room: toPublicRoom(updated), deliveries: send(updated, match, []) };
       }
       store.saveRoom(updated);
       return { ok: true, room: toPublicRoom(updated), deliveries: [] };
@@ -222,10 +326,16 @@ export const createRoomService = (store: RoomStore): RoomService => {
       if (!side) return { ok: false, code: "NOT_IN_ROOM" };
       const result = applyAction(room.match.state, side, action);
       if (!result.ok) return { ok: false, code: result.code };
-      const match: RoomMatch = { ...room.match, state: result.state, outcome: outcomeOf(result.state), rematchVotes: [] };
+      // Ação válida: o prazo recomeça (ou some, se a partida terminou).
+      const match = armTurnTimer(room.code, {
+        ...room.match,
+        state: result.state,
+        outcome: outcomeOf(result.state),
+        rematchVotes: [],
+      });
       const updated: Room = { ...room, match };
       store.saveRoom(updated);
-      return { ok: true, room: toPublicRoom(updated), deliveries: deliver(updated, match, result.events) };
+      return { ok: true, room: toPublicRoom(updated), deliveries: send(updated, match, result.events) };
     },
 
     requestRematch: ({ connectionId, accept }) => {
@@ -241,15 +351,15 @@ export const createRoomService = (store: RoomStore): RoomService => {
       const votes = accept ? [...others, player.token] : others;
       if (room.players.every((p) => votes.includes(p.token) && p.connectionId !== null)) {
         // Revanche: novo sorteio das cartas, vida em 8000 e lados trocados.
-        const match = newMatch({ P1: room.match.tokens.P2, P2: room.match.tokens.P1 });
+        const match = newMatch(room.code, { P1: room.match.tokens.P2, P2: room.match.tokens.P1 });
         const updated: Room = { ...room, match };
         store.saveRoom(updated);
-        return { ok: true, room: toPublicRoom(updated), deliveries: deliver(updated, match, []) };
+        return { ok: true, room: toPublicRoom(updated), deliveries: send(updated, match, []) };
       }
       const match: RoomMatch = { ...room.match, rematchVotes: votes };
       const updated: Room = { ...room, match };
       store.saveRoom(updated);
-      return { ok: true, room: toPublicRoom(updated), deliveries: deliver(updated, match, [], false) };
+      return { ok: true, room: toPublicRoom(updated), deliveries: send(updated, match, [], false) };
     },
 
     disconnectPlayer: ({ connectionId }) => {
@@ -270,7 +380,7 @@ export const createRoomService = (store: RoomStore): RoomService => {
         ),
       };
       store.saveRoom(updated);
-      const deliveries = match?.outcome ? deliver(updated, match, [], false) : [];
+      const deliveries = match?.outcome ? send(updated, match, [], false) : [];
       return { code: room.code, room: toPublicRoom(updated), deliveries };
     },
 
@@ -279,6 +389,7 @@ export const createRoomService = (store: RoomStore): RoomService => {
       if (!room) return null;
       const players = room.players.filter((p) => p.connectionId !== connectionId);
       if (players.length === 0) {
+        cancelTurnTimer(room.code);
         store.removeRoom(room.code);
         return { code: room.code, room: null };
       }
@@ -298,15 +409,18 @@ export const createRoomService = (store: RoomStore): RoomService => {
         // Partida já encerrada: o resultado fica para quem ficou, sem votos de revanche.
         match = { ...match, rematchVotes: [] };
       }
+      cancelTurnTimer(room.code);
+      if (match) match = { ...match, turnDeadline: null };
       const updated: Room = { ...room, players: players.map((p) => ({ ...p, ready: false })), match };
       store.saveRoom(updated);
-      const deliveries = match ? deliver(updated, match, events) : [];
+      const deliveries = match ? send(updated, match, events) : [];
       return { code: room.code, room: toPublicRoom(updated), deliveries };
     },
 
     removeAbandonedRoom: ({ code }) => {
       const room = store.getRoom(code);
       if (!room || room.players.some((p) => p.connectionId !== null)) return false;
+      cancelTurnTimer(code);
       store.removeRoom(code);
       return true;
     },

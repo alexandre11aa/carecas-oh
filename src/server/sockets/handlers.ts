@@ -45,8 +45,8 @@ export const registerHandlers = (io: Server, service: RoomService, { abandonTime
 
   /** Envia a cada jogador seu estado (se houver) e o fim de partida (se houver). */
   const sendDeliveries = (deliveries: Delivery[]) => {
-    for (const { connectionId, view, events, ended } of deliveries) {
-      if (view) io.to(connectionId).emit("match:state", { view, events });
+    for (const { connectionId, view, events, ended, turnDeadline, serverNow } of deliveries) {
+      if (view) io.to(connectionId).emit("match:state", { view, events, turnDeadline, serverNow });
       if (ended) io.to(connectionId).emit("match:ended", ended);
     }
   };
@@ -58,19 +58,22 @@ export const registerHandlers = (io: Server, service: RoomService, { abandonTime
     broadcastLobby();
   };
 
+  // O prazo do turno vence no servidor: ele joga por conta própria e entrega o novo estado aos jogadores.
+  service.onTurnExpired(({ deliveries }) => sendDeliveries(deliveries));
+
   io.on("connection", (socket: Socket) => {
     const fail = (event: string, code: string) => {
       socket.emit("app:error", { event, code });
     };
 
     const succeed = (reply: string, result: Extract<RoomResult, { ok: true }>) => {
-      const { room, token, view, ended } = result;
+      const { room, token, view, ended, turnDeadline = null, serverNow = Date.now() } = result;
       cancelTimer(room.code);
       void socket.leave(LOBBY);
       void socket.join(channel(room.code));
       socket.emit(reply, { room, token });
       // Reconexão no meio da partida: restaura o estado atual (sem eventos para animar).
-      if (view) socket.emit("match:state", { view, events: [] });
+      if (view) socket.emit("match:state", { view, events: [], turnDeadline, serverNow });
       if (ended) socket.emit("match:ended", ended);
       socket.to(channel(room.code)).emit("room:updated", { room });
       broadcastLobby();
