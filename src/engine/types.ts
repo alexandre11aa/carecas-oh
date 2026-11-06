@@ -19,7 +19,7 @@ export type SpellEffect =
   | { kind: "BOOST_ATTACK"; amount: number } // alvo: monstro próprio; vale até o fim do turno
   | { kind: "HEAL"; amount: number } // cura o conjurador
   | { kind: "DAMAGE"; amount: number } // dano direto ao oponente
-  | { kind: "DESTROY_MONSTER" } // alvo: monstro do oponente
+  | { kind: "DESTROY_MONSTER"; maxAttack?: number } // alvo: monstro do oponente (com ATK <= maxAttack, se houver)
   | { kind: "DRAW"; count: number }; // o conjurador compra cartas
 
 export type SpellCard = {
@@ -37,7 +37,7 @@ export type TrapTrigger = "ATTACK_DECLARED" | "SUMMON" | "SPELL_ACTIVATION";
 /** Efeito de armadilha como dado: o motor interpreta, sem código por carta. */
 export type TrapEffect =
   | { kind: "NEGATE_ATTACK" } // o ataque não acontece
-  | { kind: "DESTROY_ATTACKER" } // destrói o monstro atacante antes do combate
+  | { kind: "DESTROY_ATTACKER"; maxAttack?: number } // destrói o atacante (com ATK <= maxAttack, se houver); senão o ataque segue
   | { kind: "NEGATE_SUMMON" } // a invocação é anulada e o monstro vai ao cemitério
   | { kind: "NEGATE_SPELL" } // a ativação é anulada e a magia vai ao cemitério
   | { kind: "DAMAGE"; amount: number }; // dano direto ao dono da ação interrompida

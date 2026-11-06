@@ -9,7 +9,7 @@ export const CARDS: readonly Card[] = [
   { id: "ash_sprite", name: "Fagulha de Cinzas", type: "MONSTER", level: 2, attack: 700, defense: 500, image: image("ash_sprite"), description: "Uma pequena chama que brilha no escuro." },
   { id: "moss_golem", name: "Golem de Musgo", type: "MONSTER", level: 3, attack: 1100, defense: 1500, image: image("moss_golem"), description: "Um guardião lento coberto de musgo." },
   { id: "dune_scout", name: "Batedor das Dunas", type: "MONSTER", level: 4, attack: 1700, defense: 900, image: image("dune_scout"), description: "Rápido como o vento do deserto." },
-  { id: "tide_imp", name: "Diabrete da Maré", type: "MONSTER", level: 1, attack: 400, defense: 800, image: image("tide_imp"), description: "Adora molhar os distraídos." },
+  { id: "tide_imp", name: "Diabrete da Maré", type: "MONSTER", level: 1, attack: 600, defense: 800, image: image("tide_imp"), description: "Adora molhar os distraídos." },
   { id: "bone_knight", name: "Cavaleiro de Ossos", type: "MONSTER", level: 4, attack: 1500, defense: 1300, image: image("bone_knight"), description: "Serve a um rei esquecido." },
   { id: "crystal_bat", name: "Morcego de Cristal", type: "MONSTER", level: 3, attack: 1300, defense: 600, image: image("crystal_bat"), description: "Suas asas refletem a luz da lua." },
   // Monstros nível 5-6 (1 tributo)
@@ -22,11 +22,11 @@ export const CARDS: readonly Card[] = [
   // Magias
   { id: "healing_spring", name: "Fonte Curativa", type: "SPELL", effect: { kind: "HEAL", amount: 1000 }, image: image("healing_spring"), description: "Recupera pontos de vida do conjurador." },
   { id: "power_surge", name: "Surto de Poder", type: "SPELL", effect: { kind: "BOOST_ATTACK", amount: 700 }, image: image("power_surge"), description: "Aumenta o ataque de um monstro até o fim do turno." },
-  { id: "wind_gust", name: "Rajada de Vento", type: "SPELL", effect: { kind: "DESTROY_MONSTER" }, image: image("wind_gust"), description: "Destrói um monstro do oponente." },
+  { id: "wind_gust", name: "Rajada de Vento", type: "SPELL", effect: { kind: "DESTROY_MONSTER", maxAttack: 2000 }, image: image("wind_gust"), description: "Destrói um monstro do oponente com ATK 2000 ou menos." },
   { id: "fire_bolt", name: "Raio de Fogo", type: "SPELL", effect: { kind: "DAMAGE", amount: 800 }, image: image("fire_bolt"), description: "Causa 800 de dano direto ao oponente." },
   { id: "arcane_draw", name: "Sabedoria Arcana", type: "SPELL", effect: { kind: "DRAW", count: 1 }, image: image("arcane_draw"), description: "Compre 1 carta." },
   // Armadilhas
-  { id: "spike_pit", name: "Fosso de Espinhos", type: "TRAP", trigger: "ATTACK_DECLARED", effect: { kind: "DESTROY_ATTACKER" }, image: image("spike_pit"), description: "Destrói um monstro que declarou ataque." },
+  { id: "spike_pit", name: "Fosso de Espinhos", type: "TRAP", trigger: "ATTACK_DECLARED", effect: { kind: "DESTROY_ATTACKER", maxAttack: 2000 }, image: image("spike_pit"), description: "Destrói um monstro atacante com ATK 2000 ou menos." },
   { id: "mirror_wall", name: "Muralha Espelhada", type: "TRAP", trigger: "ATTACK_DECLARED", effect: { kind: "NEGATE_ATTACK" }, image: image("mirror_wall"), description: "Anula um ataque." },
   { id: "hidden_snare", name: "Laço Escondido", type: "TRAP", trigger: "SUMMON", effect: { kind: "NEGATE_SUMMON" }, image: image("hidden_snare"), description: "Impede uma invocação." },
   { id: "dark_veil", name: "Véu Sombrio", type: "TRAP", trigger: "SPELL_ACTIVATION", effect: { kind: "NEGATE_SPELL" }, image: image("dark_veil"), description: "Cancela a ativação de uma magia." },

@@ -90,6 +90,12 @@ export const resolveTrapEffect = (
     }
     case "DESTROY_ATTACKER": {
       if (pending.type !== "ATTACK") return { state, events, resume: true };
+      const attacker = data.monsters.find((m) => m?.cardId === pending.attackerCardId);
+      const attackerCard = attacker ? getCard(attacker.cardId) : undefined;
+      const attack =
+        attacker && attackerCard?.type === "MONSTER" ? attackerCard.attack + (attacker.attackBonus ?? 0) : 0;
+      // Atacante forte demais: a armadilha é gasta sem efeito e o ataque segue.
+      if (effect.maxAttack !== undefined && attack > effect.maxAttack) return { state, events, resume: true };
       const monsters = data.monsters.map((m) => (m?.cardId === pending.attackerCardId ? null : m));
       const next = toGraveyard(actor, { ...data, monsters }, pending.attackerCardId, events);
       return { state: withPlayer(state, actor, next), events, resume: false };
