@@ -1,12 +1,50 @@
 // src/client/scene/table.ts
-import { Group, Mesh, MeshLambertMaterial, PlaneGeometry, type Texture } from "three";
-import { allSlots, CARD_HEIGHT, CARD_WIDTH } from "./layout.js";
+import { Group, Mesh, MeshBasicMaterial, MeshLambertMaterial, PlaneGeometry, Shape, ShapeGeometry, type Texture } from "three";
+import { allSlots } from "./layout.js";
 import { pickSurface, zoneOpacity } from "./surfaces.js";
+import {
+  FRAME_COLOR,
+  FRAME_TRIM_COLOR,
+  TABLE_COLOR,
+  TABLE_DEPTH,
+  TABLE_WIDTH,
+  ZONE_STYLES,
+  frameSize,
+  trimSize,
+  zoneInnerSize,
+  zoneOuterSize,
+  type ZoneGroup,
+} from "./tableDesign.js";
 
-const tableGeometry = new PlaneGeometry(16, 11).rotateX(-Math.PI / 2);
-const zoneGeometry = new PlaneGeometry(CARD_WIDTH + 0.2, CARD_HEIGHT + 0.2).rotateX(-Math.PI / 2);
+// Geometrias compartilhadas por todas as zonas (todas têm o mesmo tamanho, na proporção da carta).
+const plane = (width: number, height: number) => new PlaneGeometry(width, height).rotateX(-Math.PI / 2);
+const tableGeometry = plane(TABLE_WIDTH, TABLE_DEPTH);
+const frameGeometry = plane(frameSize().width, frameSize().height);
+const trimGeometry = plane(trimSize().width, trimSize().height);
+const zoneFillGeometry = plane(zoneInnerSize().width, zoneInnerSize().height);
 
-const TABLE_COLOR = 0x1e3a2c;
+/** Contorno da zona: retângulo externo com furo do tamanho do interior. */
+const createOutlineGeometry = (): ShapeGeometry => {
+  const outer = zoneOuterSize();
+  const inner = zoneInnerSize();
+  const shape = new Shape();
+  shape.moveTo(-outer.width / 2, -outer.height / 2);
+  shape.lineTo(outer.width / 2, -outer.height / 2);
+  shape.lineTo(outer.width / 2, outer.height / 2);
+  shape.lineTo(-outer.width / 2, outer.height / 2);
+  shape.closePath();
+  const hole = new Shape();
+  hole.moveTo(-inner.width / 2, -inner.height / 2);
+  hole.lineTo(-inner.width / 2, inner.height / 2);
+  hole.lineTo(inner.width / 2, inner.height / 2);
+  hole.lineTo(inner.width / 2, -inner.height / 2);
+  hole.closePath();
+  shape.holes.push(hole);
+  return new ShapeGeometry(shape).rotateX(-Math.PI / 2);
+};
+const zoneOutlineGeometry = createOutlineGeometry();
+
+const groups = Object.keys(ZONE_STYLES) as ZoneGroup[];
 
 export type Table = {
   group: Group;
@@ -16,22 +54,29 @@ export type Table = {
   dispose: () => void;
 };
 
-/** Mesa com as zonas de monstro, de magia/armadilha, deck e cemitério dos dois jogadores. */
+/** Mesa com moldura e as zonas (monstro, magia/armadilha, deck e cemitério) dos dois jogadores. */
 export const createTable = (): Table => {
   const tableMaterial = new MeshLambertMaterial({ color: TABLE_COLOR });
-  const zoneMaterials = {
-    monster: new MeshLambertMaterial({ color: 0x2f5c46 }),
-    spellTrap: new MeshLambertMaterial({ color: 0x2a4a5e }),
-    pile: new MeshLambertMaterial({ color: 0x4a3a5e }),
-  };
+  const frameMaterial = new MeshLambertMaterial({ color: FRAME_COLOR });
+  const trimMaterial = new MeshBasicMaterial({ color: FRAME_TRIM_COLOR });
+  const fillMaterials = {} as Record<ZoneGroup, MeshLambertMaterial>;
+  const outlineMaterials = {} as Record<ZoneGroup, MeshBasicMaterial>;
+  for (const g of groups) {
+    fillMaterials[g] = new MeshLambertMaterial({ color: ZONE_STYLES[g].fill });
+    outlineMaterials[g] = new MeshBasicMaterial({ color: ZONE_STYLES[g].outline });
+  }
   const group = new Group();
-  group.add(new Mesh(tableGeometry, tableMaterial));
+  const add = (geometry: PlaneGeometry | ShapeGeometry, material: MeshLambertMaterial | MeshBasicMaterial, x: number, y: number, z: number) => {
+    const mesh = new Mesh(geometry, material);
+    mesh.position.set(x, y, z);
+    group.add(mesh);
+  };
+  add(frameGeometry, frameMaterial, 0, -0.02, 0);
+  add(trimGeometry, trimMaterial, 0, -0.01, 0);
+  add(tableGeometry, tableMaterial, 0, 0, 0);
   for (const slot of allSlots()) {
-    const material =
-      slot.kind === "monster" ? zoneMaterials.monster : slot.kind === "spellTrap" ? zoneMaterials.spellTrap : zoneMaterials.pile;
-    const zone = new Mesh(zoneGeometry, material);
-    zone.position.set(slot.x, 0.005, slot.z);
-    group.add(zone);
+    add(zoneFillGeometry, fillMaterials[slot.kind], slot.x, 0.005, slot.z);
+    add(zoneOutlineGeometry, outlineMaterials[slot.kind], slot.x, 0.006, slot.z);
   }
   return {
     group,
@@ -41,15 +86,16 @@ export const createTable = (): Table => {
       tableMaterial.color.set(surface === "texture" ? 0xffffff : TABLE_COLOR); // sem tingir a imagem
       tableMaterial.needsUpdate = true;
       const opacity = zoneOpacity(surface);
-      for (const material of Object.values(zoneMaterials)) {
+      for (const material of Object.values(fillMaterials)) {
         material.transparent = opacity < 1;
         material.opacity = opacity;
         material.needsUpdate = true;
       }
     },
     dispose: () => {
-      tableMaterial.dispose();
-      for (const material of Object.values(zoneMaterials)) material.dispose();
+      for (const material of [tableMaterial, frameMaterial, trimMaterial, ...Object.values(fillMaterials), ...Object.values(outlineMaterials)]) {
+        material.dispose();
+      }
     },
   };
 };

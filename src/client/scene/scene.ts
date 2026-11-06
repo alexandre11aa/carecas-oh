@@ -1,8 +1,10 @@
 // src/client/scene/scene.ts
 import {
   AmbientLight,
+  CanvasTexture,
   Color,
   DirectionalLight,
+  SRGBColorSpace,
   Mesh,
   MeshBasicMaterial,
   PerspectiveCamera,
@@ -17,9 +19,10 @@ import {
 } from "three";
 import type { PlayerView } from "../../engine/playerView.js";
 import { createCardMesh, updateCardMesh } from "./cardMesh.js";
-import { allSlots, CARD_HEIGHT, CARD_WIDTH, layoutBoard, pickSlot, type Slot } from "./layout.js";
+import { allSlots, layoutBoard, pickSlot, type Slot } from "./layout.js";
 import { backgroundCover, pickSurface } from "./surfaces.js";
 import { createTable } from "./table.js";
+import { BACKGROUND_GRADIENT, isValidGradient, zoneOuterSize } from "./tableDesign.js";
 import { BACKGROUND_PATH, TABLE_PATH } from "./texturePaths.js";
 import { loadTexture } from "./textures.js";
 
@@ -43,10 +46,28 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
   container.appendChild(renderer.domElement);
 
   const scene = new Scene();
+  // Fundo padrão: degradê gerado em canvas (cor lisa se o canvas não estiver disponível). A textura PNG, se existir, o substitui.
   scene.background = new Color(0x14141f);
-  scene.add(new AmbientLight(0xffffff, 1.4));
-  const light = new DirectionalLight(0xffffff, 1.2);
-  light.position.set(3, 10, 6);
+  let gradientTexture: CanvasTexture | null = null;
+  if (isValidGradient(BACKGROUND_GRADIENT)) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 4;
+    canvas.height = 256;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      for (const stop of BACKGROUND_GRADIENT) gradient.addColorStop(stop.offset, stop.color);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      gradientTexture = new CanvasTexture(canvas);
+      gradientTexture.colorSpace = SRGBColorSpace;
+      scene.background = gradientTexture;
+    }
+  }
+  // Iluminação: ambiente suave e uma luz direcional levemente quente, sem sombras.
+  scene.add(new AmbientLight(0xfff2dc, 1.1));
+  const light = new DirectionalLight(0xfff6e6, 1.5);
+  light.position.set(2, 10, 5);
   scene.add(light);
   const table = createTable();
   scene.add(table.group);
@@ -82,7 +103,7 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
   const meshes = new Map<string, Mesh>();
 
   // Marcadores de destaque: um por slot, criados uma vez e só alternados entre visível/oculto.
-  const markerGeometry = new PlaneGeometry(CARD_WIDTH + 0.2, CARD_HEIGHT + 0.2).rotateX(-Math.PI / 2);
+  const markerGeometry = new PlaneGeometry(zoneOuterSize().width, zoneOuterSize().height).rotateX(-Math.PI / 2);
   const markerMaterial = new MeshBasicMaterial({ color: 0xffd34d, transparent: true, opacity: 0.45, depthWrite: false });
   const markers = new Map<string, Mesh>();
   for (const slot of allSlots()) {
@@ -169,6 +190,7 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
       markerGeometry.dispose();
       markerMaterial.dispose();
       table.dispose();
+      gradientTexture?.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     },

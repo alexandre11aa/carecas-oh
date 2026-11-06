@@ -203,7 +203,8 @@ src/client/
   scene/
     scene.ts            renderer, câmera, luzes e loop
     layout.ts           lógica pura (sem WebGL, testável): PlayerView -> posições das cartas na mesa e clique -> slot (`pickSlot`)
-    table.ts            mesa e zonas
+    table.ts            mesa com moldura e zonas
+    tableDesign.ts      lógica pura (testável): medidas, cores por tipo de zona e degradê do fundo padrão
     cardMesh.ts         criação e atualização das cartas
     textures.ts         loadTexture: carrega PNG com cache, redução e fallback (null)
     texturePaths.ts     caminhos das texturas e tamanho alvo (lógica pura, testável)
