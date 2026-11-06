@@ -196,6 +196,7 @@ src/client/
     cardDetail.ts       lógica pura: textos de nome, tipo, ATK/DEF, efeito e mecânica da carta e carta visível num slot
     cardView.ts         componente HTML de carta, reutilizável (partida e tutorial)
     matchNotices.ts     lógica pura: EventView (de `eventView`) => avisos de interface em ordem (carta, invocação, cemitério, dano/cura, fim); fila e animação ficam em `matchScreen.ts`
+    tutorialSections.ts lógica pura: seções do tutorial da home (dados tipados), visibilidade e seção ativa
   scene/
     scene.ts            renderer, câmera, luzes e loop
     layout.ts           lógica pura (sem WebGL, testável): PlayerView -> posições das cartas na mesa e clique -> slot (`pickSlot`)
