@@ -1,6 +1,6 @@
 // src/engine/rng.test.ts
 import { describe, expect, it } from "vitest";
-import { nextRandom, shuffle } from "./rng";
+import { nextRandom, shuffle } from "./rng.js";
 
 describe("rng", () => {
   it("mesma_semente_gera_mesmo_valor_em_zero_a_um", () => {

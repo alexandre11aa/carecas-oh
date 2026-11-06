@@ -1,6 +1,6 @@
 // src/engine/decks.ts
-import { CARDS } from "./cards";
-import { shuffle } from "./rng";
+import { CARDS } from "./cards.js";
+import { shuffle } from "./rng.js";
 
 export const DECK_SIZE = 10;
 

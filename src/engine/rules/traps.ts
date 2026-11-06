@@ -1,6 +1,6 @@
 // src/engine/rules/traps.ts
 // Armadilhas: janela de resposta do defensor e efeitos como dados. Uma resposta por janela (sem cadeia). Funções puras.
-import { getCard } from "../cards";
+import { getCard } from "../cards.js";
 import type {
   Action,
   ActionResult,
@@ -10,8 +10,8 @@ import type {
   PlayerState,
   TrapEffect,
   TrapTrigger,
-} from "../types";
-import { opponentOf } from "./turn";
+} from "../types.js";
+import { opponentOf } from "./turn.js";
 
 type Failure = Extract<ActionResult, { ok: false }>;
 type Success = Extract<ActionResult, { ok: true }>;

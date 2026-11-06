@@ -1,7 +1,7 @@
 // src/engine/eventView.test.ts
 import { describe, expect, it } from "vitest";
-import { eventView } from "./eventView";
-import type { GameEvent } from "./types";
+import { eventView } from "./eventView.js";
+import type { GameEvent } from "./types.js";
 
 describe("eventView", () => {
   it("remove_o_id_da_carta_comprada_pelo_oponente", () => {

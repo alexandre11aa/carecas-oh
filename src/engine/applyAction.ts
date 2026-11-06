@@ -1,10 +1,10 @@
 // src/engine/applyAction.ts
-import { attack } from "./rules/combat";
-import { activateSpell, setSpellTrap } from "./rules/spells";
-import { changePosition, flipSummon, summonMonster } from "./rules/summon";
-import { openResponseWindow, respond } from "./rules/traps";
-import { drawPhase, endTurn, nextPhaseOf } from "./rules/turn";
-import type { Action, ActionResult, MatchState, PlayerId } from "./types";
+import { attack } from "./rules/combat.js";
+import { activateSpell, setSpellTrap } from "./rules/spells.js";
+import { changePosition, flipSummon, summonMonster } from "./rules/summon.js";
+import { openResponseWindow, respond } from "./rules/traps.js";
+import { drawPhase, endTurn, nextPhaseOf } from "./rules/turn.js";
+import type { Action, ActionResult, MatchState, PlayerId } from "./types.js";
 
 /** Aplica uma ação do jogador ao estado, sem alterá-lo. Jogada inválida devolve um código estável. */
 export const applyAction = (state: MatchState, player: PlayerId, action: Action): ActionResult => {

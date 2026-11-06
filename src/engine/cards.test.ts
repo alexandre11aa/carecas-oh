@@ -1,6 +1,6 @@
 // src/engine/cards.test.ts
 import { describe, expect, it } from "vitest";
-import { CARDS } from "./cards";
+import { CARDS } from "./cards.js";
 
 describe("cards", () => {
   it("tem_20_cartas_com_ids_unicos", () => {

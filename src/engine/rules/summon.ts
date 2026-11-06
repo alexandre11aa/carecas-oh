@@ -1,6 +1,6 @@
 // src/engine/rules/summon.ts
 // Invocação normal, baixar em defesa virada, tributo, mudança de posição e invocação por virada. Funções puras.
-import { getCard } from "../cards";
+import { getCard } from "../cards.js";
 import type {
   Action,
   ActionResult,
@@ -9,7 +9,7 @@ import type {
   MonsterOnField,
   PlayerId,
   PlayerState,
-} from "../types";
+} from "../types.js";
 
 type Failure = Extract<ActionResult, { ok: false }>;
 type SummonAction = Extract<Action, { type: "SUMMON_CARD" | "SET_MONSTER" }>;

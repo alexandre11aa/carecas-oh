@@ -10,7 +10,7 @@ import type {
   PlayerState,
   SpellTrapOnField,
   TrapTrigger,
-} from "./types";
+} from "./types.js";
 
 /** Monstro do oponente virado: só a posição e o turno de invocação são públicos (a identidade nunca). */
 export type HiddenMonsterView = {

@@ -1,7 +1,7 @@
 // src/engine/createMatch.ts
-import { dealDecks } from "./decks";
-import { nextRandom } from "./rng";
-import type { MatchState, PlayerId, PlayerState } from "./types";
+import { dealDecks } from "./decks.js";
+import { nextRandom } from "./rng.js";
+import type { MatchState, PlayerId, PlayerState } from "./types.js";
 
 export const INITIAL_LIFE_POINTS = 8000;
 export const INITIAL_HAND_SIZE = 5;

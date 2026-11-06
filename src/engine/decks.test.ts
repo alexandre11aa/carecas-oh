@@ -1,7 +1,7 @@
 // src/engine/decks.test.ts
 import { describe, expect, it } from "vitest";
-import { getCard } from "./cards";
-import { dealDecks } from "./decks";
+import { getCard } from "./cards.js";
+import { dealDecks } from "./decks.js";
 
 describe("decks", () => {
   it("mesma_semente_gera_mesma_divisao", () => {

@@ -1,10 +1,10 @@
 // src/engine/rules/traps.test.ts
 import { describe, expect, it } from "vitest";
-import { applyAction } from "../applyAction";
-import { createMatch } from "../createMatch";
-import { resolveTrapEffect } from "./traps";
-import { opponentOf } from "./turn";
-import type { Action, MatchState, MonsterOnField, PlayerId, SpellTrapOnField } from "../types";
+import { applyAction } from "../applyAction.js";
+import { createMatch } from "../createMatch.js";
+import { resolveTrapEffect } from "./traps.js";
+import { opponentOf } from "./turn.js";
+import type { Action, MatchState, MonsterOnField, PlayerId, SpellTrapOnField } from "../types.js";
 
 const field = (cardId: string, extra: Partial<MonsterOnField> = {}): MonsterOnField => ({
   cardId,

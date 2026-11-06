@@ -1,8 +1,8 @@
 // src/engine/rules/summon.test.ts
 import { describe, expect, it } from "vitest";
-import { applyAction } from "../applyAction";
-import { createMatch } from "../createMatch";
-import type { Action, MatchState, MonsterOnField, PlayerId } from "../types";
+import { applyAction } from "../applyAction.js";
+import { createMatch } from "../createMatch.js";
+import type { Action, MatchState, MonsterOnField, PlayerId } from "../types.js";
 
 const field = (cardId: string, extra: Partial<MonsterOnField> = {}): MonsterOnField => ({
   cardId,
