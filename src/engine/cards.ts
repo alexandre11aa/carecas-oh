@@ -26,10 +26,10 @@ export const CARDS: readonly Card[] = [
   { id: "fire_bolt", name: "Raio de Fogo", type: "SPELL", effect: { kind: "DAMAGE", amount: 800 }, image: image("fire_bolt"), description: "Causa 800 de dano direto ao oponente." },
   { id: "arcane_draw", name: "Sabedoria Arcana", type: "SPELL", effect: { kind: "DRAW", count: 1 }, image: image("arcane_draw"), description: "Compre 1 carta." },
   // Armadilhas
-  { id: "spike_pit", name: "Fosso de Espinhos", type: "TRAP", image: image("spike_pit"), description: "Destrói um monstro que declarou ataque." },
-  { id: "mirror_wall", name: "Muralha Espelhada", type: "TRAP", image: image("mirror_wall"), description: "Anula um ataque." },
-  { id: "hidden_snare", name: "Laço Escondido", type: "TRAP", image: image("hidden_snare"), description: "Impede uma invocação." },
-  { id: "dark_veil", name: "Véu Sombrio", type: "TRAP", image: image("dark_veil"), description: "Cancela a ativação de uma magia." },
+  { id: "spike_pit", name: "Fosso de Espinhos", type: "TRAP", trigger: "ATTACK_DECLARED", effect: { kind: "DESTROY_ATTACKER" }, image: image("spike_pit"), description: "Destrói um monstro que declarou ataque." },
+  { id: "mirror_wall", name: "Muralha Espelhada", type: "TRAP", trigger: "ATTACK_DECLARED", effect: { kind: "NEGATE_ATTACK" }, image: image("mirror_wall"), description: "Anula um ataque." },
+  { id: "hidden_snare", name: "Laço Escondido", type: "TRAP", trigger: "SUMMON", effect: { kind: "NEGATE_SUMMON" }, image: image("hidden_snare"), description: "Impede uma invocação." },
+  { id: "dark_veil", name: "Véu Sombrio", type: "TRAP", trigger: "SPELL_ACTIVATION", effect: { kind: "NEGATE_SPELL" }, image: image("dark_veil"), description: "Cancela a ativação de uma magia." },
 ];
 
 export const getCard = (id: string): Card | undefined => CARDS.find((card) => card.id === id);

@@ -76,7 +76,7 @@ Seguem as regras do Yu-Gi-Oh, com monstros, magias, armadilhas e tributo.
 
 - **Magia:** ativada da mão pelo jogador do turno, nas fases Principais, com efeito imediato; depois vai ao cemitério.
 - **Armadilha:** baixada virada na zona de magia/armadilha e ativada no turno do oponente, a partir do turno seguinte ao que foi baixada.
-- **Janela de resposta:** quando o jogador do turno faz uma ação que pode ser respondida (invocação, ataque ou ativação de magia), o jogo abre uma janela em que o oponente decide ativar ou não uma armadilha. O efeito da armadilha resolve antes da ação original. Na Sprint 1 só existe uma resposta por janela: cadeia com múltiplos efeitos não é suportada.
+- **Janela de resposta:** quando o jogador do turno faz uma ação que pode ser respondida (invocação, ataque ou ativação de magia), o jogo abre uma janela em que o oponente decide ativar ou não uma armadilha. O efeito da armadilha resolve antes da ação original. Na Sprint 1 só existe uma resposta por janela: cadeia com múltiplos efeitos não é suportada. No motor, a ação interrompida fica guardada em `pendingResponse` do estado (sem ser aplicada); só o defensor age, com `ACTIVATE_TRAP` ou `PASS_RESPONSE`, e a ação original é retomada depois (a menos que o efeito a cancele). Gatilhos: declaração de ataque, invocação (`SUMMON_CARD`) e ativação de magia. Os efeitos das armadilhas são dados tipados (`TrapEffect`) em `cards.ts`, interpretados em `rules/traps.ts`.
 
 ## Fluxo da partida
 
