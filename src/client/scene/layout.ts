@@ -2,8 +2,9 @@
 // Lógica pura (sem WebGL): converte o PlayerView em posições de cartas sobre a mesa.
 import type { PlayerView } from "../../engine/playerView.js";
 
-export const CARD_WIDTH = 1.4;
 export const CARD_HEIGHT = 2;
+/** Proporção das artes: 1030:1500. */
+export const CARD_WIDTH = (CARD_HEIGHT * 1030) / 1500;
 export const ZONE_SPACING = 1.8;
 export const ZONE_COUNT = 5;
 
