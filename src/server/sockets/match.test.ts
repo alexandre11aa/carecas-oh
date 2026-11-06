@@ -265,3 +265,22 @@ describe("informacao oculta", () => {
     }
   });
 });
+
+describe("prazo do turno no match:state", () => {
+  it("inclui_turnDeadline_e_serverNow_no_inicio_apos_a_acao_e_na_reconexao", async () => {
+    const p = await startMatch();
+    const first = p.viewA.currentPlayer === p.viewA.viewer ? p.a : p.b;
+    const round = await act(p, first, { type: "NEXT_PHASE" });
+    for (const step of [round.a, round.b] as any[]) {
+      expect(step.turnDeadline - step.serverNow).toBe(30_000);
+    }
+    p.a.close();
+    await sleep(100);
+    const a2 = await client();
+    const state = once(a2, "match:state");
+    a2.emit("room:rejoin", { token: p.tokenA });
+    const { turnDeadline, serverNow } = await state;
+    expect(turnDeadline).toBeGreaterThan(serverNow);
+    expect(turnDeadline - serverNow).toBeLessThanOrEqual(30_000);
+  });
+});

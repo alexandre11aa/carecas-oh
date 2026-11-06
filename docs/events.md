@@ -63,7 +63,7 @@ Payload:
 
 Reassocia o jogador do token à nova conexão (por exemplo, após recarregar a página).
 
-Respostas: `room:rejoined` (para quem reconectou), `match:state` (só se houver partida em andamento, com `events: []`) e `room:updated` (para os demais da sala)
+Respostas: `room:rejoined` (para quem reconectou), `match:state` (só se houver partida em andamento, com `events: []` e o `turnDeadline` vigente) e `room:updated` (para os demais da sala)
 Erros: `INVALID_PAYLOAD`, `INVALID_TOKEN` (token desconhecido ou sala já removida)
 
 ### room:rejoined
@@ -98,6 +98,41 @@ Payload:
 
 Enviado aos demais jogadores quando alguém entra, reconecta, sai ou perde a conexão (`connected: false`). Ao perder a conexão o jogador mantém a vaga para `room:rejoin`; a sala é removida se todos ficarem desconectados por mais de 60 segundos.
 
+## Lobby
+
+Lista de salas abertas. "Sala aberta" = 1 jogador, conectado, sem partida; sala cheia, com partida ou cujo anfitrião perdeu a conexão não aparece. Entrar por código (`room:join`) continua possível para qualquer sala.
+
+### lobby:subscribe
+
+Direção: cliente → servidor
+
+Payload: nenhum
+
+Coloca a conexão no room Socket.IO "lobby" e responde com a lista atual. Quem cria ou entra numa sala (`room:create`, `room:join`, `room:rejoin`) sai do lobby automaticamente.
+
+Respostas: `lobby:rooms`
+Erros: `INVALID_PAYLOAD` (se enviar qualquer payload)
+
+### lobby:unsubscribe
+
+Direção: cliente → servidor
+
+Payload: nenhum
+
+Tira a conexão do lobby. Sem efeito se não estava assinada.
+
+Respostas: nenhuma
+Erros: `INVALID_PAYLOAD` (se enviar qualquer payload)
+
+### lobby:rooms
+
+Direção: servidor → cliente
+
+Payload:
+{ "rooms": [{ "code": "X7K2", "hostNickname": "Ana" }] }
+
+Lista completa de salas abertas (vazia quando não há nenhuma). Enviada em resposta a `lobby:subscribe` e, aos assinantes, sempre que a lista muda: sala criada, sala que enche, sala removida, host que perde ou recupera a conexão, sala que ganha partida. Os itens trazem só `code` e `hostNickname`: nunca tokens nem ids de conexão.
+
 ## Partida
 
 ### room:ready
@@ -129,9 +164,16 @@ Erros: `INVALID_PAYLOAD`, `NOT_IN_ROOM`, `MATCH_NOT_STARTED`, ou o código da en
 Direção: servidor → cliente
 
 Payload:
-{ "view": { "viewer": "P1", "turn": 2, "currentPlayer": "P1", "phase": "MAIN_1", "winner": null, "you": { ... }, "opponent": { ... }, "pendingResponse": null }, "events": [{ "type": "CARD_DRAWN", "player": "P2", "cardId": null }] }
+{ "view": { "viewer": "P1", "turn": 2, "currentPlayer": "P1", "phase": "MAIN_1", "winner": null, "you": { ... }, "opponent": { ... }, "pendingResponse": null }, "events": [{ "type": "CARD_DRAWN", "player": "P2", "cardId": null }], "turnDeadline": 1767225630000, "serverNow": 1767225600000 }
 
-`view` é o resultado de `playerView` para o destinatário; `events` são os eventos da jogada passados por `eventView` (o servidor nunca envia `GameEvent` bruto). Para eventos do oponente, ids de cartas ocultas viram `null`: `CARD_DRAWN`, `MONSTER_SUMMONED`/`POSITION_CHANGED` com carta virada, `SPELL_TRAP_SET` e `cardId` de `ATTACK_BOOSTED` (que traz também `zone`). `ATTACK_DECLARED` e `SPELL_ACTIVATED` identificam o alvo por `targetZone`, público. Nunca inclui a semente nem a mão/deck do oponente. Enviado ao iniciar a partida (`events: []`), após cada ação válida e na reconexão (`events: []`, restaura o estado atual).
+`view` é o resultado de `playerView` para o destinatário; `events` são os eventos da jogada passados por `eventView` (o servidor nunca envia `GameEvent` bruto). Para eventos do oponente, ids de cartas ocultas viram `null`: `CARD_DRAWN`, `MONSTER_SUMMONED`/`POSITION_CHANGED` com carta virada, `SPELL_TRAP_SET` e `cardId` de `ATTACK_BOOSTED` (que traz também `zone`). `ATTACK_DECLARED` e `SPELL_ACTIVATED` identificam o alvo por `targetZone`, público. Nunca inclui a semente nem a mão/deck do oponente. Enviado ao iniciar a partida (`events: []`), após cada ação válida, quando o prazo do turno expira e na reconexão (`events: []`, restaura o estado atual).
+
+`turnDeadline` e `serverNow` (ambos em ms, públicos, acrescentados na camada de entrega, fora da engine) controlam o limite de tempo: o jogador do turno tem 30 segundos para agir; com `pendingResponse` aberta, o tempo conta para o defensor. O cliente calcula o tempo restante por `turnDeadline - serverNow` (não depende do relógio local). Regras do servidor:
+
+- O prazo recomeça (30 s) no início de cada turno e **após cada ação válida**; jogada inválida não renova.
+- Ao expirar, o servidor joga por conta própria e envia `match:state` aos dois com os eventos filtrados: `END_TURN` do jogador do turno (na fase de compra, antes avança a fase, o que faz a compra) ou, com resposta pendente, `PASS_RESPONSE` do defensor (o prazo é renovado; se expirar de novo, `END_TURN`).
+- O prazo continua correndo se o jogador desconectar. Na reconexão, `match:state` traz o `turnDeadline` vigente.
+- O prazo é cancelado (`turnDeadline: null`) quando a partida termina, em desistência e quando a sala é removida; a revanche abre um prazo novo. Se a expiração encerrar a partida (por exemplo, compra sem cartas), `match:ended` segue o `match:state`.
 
 ### match:rematch
 

@@ -12,6 +12,7 @@ export type MonsterCard = {
   defense: number;
   image: string;
   description: string;
+  flavor: string;
 };
 
 /** Efeito de magia como dado: o motor interpreta, sem código por carta. */
@@ -29,6 +30,7 @@ export type SpellCard = {
   effect: SpellEffect;
   image: string;
   description: string;
+  flavor: string;
 };
 
 /** Momento da ação do jogador do turno que abre a janela de resposta. */
@@ -50,6 +52,7 @@ export type TrapCard = {
   effect: TrapEffect;
   image: string;
   description: string;
+  flavor: string;
 };
 
 export type Card = MonsterCard | SpellCard | TrapCard;

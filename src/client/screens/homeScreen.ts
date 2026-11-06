@@ -1,12 +1,17 @@
 // src/client/screens/homeScreen.ts
-import { createRoom, joinRoom } from "../network/socket.js";
+import { createRoom, joinRoom, subscribeLobby, unsubscribeLobby } from "../network/socket.js";
 import { getState, loadNickname, saveNickname } from "../state.js";
 import { el, type Screen } from "./dom.js";
 import { errorMessage } from "./errorMessages.js";
+import { NICKNAME_HINT, canSubmitNickname } from "./nickname.js";
+import { createTutorial } from "./tutorialScreen.js";
+import { isTutorialVisible } from "./tutorialSections.js";
 
 /** Tela inicial. Com `presetCode` (rota /sala/CODIGO) mostra só a entrada na sala indicada. */
 export const createHomeScreen = (presetCode: string | null): Screen => {
+  const home = el("div", "home");
   const element = el("main", "screen");
+  home.append(element);
   element.append(
     el("h1", undefined, "Carecas Oh"),
     el("p", "hint", presetCode ? `Você foi convidado para a sala ${presetCode}.` : "Duelo de cartas 1x1. Sem cadastro."),
@@ -23,7 +28,9 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
   codeInput.maxLength = 4;
   codeInput.setAttribute("aria-label", "Código da sala");
 
-  const createButton = el("button", "primary", "Criar sala");
+  const nicknameHint = el("p", "hint", NICKNAME_HINT);
+
+  const createButton =el("button", "primary", "Criar sala");
   const joinButton = el("button", undefined, presetCode ? `Entrar na sala ${presetCode}` : "Entrar");
   const error = el("p", "error");
   error.setAttribute("role", "alert");
@@ -65,7 +72,7 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
     if (event.key === "Enter") submitJoin();
   });
 
-  element.append(nicknameInput);
+  element.append(nicknameInput, nicknameHint);
   if (presetCode) {
     element.append(joinButton);
   } else {
@@ -73,13 +80,61 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
   }
   element.append(error);
 
+  // Lista de salas abertas: só na home geral, não no convite /sala/CODIGO.
+  const lobbyList = el("ul", "lobby-list");
+  const lobbyEmpty = el("p", "hint", "Nenhuma sala aberta no momento");
+  if (!presetCode) element.append(el("h2", undefined, "Salas abertas"), lobbyEmpty, lobbyList);
+
+  let renderedRooms: unknown = null;
+  const renderLobby = () => {
+    const { lobbyRooms, busy } = getState();
+    const nicknameOk = canSubmitNickname(nicknameInput.value);
+    if (lobbyRooms !== renderedRooms) {
+      renderedRooms = lobbyRooms;
+      lobbyEmpty.hidden = lobbyRooms.length > 0;
+      lobbyList.replaceChildren(
+        ...lobbyRooms.map((room) => {
+          const item = el("li", "lobby-item");
+          const join = el("button", undefined, "Entrar");
+          join.setAttribute("aria-label", `Entrar na sala ${room.code} de ${room.hostNickname}`);
+          join.addEventListener("click", () => {
+            const nickname = readNickname();
+            if (nickname) joinRoom(room.code, nickname);
+          });
+          item.append(el("span", "lobby-code", room.code), el("span", "lobby-host", room.hostNickname), join);
+          return item;
+        }),
+      );
+    }
+    lobbyList.querySelectorAll("button").forEach((button) => (button.disabled = busy || !nicknameOk));
+  };
+
   const update = () => {
     const { busy, errorCode } = getState();
-    createButton.disabled = busy;
-    joinButton.disabled = busy;
+    const nicknameOk = canSubmitNickname(nicknameInput.value);
+    createButton.disabled = busy || !nicknameOk;
+    joinButton.disabled = busy || !nicknameOk;
+    nicknameHint.hidden = nicknameOk;
     if (errorCode) error.textContent = errorMessage(errorCode);
     else if (busy) error.textContent = "";
+    if (!presetCode) renderLobby();
   };
+  nicknameInput.addEventListener("input", update);
   update();
-  return { element, update };
+  if (presetCode) return { element: home, update };
+  subscribeLobby();
+  // Tutorial abaixo do lobby: só na home geral.
+  const tutorial = isTutorialVisible(presetCode) ? createTutorial() : null;
+  if (tutorial) {
+    element.append(tutorial.cta);
+    home.append(tutorial.element);
+  }
+  return {
+    element: home,
+    update,
+    destroy: () => {
+      unsubscribeLobby();
+      tutorial?.destroy();
+    },
+  };
 };

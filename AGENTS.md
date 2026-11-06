@@ -53,13 +53,14 @@ Seguem as regras do Yu-Gi-Oh, com monstros, magias, armadilhas e tributo.
 - Existem 20 cartas provisórias. Ao iniciar a partida, cada jogador recebe 10 cartas sorteadas sem repetição, sem que as cartas se repitam entre os jogadores. O sorteio usa a semente do estado.
 - Mão inicial de 5 cartas; as outras 5 ficam no deck.
 - Perde quem não puder comprar quando for obrigado a comprar.
+- Cada turno tem limite de 30 segundos para o jogador da vez (ou o defensor, se houver janela de resposta aberta). O prazo recomeça a cada ação válida. Ao expirar, o servidor passa a resposta pendente ou encerra o turno. O relógio vive no servidor (`roomService`), nunca na engine.
 - Vence também quem zerar os pontos de vida do oponente.
 
 ### Fases do turno
 
 1. **Compra (Draw):** o jogador do turno compra 1 carta.
 2. **Principal 1 (Main 1):** invocar, baixar, mudar posição e usar magias.
-3. **Batalha (Battle):** monstros em ataque podem atacar.
+3. **Batalha (Battle):** monstros em ataque podem atacar. No primeiro turno da partida ninguém ataca (o servidor recusa com `ATTACK_NOT_ALLOWED_ON_FIRST_TURN`).
 4. **Principal 2 (Main 2):** o mesmo que na Principal 1, respeitando os limites do turno.
 5. **Fim (End):** o turno passa ao oponente.
 
@@ -193,6 +194,11 @@ src/client/
   screens/              telas em HTML: início, sala de espera e interface da partida
     matchActions.ts     lógica pura (testável): PlayerView + seleção => comandos e `match:action` a enviar
     matchEnd.ts         lógica pura: textos de resultado e estado do botão de revanche
+    cardDetail.ts       lógica pura: textos de nome, tipo, ATK/DEF, efeito e mecânica da carta e carta visível num slot
+    cardView.ts         componente HTML de carta, reutilizável (partida e tutorial)
+    matchNotices.ts     lógica pura: EventView (de `eventView`) => avisos de interface em ordem (carta, invocação, cemitério, dano/cura, fim); fila e animação ficam em `matchScreen.ts`
+    tutorialSections.ts lógica pura: seções do tutorial da home (dados tipados), visibilidade e seção ativa
+    tutorialScreen.ts   DOM do tutorial: menu de âncoras, blocos (lista, tabela, catálogo de cartas) e seção ativa
   scene/
     scene.ts            renderer, câmera, luzes e loop
     layout.ts           lógica pura (sem WebGL, testável): PlayerView -> posições das cartas na mesa e clique -> slot (`pickSlot`)
@@ -200,6 +206,7 @@ src/client/
     cardMesh.ts         criação e atualização das cartas
     monsterSprite.ts    arte do monstro em pé sobre a carta
   animations/           sequências GSAP: compra, invocação e ataque
+    hudEffects.ts       GSAP do HUD: aviso de evento, variação flutuante e barra de vida
 ```
 
 ### Padrão de código
@@ -251,7 +258,7 @@ O que cobrir:
 
 - **Engine:** cada regra, incluindo jogadas válidas e inválidas, e a garantia de que `playerView` não vaza informação oculta.
 - **Server:** cada evento, incluindo caminho feliz, payload inválido, sala inexistente, jogador sem permissão e reconexão.
-- **Client:** a lógica pura (`scene/layout.ts`, `screens/matchActions.ts`, `screens/matchEnd.ts`, `state.ts`) tem testes; DOM e WebGL não. Mantenha a decisão de qual ação enviar nos módulos puros. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
+- **Client:** a lógica pura (`scene/layout.ts`, `screens/matchActions.ts`, `screens/matchEnd.ts`, `screens/matchNotices.ts`, `state.ts`) tem testes; DOM e WebGL não. Mantenha a decisão de qual ação enviar nos módulos puros. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
 - **Correção de bug:** um teste que falharia antes da correção, quando o bug estiver em `engine` ou `server`.
 
 Como escrever:

@@ -1,7 +1,7 @@
 // src/server/sockets/handlers.ts
 import type { Server, Socket } from "socket.io";
 import type { Delivery, MatchResult, RoomChange, RoomResult, RoomService } from "../services/roomService.js";
-import { createRoomSchema, joinRoomSchema, matchActionSchema, readySchema, rejoinRoomSchema, rematchSchema } from "./schemas.js";
+import { createRoomSchema, lobbySchema, joinRoomSchema, matchActionSchema, readySchema, rejoinRoomSchema, rematchSchema } from "./schemas.js";
 
 export type HandlerOptions = {
   /** Tempo até remover uma sala em que todos os jogadores estão desconectados. */
@@ -9,6 +9,7 @@ export type HandlerOptions = {
 };
 
 const channel = (code: string) => `room:${code}`;
+const LOBBY = "lobby";
 
 /** Registra os eventos de sala em cada nova conexão. */
 export const registerHandlers = (io: Server, service: RoomService, { abandonTimeoutMs }: HandlerOptions) => {
@@ -24,16 +25,28 @@ export const registerHandlers = (io: Server, service: RoomService, { abandonTime
     cancelTimer(code);
     const timer = setTimeout(() => {
       timers.delete(code);
-      service.removeAbandonedRoom({ code });
+      if (service.removeAbandonedRoom({ code })) broadcastLobby();
     }, abandonTimeoutMs);
     timer.unref();
     timers.set(code, timer);
   };
 
+  // Última lista enviada ao lobby; só há broadcast quando ela muda.
+  let lastLobby = "[]";
+
+  /** Emite `lobby:rooms` aos assinantes se a lista de salas abertas mudou. */
+  const broadcastLobby = () => {
+    const rooms = service.listOpenRooms();
+    const serialized = JSON.stringify(rooms);
+    if (serialized === lastLobby) return;
+    lastLobby = serialized;
+    io.to(LOBBY).emit("lobby:rooms", { rooms });
+  };
+
   /** Envia a cada jogador seu estado (se houver) e o fim de partida (se houver). */
   const sendDeliveries = (deliveries: Delivery[]) => {
-    for (const { connectionId, view, events, ended } of deliveries) {
-      if (view) io.to(connectionId).emit("match:state", { view, events });
+    for (const { connectionId, view, events, ended, turnDeadline, serverNow } of deliveries) {
+      if (view) io.to(connectionId).emit("match:state", { view, events, turnDeadline, serverNow });
       if (ended) io.to(connectionId).emit("match:ended", ended);
     }
   };
@@ -42,7 +55,11 @@ export const registerHandlers = (io: Server, service: RoomService, { abandonTime
     if (change.room) io.to(channel(change.code)).emit("room:updated", { room: change.room });
     else cancelTimer(change.code);
     sendDeliveries(change.deliveries ?? []);
+    broadcastLobby();
   };
+
+  // O prazo do turno vence no servidor: ele joga por conta própria e entrega o novo estado aos jogadores.
+  service.onTurnExpired(({ deliveries }) => sendDeliveries(deliveries));
 
   io.on("connection", (socket: Socket) => {
     const fail = (event: string, code: string) => {
@@ -50,15 +67,28 @@ export const registerHandlers = (io: Server, service: RoomService, { abandonTime
     };
 
     const succeed = (reply: string, result: Extract<RoomResult, { ok: true }>) => {
-      const { room, token, view, ended } = result;
+      const { room, token, view, ended, turnDeadline = null, serverNow = Date.now() } = result;
       cancelTimer(room.code);
+      void socket.leave(LOBBY);
       void socket.join(channel(room.code));
       socket.emit(reply, { room, token });
       // Reconexão no meio da partida: restaura o estado atual (sem eventos para animar).
-      if (view) socket.emit("match:state", { view, events: [] });
+      if (view) socket.emit("match:state", { view, events: [], turnDeadline, serverNow });
       if (ended) socket.emit("match:ended", ended);
       socket.to(channel(room.code)).emit("room:updated", { room });
+      broadcastLobby();
     };
+
+    socket.on("lobby:subscribe", (payload: unknown) => {
+      if (!lobbySchema.safeParse(payload).success) return fail("lobby:subscribe", "INVALID_PAYLOAD");
+      void socket.join(LOBBY);
+      socket.emit("lobby:rooms", { rooms: service.listOpenRooms() });
+    });
+
+    socket.on("lobby:unsubscribe", (payload: unknown) => {
+      if (!lobbySchema.safeParse(payload).success) return fail("lobby:unsubscribe", "INVALID_PAYLOAD");
+      void socket.leave(LOBBY);
+    });
 
     socket.on("room:create", (payload: unknown) => {
       const parsed = createRoomSchema.safeParse(payload);
@@ -93,6 +123,7 @@ export const registerHandlers = (io: Server, service: RoomService, { abandonTime
       if (!result.ok) return fail("room:ready", result.code);
       io.to(channel(result.room.code)).emit("room:updated", { room: result.room });
       deliver(result);
+      broadcastLobby();
     });
 
     socket.on("match:action", (payload: unknown) => {
@@ -109,6 +140,7 @@ export const registerHandlers = (io: Server, service: RoomService, { abandonTime
       const result = service.requestRematch({ connectionId: socket.id, accept: parsed.data.accept });
       if (!result.ok) return fail("match:rematch", result.code);
       deliver(result);
+      broadcastLobby();
     });
 
     socket.on("room:leave", () => {
