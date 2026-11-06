@@ -136,6 +136,7 @@ src/engine/
 ```text
 src/server/
   index.ts              inicia o Express, o Socket.IO e os arquivos estáticos
+  app.ts                createApp: monta Express, Socket.IO e estáticos sem escutar porta (testável)
   sockets/
     handlers.ts         recebe e responde aos eventos
     schemas.ts          schemas Zod das mensagens recebidas
