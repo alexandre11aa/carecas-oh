@@ -99,6 +99,7 @@ src/engine/
   createMatch.ts        cria o estado inicial a partir dos decks e da semente
   applyAction.ts        (estado, ação) => resultado
   playerView.ts         filtra o estado visível a cada jogador
+  eventView.ts          filtra os eventos (GameEvent) visíveis a cada jogador
   index.ts              exportações públicas
 ```
 
@@ -112,6 +113,7 @@ src/engine/
 - Ações são uma união discriminada pelo campo `type`, em `UPPER_SNAKE_CASE` (`SUMMON_CARD`, `ATTACK`, `END_TURN`).
 - `playerView` é o único caminho para gerar dados enviados aos jogadores. A mão do oponente, a ordem dos decks e a semente nunca são incluídas.
 - `playerView(state, viewer)` devolve `you` (mão e campo completos, deck só como `deckCount`) e `opponent` (contagem de mão/deck; monstros e magias/armadilhas virados viram `cardId: null`, sem `attackBonus`/`hasAttacked`). Públicos: vida, fase, turno, cemitérios e, nos monstros virados para cima, `attackBonus`, `hasAttacked` e `changedPositionOnTurn`. `pendingResponse` aparece como `{ responder, canRespond: false }` para o jogador do turno; só o defensor recebe gatilho e ação interrompida (sem ids de tributos/alvos virados). Todo campo novo do estado exige decidir aqui se é público.
+- `eventView(event, viewer)` é o único caminho de eventos aos jogadores: o servidor nunca envia `GameEvent` bruto. Ids de cartas ocultas do oponente viram `null` (compra, monstro baixado/mudado de posição virado, magia/armadilha baixada, alvo de magia, reforço de ataque). Evento novo que carregue `cardId` exige decidir aqui se é público.
 
 ### Cartas
 
@@ -161,7 +163,8 @@ src/server/
 - Nomes de funções em `camelCase`, no formato `<ação><Entidade>`: `createRoom`, `joinRoom`, `submitAction`.
 - Funções de service recebem um único objeto como argumento: `joinRoom({ code, nickname })`.
 - O cliente nunca é confiável: toda mensagem passa pelo Zod, e o jogador é identificado pelo servidor, nunca por um campo enviado pelo cliente.
-- Após cada jogada válida, cada jogador recebe o próprio resultado de `playerView`.
+- Após cada jogada válida, cada jogador recebe `match:state` com o próprio `playerView` e os eventos filtrados por `eventView`. A semente é gerada no servidor e nunca sai dele.
+- A partida (estado completo) fica em `Room.match` no store; o lado (P1/P2) de cada jogador vem do token, nunca da mensagem.
 - Erros enviados ao cliente têm um `code` estável, e a interface escolhe a mensagem em português.
 - O estado das partidas fica apenas em `store/`.
 
