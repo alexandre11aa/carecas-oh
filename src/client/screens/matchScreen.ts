@@ -23,6 +23,7 @@ import {
 } from "./matchActions.js";
 import { buildNotices, deltaText, lifePercent, lifeSides, MAX_LIFE, type Notice, type NoticeSide } from "./matchNotices.js";
 import { buildCardDetail, slotCardId } from "./cardDetail.js";
+import { applyCardArt } from "./cardArtImage.js";
 import { createCardView } from "./cardView.js";
 import { canSurrender, endSummary, rematchState } from "./matchEnd.js";
 import { actingPlayer, opponentNickname, secondsRemaining, timerLevel, turnBannerText } from "./turnTimer.js";
@@ -329,6 +330,8 @@ export const createMatchScreen = (): Screen => {
         const card = el("button", `hand-card ${kind}${selected ? " selected" : ""}`);
         card.type = "button";
         card.append(el("b", undefined, title), el("span", undefined, detail));
+        card.setAttribute("aria-label", `${title}. ${detail}`);
+        applyCardArt(card, cardId, title);
         card.addEventListener("mouseenter", () => showDetail(cardId));
         card.addEventListener("focus", () => showDetail(cardId));
         card.addEventListener("mouseleave", () => showDetail(null));
