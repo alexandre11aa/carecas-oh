@@ -3,8 +3,12 @@ import { CanvasTexture, Mesh, MeshLambertMaterial, PlaneGeometry, SRGBColorSpace
 import { getCard } from "../../engine/cards.js";
 import { CARD_HEIGHT, CARD_WIDTH, type CardPlacement } from "./layout.js";
 
+// Canvas provisório na proporção 1030:1500 (412x600). Desenha-se em coordenadas lógicas de
+// 256 de largura (TEX_W) e a altura proporcional (TEX_H); o contexto é escalado para o canvas.
+const CANVAS_W = 412;
+const CANVAS_H = 600;
 const TEX_W = 256;
-const TEX_H = 366;
+const TEX_H = (TEX_W * CANVAS_H) / CANVAS_W;
 
 /** Geometria única compartilhada por todas as cartas: plano deitado, com a frente voltada para cima. */
 const geometry = new PlaneGeometry(CARD_WIDTH, CARD_HEIGHT).rotateX(-Math.PI / 2);
@@ -15,9 +19,11 @@ const COLORS = { MONSTER: "#b5803a", SPELL: "#2f8a78", TRAP: "#8a3a6a" } as cons
 
 const makeCanvas = (): [HTMLCanvasElement, CanvasRenderingContext2D] => {
   const canvas = document.createElement("canvas");
-  canvas.width = TEX_W;
-  canvas.height = TEX_H;
-  return [canvas, canvas.getContext("2d") as CanvasRenderingContext2D];
+  canvas.width = CANVAS_W;
+  canvas.height = CANVAS_H;
+  const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+  ctx.scale(CANVAS_W / TEX_W, CANVAS_W / TEX_W);
+  return [canvas, ctx];
 };
 
 const wrap = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] => {

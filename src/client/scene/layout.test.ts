@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createMatch } from "../../engine/createMatch.js";
 import { playerView } from "../../engine/playerView.js";
 import type { MatchState } from "../../engine/types.js";
-import { allSlots, layoutBoard, pickSlot, slotPosition } from "./layout.js";
+import { allSlots, CARD_HEIGHT, CARD_WIDTH, layoutBoard, pickSlot, slotPosition } from "./layout.js";
 
 const baseState = (): MatchState => createMatch(123);
 
@@ -83,5 +83,11 @@ describe("pickSlot", () => {
   it("devolve_null_fora_de_qualquer_slot", () => {
     expect(pickSlot(0, 0)).toBeNull();
     expect(pickSlot(20, 20)).toBeNull();
+  });
+});
+
+describe("proporcao_da_carta", () => {
+  it("usa_a_proporcao_1030_por_1500", () => {
+    expect(CARD_WIDTH / CARD_HEIGHT).toBeCloseTo(1030 / 1500, 10);
   });
 });
