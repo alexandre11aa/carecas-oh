@@ -43,15 +43,48 @@ docs/         Documentação dos eventos
 | Containers | Docker e Docker Compose |
 | Hospedagem | Web Service gratuito do Render, com runtime Docker |
 
-## Regras do jogo (versão inicial)
+## Regras do jogo
 
-- Dois jogadores, cada um com 8000 pontos de vida e um deck pré-montado.
-- Cada jogador começa com 5 cartas e compra 1 no início do próprio turno.
+Seguem as regras do Yu-Gi-Oh, com monstros, magias, armadilhas e tributo.
+
+### Pontos de vida e decks
+
+- Dois jogadores, cada um com 8000 pontos de vida.
+- Existem 20 cartas provisórias. Ao iniciar a partida, cada jogador recebe 10 cartas sorteadas sem repetição, sem que as cartas se repitam entre os jogadores. O sorteio usa a semente do estado.
+- Mão inicial de 5 cartas; as outras 5 ficam no deck.
+- Perde quem não puder comprar quando for obrigado a comprar.
+- Vence também quem zerar os pontos de vida do oponente.
+
+### Fases do turno
+
+1. **Compra (Draw):** o jogador do turno compra 1 carta.
+2. **Principal 1 (Main 1):** invocar, baixar, mudar posição e usar magias.
+3. **Batalha (Battle):** monstros em ataque podem atacar.
+4. **Principal 2 (Main 2):** o mesmo que na Principal 1, respeitando os limites do turno.
+5. **Fim (End):** o turno passa ao oponente.
+
+### Monstros
+
 - O campo tem 5 zonas de monstro por jogador.
-- Cada jogador pode invocar 1 monstro por turno, em ataque ou defesa.
-- Monstros atacam uma vez por turno. A diferença entre os valores define o dano e os monstros destruídos.
-- Vence quem zerar os pontos de vida do oponente ou quem restar quando o oponente não puder comprar.
-- Não há cadeia de efeitos, armadilhas nem respostas no turno do oponente.
+- Cada jogador pode fazer 1 invocação normal por turno (ou baixar 1 monstro em defesa virada, que conta como a invocação normal do turno).
+- **Tributo:** monstros de nível 1 a 4 não exigem tributo; nível 5 a 6 exigem 1 tributo; nível 7 ou mais exigem 2 tributos. Os tributos são monstros do próprio campo, enviados ao cemitério.
+- **Baixar em defesa virada:** o monstro entra de face para baixo, na posição de defesa.
+- **Mudança de posição:** uma vez por turno por monstro, na Principal, entre ataque e defesa. Um monstro não muda de posição no turno em que foi invocado nem depois de atacar. Um monstro virado vira-se para cima ao mudar para ataque.
+- **Combate:** cada monstro em ataque ataca uma vez por turno. Ataque contra ataque: a diferença entre os valores de ATK é o dano ao dono do monstro mais fraco, que é destruído (empate destrói ambos). Ataque contra defesa: compara-se o ATK com a DEF; se o ATK for maior, o monstro em defesa é destruído sem dano aos pontos de vida; se for menor, o atacante sofre a diferença como dano. Ataque direto só é permitido quando o oponente não tem monstros.
+
+### Magias e armadilhas
+
+- **Magia:** ativada da mão pelo jogador do turno, nas fases Principais, com efeito imediato; depois vai ao cemitério.
+- **Armadilha:** baixada virada na zona de magia/armadilha e ativada no turno do oponente, a partir do turno seguinte ao que foi baixada.
+- **Janela de resposta:** quando o jogador do turno faz uma ação que pode ser respondida (invocação, ataque ou ativação de magia), o jogo abre uma janela em que o oponente decide ativar ou não uma armadilha. O efeito da armadilha resolve antes da ação original. Na Sprint 1 só existe uma resposta por janela: cadeia com múltiplos efeitos não é suportada.
+
+## Fluxo da partida
+
+1. **Lobby:** o jogador informa um apelido e cria uma sala ou entra por código/link.
+2. **Sala:** os dois jogadores ficam na sala de espera.
+3. **Pronto:** cada jogador marca "pronto"; a partida começa quando ambos estiverem prontos.
+4. **Partida 3D:** jogada conforme as regras acima, na cena 3D com interface em HTML.
+5. **Fim:** exibe o resultado e oferece **revanche** (reembaralha: sorteia de novo as 10 cartas de cada jogador com nova semente, e reinicia a vida em 8000) ou **voltar ao lobby**.
 
 ## Engine (`src/engine/`)
 
@@ -60,7 +93,7 @@ docs/         Documentação dos eventos
 ```text
 src/engine/
   cards.ts              definições das cartas, tipadas
-  decks.ts              decks pré-montados
+  decks.ts              as 20 cartas provisórias e o sorteio dos decks de 10 cartas
   types.ts              tipos de cartas, ações e estado da partida
   rules/                turnos, invocação e combate, um arquivo por assunto
   createMatch.ts        cria o estado inicial a partir dos decks e da semente
@@ -132,7 +165,7 @@ src/server/
 
 1. O jogador informa um apelido e cria uma sala.
 2. O servidor gera um código curto e guarda a sala na memória.
-3. O segundo jogador entra pelo código ou pelo link `/sala/CODIGO`.
+3. O segundo jogador entra pelo código ou pelo link `/sala/CODIGO`. Cada jogador marca "pronto" para iniciar a partida (ver "Fluxo da partida").
 4. Cada jogador recebe um token aleatório, salvo no `localStorage`, para voltar à partida após recarregar a página ou perder a conexão.
 5. Salas encerradas ou abandonadas são removidas da memória.
 
@@ -278,8 +311,11 @@ Antes de entregar uma tarefa, rode `npm run check`, `npm test` e `npm run build`
 - No plano gratuito do Render, o serviço hiberna após 15 minutos sem requisições HTTP ou mensagens WebSocket recebidas. Ao hibernar, as partidas na memória se perdem.
 - O primeiro acesso após a hibernação demora mais, então a interface deve exibir um estado de carregamento.
 - Conexões podem cair durante a partida, então a reconexão por token precisa funcionar desde o início.
+- Cadeia com múltiplos efeitos (vários efeitos encadeados e respondidos entre si) fica fora da Sprint 1; há apenas uma resposta de armadilha por janela.
+- As 20 cartas do jogo são provisórias.
 
 ## Decisões em aberto
 
-- [ ] Quantas cartas terá cada deck e quais serão as cartas iniciais?
+- [ ] Quais serão as 20 cartas definitivas (monstros, magias e armadilhas) e seus efeitos?
 - [ ] Qual será a identidade visual do jogo (tema, cores e estilo das cartas)?
+- [ ] Como será a cadeia com múltiplos efeitos (sprint futura)?
