@@ -47,7 +47,7 @@ const resolveEffect = (
   player: PlayerId,
   self: PlayerState,
   enemy: PlayerState,
-  targetCardId: string | null,
+  targetZone: number | null,
 ): Resolution => {
   const enemyId = opponentOf(player);
   const events: GameEvent[] = [];
@@ -72,16 +72,17 @@ const resolveEffect = (
       };
     }
     case "BOOST_ATTACK": {
-      const zone = self.monsters.findIndex((m) => m?.cardId === targetCardId);
-      if (!self.monsters[zone] || targetCardId === null) return fail("INVALID_TARGET");
-      events.push({ type: "ATTACK_BOOSTED", player, cardId: targetCardId, amount: effect.amount });
+      const zone = targetZone ?? -1;
+      const target = self.monsters[zone];
+      if (!target) return fail("INVALID_TARGET");
+      events.push({ type: "ATTACK_BOOSTED", player, cardId: target.cardId, zone, amount: effect.amount });
       const monsters = self.monsters.map((m, i) =>
         i === zone && m ? { ...m, attackBonus: (m.attackBonus ?? 0) + effect.amount } : m,
       );
       return { self: { ...self, monsters }, enemy, events, winner: null };
     }
     case "DESTROY_MONSTER": {
-      const zone = enemy.monsters.findIndex((m) => m?.cardId === targetCardId);
+      const zone = targetZone ?? -1;
       const target = enemy.monsters[zone];
       if (!target) return fail("INVALID_TARGET");
       const targetCard = getCard(target.cardId);
@@ -117,16 +118,16 @@ export const activateSpell = (
   if (!card || card.type !== "SPELL") return fail("NOT_A_SPELL");
 
   const enemyId = opponentOf(player);
-  const targetCardId = action.targetCardId ?? null;
+  const targetZone = action.targetZone ?? null;
   const base: PlayerState = inHand
     ? { ...current, hand: current.hand.filter((id) => id !== action.cardId) }
     : { ...current, spellTraps: current.spellTraps.map((s, i) => (i === zone ? null : s)) };
 
-  const resolved = resolveEffect(card.effect, player, base, state.players[enemyId], targetCardId);
+  const resolved = resolveEffect(card.effect, player, base, state.players[enemyId], targetZone);
   if ("ok" in resolved) return resolved;
 
   const events: GameEvent[] = [
-    { type: "SPELL_ACTIVATED", player, cardId: action.cardId, targetCardId },
+    { type: "SPELL_ACTIVATED", player, cardId: action.cardId, targetZone },
     ...resolved.events,
     { type: "CARD_SENT_TO_GRAVEYARD", player, cardId: action.cardId },
   ];

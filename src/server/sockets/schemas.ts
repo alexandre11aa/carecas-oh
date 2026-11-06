@@ -30,10 +30,10 @@ export const matchActionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("SET_SPELL_TRAP"), cardId }).strict(),
   z.object({ type: z.literal("CHANGE_POSITION"), cardId }).strict(),
   z.object({ type: z.literal("FLIP_SUMMON"), cardId }).strict(),
-  z.object({ type: z.literal("ACTIVATE_SPELL"), cardId, targetCardId: cardId.nullish() }).strict(),
+  z.object({ type: z.literal("ACTIVATE_SPELL"), cardId, targetZone: zone.nullish() }).strict(),
   z.object({ type: z.literal("ACTIVATE_TRAP"), cardId }).strict(),
   z.object({ type: z.literal("PASS_RESPONSE") }).strict(),
-  z.object({ type: z.literal("ATTACK"), attackerCardId: cardId, targetCardId: cardId.nullable() }).strict(),
+  z.object({ type: z.literal("ATTACK"), attackerCardId: cardId, targetZone: zone.nullable() }).strict(),
   z.object({ type: z.literal("NEXT_PHASE") }).strict(),
   z.object({ type: z.literal("END_TURN") }).strict(),
 ]);

@@ -75,7 +75,7 @@ const viewSpellTrap = (card: SpellTrapOnField | null): SpellTrapOnField | Hidden
 
 /**
  * Ação interrompida como o defensor pode vê-la: ids de monstros virados do jogador do turno
- * (tributos e alvo de magia) são removidos, pois revelariam cartas ocultas.
+ * (tributos) são removidos, pois revelariam cartas ocultas.
  */
 const sanitizeAction = (action: Action, actor: PlayerState): Action => {
   const hiddenIds = new Set(
@@ -83,9 +83,6 @@ const sanitizeAction = (action: Action, actor: PlayerState): Action => {
   );
   if (action.type === "SUMMON_CARD" || action.type === "SET_MONSTER") {
     return { ...action, tributeCardIds: action.tributeCardIds.filter((id) => !hiddenIds.has(id)) };
-  }
-  if (action.type === "ACTIVATE_SPELL" && action.targetCardId && hiddenIds.has(action.targetCardId)) {
-    return { ...action, targetCardId: null };
   }
   return action;
 };

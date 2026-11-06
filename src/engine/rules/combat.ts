@@ -23,7 +23,7 @@ const statOf = (monster: MonsterOnField, stat: "attack" | "defense"): number => 
   return stat === "attack" ? card.attack + (monster.attackBonus ?? 0) : card.defense;
 };
 
-/** Ataca com um monstro em ataque, uma vez por turno, contra um monstro do oponente ou direto (alvo nulo). */
+/** Ataca com um monstro em ataque, uma vez por turno, contra um monstro do oponente ou direto (zona nula). */
 export const attack = (state: MatchState, player: PlayerId, action: AttackAction): ActionResult => {
   if (state.phase !== "BATTLE") return fail("INVALID_PHASE");
   if (!canAttack(state)) return fail("ATTACK_NOT_ALLOWED_ON_FIRST_TURN");
@@ -39,7 +39,7 @@ export const attack = (state: MatchState, player: PlayerId, action: AttackAction
   if (attacker.hasAttacked) return fail("ALREADY_ATTACKED");
 
   const events: GameEvent[] = [
-    { type: "ATTACK_DECLARED", player, attackerCardId: attacker.cardId, targetCardId: action.targetCardId },
+    { type: "ATTACK_DECLARED", player, attackerCardId: attacker.cardId, targetZone: action.targetZone },
   ];
   const atk = statOf(attacker, "attack");
   let selfData: PlayerState = {
@@ -63,12 +63,12 @@ export const attack = (state: MatchState, player: PlayerId, action: AttackAction
     };
   };
 
-  if (action.targetCardId === null) {
+  if (action.targetZone === null) {
     if (enemy.monsters.some((m) => m !== null)) return fail("DIRECT_ATTACK_NOT_ALLOWED");
     enemyData = damage(enemyId, enemyData, atk);
   } else {
-    const targetZone = enemy.monsters.findIndex((m) => m?.cardId === action.targetCardId);
-    const target = enemy.monsters[targetZone];
+    const targetZone = action.targetZone;
+    const target = Number.isInteger(targetZone) ? enemy.monsters[targetZone] : null;
     if (!target) return fail("INVALID_TARGET");
 
     if (target.position === "ATTACK") {
