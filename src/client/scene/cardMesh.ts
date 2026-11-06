@@ -1,6 +1,8 @@
 // src/client/scene/cardMesh.ts
 import { CanvasTexture, Mesh, MeshLambertMaterial, PlaneGeometry, SRGBColorSpace } from "three";
 import { getCard } from "../../engine/cards.js";
+import { chooseFace, faceImageUrl } from "./cardArt.js";
+import { loadTexture } from "./textures.js";
 import { CARD_HEIGHT, CARD_WIDTH, type CardPlacement } from "./layout.js";
 
 // Canvas provisório na proporção 1030:1500 (412x600). Desenha-se em coordenadas lógicas de
@@ -77,7 +79,12 @@ const backTexture = (): CanvasTexture => {
   return new CanvasTexture(canvas);
 };
 
-/** Material compartilhado por identidade de carta; `null` é o verso. */
+/**
+ * Material compartilhado por identidade de carta; `null` é o verso (nunca carrega imagem da frente).
+ * A frente começa com o canvas provisório; se o PNG existir, ele substitui o mapa do próprio material
+ * ao terminar de carregar (sem texto sobreposto: a arte já é a carta inteira). Como o material é por
+ * carta e não por malha, uma imagem tardia nunca atinge a carta errada. Em 404 permanece o canvas.
+ */
 const materialFor = (cardId: string | null): MeshLambertMaterial => {
   const key = cardId ?? "back";
   let material = materials.get(key);
@@ -86,6 +93,17 @@ const materialFor = (cardId: string | null): MeshLambertMaterial => {
     map.colorSpace = SRGBColorSpace;
     material = new MeshLambertMaterial({ map });
     materials.set(key, material);
+    const url = faceImageUrl(cardId);
+    if (url) {
+      const target = material;
+      void loadTexture(url).then((texture) => {
+        if (!texture || chooseFace(url, true) !== "image") return;
+        const previous = target.map;
+        target.map = texture;
+        target.needsUpdate = true;
+        previous?.dispose();
+      });
+    }
   }
   return material;
 };
