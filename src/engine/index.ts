@@ -21,3 +21,5 @@ export type {
   PendingResponseView,
   PlayerView,
 } from "./playerView";
+export { eventView } from "./eventView";
+export type { EventView } from "./eventView";

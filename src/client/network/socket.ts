@@ -58,7 +58,7 @@ export const leaveRoom = (): void => {
   setState({ room: null, errorCode: null });
 };
 
-/** Marca o jogador como pronto (o evento é tratado pelo servidor na issue #13). */
+/** Marca o jogador como pronto (`room:ready`). */
 export const sendReady = (): void => {
   socket.emit("room:ready");
 };

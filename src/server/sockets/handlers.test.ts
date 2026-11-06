@@ -45,7 +45,7 @@ describe("room:create", () => {
     const a = await client();
     const { room, token } = await createRoom(a);
     expect(room.code).toMatch(/^[A-HJ-NP-Z2-9]{4}$/);
-    expect(room.players).toEqual([{ nickname: "Ana", connected: true }]);
+    expect(room.players).toEqual([{ nickname: "Ana", connected: true, ready: false }]);
     expect(typeof token).toBe("string");
     expect(token.length).toBeGreaterThanOrEqual(16);
   });
@@ -85,8 +85,8 @@ describe("room:join", () => {
     b.emit("room:join", { code: room.code.toLowerCase(), nickname: "Bia" });
     const joined = await joinedB;
     const expected = [
-      { nickname: "Ana", connected: true },
-      { nickname: "Bia", connected: true },
+      { nickname: "Ana", connected: true, ready: false },
+      { nickname: "Bia", connected: true, ready: false },
     ];
     expect(joined.room.players).toEqual(expected);
     expect((await updatedA).room.players).toEqual(expected);
@@ -131,7 +131,7 @@ describe("room:rejoin", () => {
 
     const offline = once(b, "room:updated");
     a.close();
-    expect((await offline).room.players[0]).toEqual({ nickname: "Ana", connected: false });
+    expect((await offline).room.players[0]).toEqual({ nickname: "Ana", connected: false, ready: false });
 
     const a2 = await client();
     const rejoined = once(a2, "room:rejoined");
@@ -141,8 +141,8 @@ describe("room:rejoin", () => {
     expect(reply.token).toBe(created.token);
     expect(reply.room.code).toBe(created.room.code);
     expect(reply.room.players).toEqual([
-      { nickname: "Ana", connected: true },
-      { nickname: "Bia", connected: true },
+      { nickname: "Ana", connected: true, ready: false },
+      { nickname: "Bia", connected: true, ready: false },
     ]);
     expect((await online).room.players[0].connected).toBe(true);
   });
@@ -230,7 +230,7 @@ describe("limpeza de salas", () => {
     await joined;
     const updated = once(b, "room:updated");
     a.emit("room:leave");
-    expect((await updated).room.players).toEqual([{ nickname: "Bia", connected: true }]);
+    expect((await updated).room.players).toEqual([{ nickname: "Bia", connected: true, ready: false }]);
     const joinedC = once(c, "room:joined");
     c.emit("room:join", { code: created.room.code, nickname: "Caio" });
     expect((await joinedC).room.players).toHaveLength(2);
