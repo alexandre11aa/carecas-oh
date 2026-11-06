@@ -17,6 +17,18 @@ describe("cards", () => {
     expect(CARDS.filter((c) => c.type === "TRAP").length).toBeGreaterThanOrEqual(3);
   });
 
+  it("toda_carta_tem_flavor_nao_vazio", () => {
+    for (const card of CARDS) {
+      expect(card.flavor.trim().length, card.id).toBeGreaterThan(0);
+    }
+  });
+
+  it("fonte_curativa_usa_o_flavor_definido", () => {
+    expect(CARDS.find((c) => c.id === "healing_spring")?.flavor).toBe(
+      "Fonte abençoada que concede refrigério a quem disfruta da oportunidade de beber sua água.",
+    );
+  });
+
   it("e_serializavel_em_json", () => {
     expect(JSON.parse(JSON.stringify(CARDS))).toEqual(CARDS);
   });
