@@ -1,7 +1,9 @@
 // src/client/screens/tutorialSections.test.ts
 import { describe, expect, it } from "vitest";
+import { CARDS } from "../../engine/cards.js";
 import {
   TUTORIAL_SECTIONS,
+  groupCardsByType,
   isTutorialVisible,
   pickActiveSection,
   sectionElementId,
@@ -16,6 +18,44 @@ describe("TUTORIAL_SECTIONS", () => {
     for (const section of TUTORIAL_SECTIONS) {
       expect(section.title).not.toBe("");
       expect(section.summary).not.toBe("");
+      expect(section.details.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("tem_as_secoes_obrigatorias_na_ordem", () => {
+    expect(TUTORIAL_SECTIONS.map((section) => section.id)).toEqual([
+      "objetivo", "decks", "turno", "monstros", "combate", "magias", "armadilhas", "fim", "cartas",
+    ]);
+  });
+
+  it("documenta_o_limite_de_30_segundos_e_a_tabela_de_tributo", () => {
+    const turno = TUTORIAL_SECTIONS.find((s) => s.id === "turno");
+    const text = JSON.stringify(turno?.details);
+    expect(text).toContain("30 segundos");
+    const monstros = TUTORIAL_SECTIONS.find((s) => s.id === "monstros");
+    const table = monstros?.details.find((b) => b.kind === "table");
+    expect(table).toMatchObject({ rows: [["1 a 4", "Nenhum"], ["5 a 6", expect.any(String)], ["7 ou mais", expect.any(String)]] });
+  });
+
+  it("secao_cartas_usa_o_catalogo_gerado", () => {
+    const cartas = TUTORIAL_SECTIONS.find((s) => s.id === "cartas");
+    expect(cartas?.details).toEqual([{ kind: "cards" }]);
+  });
+});
+
+describe("groupCardsByType", () => {
+  it("agrupa_todas_as_cartas_sem_duplicar_dados", () => {
+    const groups = groupCardsByType();
+    expect(groups.map((g) => g.kind)).toEqual(["monster", "spell", "trap"]);
+    const ids = groups.flatMap((g) => g.cards.map((c) => c.id));
+    const expected = (["MONSTER", "SPELL", "TRAP"] as const).flatMap((type) =>
+      CARDS.filter((c) => c.type === type).map((c) => c.id),
+    );
+    expect(ids).toEqual(expected);
+    expect(ids.length).toBe(CARDS.length);
+    for (const card of groups.flatMap((g) => g.cards)) {
+      expect(card.effect).not.toBe("");
+      expect(card.mechanic).not.toBe("");
     }
   });
 });
