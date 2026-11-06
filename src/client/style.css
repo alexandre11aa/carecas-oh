@@ -288,7 +288,10 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Detalhe da carta (painel em HTML sobre a partida; também usado no tutorial) */
 /* Abaixo do HUD superior (oponente, turno/fase/contagem) e acima da mão/comandos; o conteúdo longo rola dentro do painel */
-.card-detail { position: absolute; top: 10rem; right: 0.75rem; width: min(18rem, 40vw); max-height: max(8rem, calc(100vh - 10rem - 16rem)); overflow-y: auto; pointer-events: none; }
+.card-detail { --detail-top: 2.7rem; --detail-free: calc(100vh - var(--detail-top) - 15rem); position: absolute; top: var(--detail-top); right: 0.75rem; width: min(18rem, 40vw); max-height: max(8rem, var(--detail-free)); overflow-y: auto; pointer-events: none; }
+@supports (height: 100dvh) { .card-detail { --detail-free: calc(100dvh - var(--detail-top) - 15rem); } }
+@media (max-width: 40rem) { .card-detail { --detail-top: 6.75rem; } }
+.card-detail .card-view.has-art .card-art { width: auto; max-width: 100%; height: max(6rem, var(--detail-free)); max-height: calc(min(18rem, 40vw) * 1500 / 1030); margin-left: auto; object-fit: contain; }
 .card-detail[hidden] { display: none; }
 .card-view { box-sizing: border-box; padding: 0.7rem 0.8rem; border-radius: var(--radius-md); background: linear-gradient(180deg, var(--c-parchment), var(--c-parchment-dark)); color: var(--c-ink); border: 4px double var(--c-monster); box-shadow: var(--shadow-panel); font-size: 0.85rem; overflow-wrap: anywhere; word-break: break-word; }
 .card-view.spell { border-color: var(--c-spell); }
