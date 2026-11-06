@@ -4,9 +4,9 @@ import { el, type Screen } from "./dom.js";
 
 /** Exibida no primeiro acesso, quando o servidor gratuito pode estar acordando. */
 export const createLoadingScreen = (): Screen => {
-  const element = el("main", "screen");
+  const element = el("main", "screen themed");
   const text = el("p", "hint");
-  element.append(el("h1", undefined, "Carecas Oh"), el("div", "spinner"), text);
+  element.append(el("h1", "game-title", "Carecas Oh"), el("div", "spinner"), text);
 
   const update = () => {
     text.textContent =

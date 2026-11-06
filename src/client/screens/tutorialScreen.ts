@@ -50,7 +50,7 @@ export type Tutorial = {
 
 /** Monta o tutorial em página infinita; a seção ativa vem de um IntersectionObserver. */
 export const createTutorial = (): Tutorial => {
-  const cta = el("a", "tutorial-cta", "Role para ver o tutorial ↓");
+  const cta = el("a", "tutorial-cta", "Aprender a jogar: ver o tutorial ↓");
   cta.href = sectionHref(TUTORIAL_SECTIONS[0].id);
 
   const element = el("div", "tutorial");

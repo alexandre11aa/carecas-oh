@@ -56,8 +56,6 @@ html { scroll-behavior: smooth; }
 
 /* Home: lobby no topo e tutorial em página infinita abaixo (a página rola) */
 .home { display: flex; flex-direction: column; align-items: center; gap: 3rem; width: 100%; }
-.tutorial-cta { color: #c8a23a; text-decoration: none; font-weight: 600; padding: 0.5rem; }
-.tutorial-cta:hover { text-decoration: underline; }
 .tutorial { width: 100%; max-width: 44rem; }
 .tutorial-nav {
   position: sticky;
@@ -136,6 +134,73 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Tema de jogo da home, do carregamento e da sala de espera (escopado: não afeta a partida) */
+.home, .themed { font-family: var(--font-body); color: var(--c-text); }
+.home { position: relative; isolation: isolate; overflow-x: clip; }
+.home::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 20%, #2d2750 0%, var(--c-bg) 55%, #0b0a12 100%);
+  box-shadow: inset 0 0 12rem rgba(0, 0, 0, 0.75);
+}
+.home .screen { max-width: 30rem; }
+.hero { position: relative; padding: 1.5rem 0 0.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.6rem; overflow: hidden; }
+.game-title {
+  margin: 0;
+  padding: 0.4rem 1.6rem;
+  font-family: var(--font-title);
+  font-size: clamp(2.2rem, 10vw, 3.6rem);
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, #fff3b0 0%, var(--c-gold-light) 45%, var(--c-gold) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 0 #000) drop-shadow(0 0 14px rgba(255, 211, 77, 0.45));
+  border: 3px double var(--c-gold);
+  border-radius: var(--radius-md);
+  position: relative;
+  z-index: 1;
+}
+.themed .game-title { font-size: clamp(1.8rem, 8vw, 2.6rem); align-self: center; }
+.hero-subtitle { margin: 0; z-index: 1; color: var(--c-text-dim); text-shadow: var(--shadow-text); }
+.deco-card { position: absolute; top: 1.2rem; width: 4.2rem; aspect-ratio: 1030 / 1500; border-radius: var(--radius-sm); border: 2px solid var(--c-gold); background: linear-gradient(135deg, #3a3560, #1d1a33 60%, var(--c-trap)); box-shadow: var(--shadow-panel); overflow: hidden; pointer-events: none; }
+.deco-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.deco-left { left: 0.2rem; transform: rotate(-14deg); }
+.deco-right { right: 0.2rem; transform: rotate(12deg); }
+@media (min-width: 30rem) { .deco-card { width: 5.5rem; } .deco-left { left: 1rem; } .deco-right { right: 1rem; } }
+@media (prefers-reduced-motion: no-preference) {
+  .deco-left { animation: deco-float 5s ease-in-out infinite alternate; }
+  .deco-right { animation: deco-float 6s ease-in-out infinite alternate-reverse; }
+}
+@keyframes deco-float { from { translate: 0 0; } to { translate: 0 -0.5rem; } }
+.panel { display: flex; flex-direction: column; gap: 0.6rem; padding: 1rem; background: linear-gradient(180deg, #24203a, var(--c-panel)); border: var(--border-gold); border-radius: var(--radius-md); box-shadow: var(--shadow-panel); text-align: center; }
+.panel-title { margin: 0; font-family: var(--font-title); font-size: 1.15rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--c-gold-light); text-shadow: var(--shadow-text); }
+.join-row { display: flex; gap: 0.5rem; }
+.join-row input { flex: 1; min-width: 0; }
+.home .hint, .themed .hint { color: var(--c-text-dim); }
+.home .error, .themed .error { color: var(--c-danger); }
+.home input, .themed input { background: #12101e; color: var(--c-text); border: var(--border-gold-thin); }
+.home input:focus-visible, .themed input:focus-visible { outline: 3px solid var(--c-gold-light); outline-offset: 1px; }
+.home .panel button, .themed button { font-family: var(--font-title); letter-spacing: 0.03em; color: var(--c-text); background: linear-gradient(180deg, #3a3560, #25223e); border: var(--border-gold); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5); transition: transform 0.12s, border-color 0.12s; }
+.home .panel button:hover:not(:disabled), .themed button:hover:not(:disabled) { background: linear-gradient(180deg, #4b4580, #2f2b52); border-color: var(--c-gold-light); transform: translateY(-1px); }
+.home .panel button:focus-visible, .themed button:focus-visible, .home .tutorial-cta:focus-visible { outline: 3px solid var(--c-gold-light); outline-offset: 2px; }
+.home .panel button.primary, .themed button.primary { background: linear-gradient(180deg, var(--c-gold-light), var(--c-gold)); color: var(--c-ink); border-color: var(--c-gold-dark); font-weight: 700; }
+.home .panel button.primary:hover:not(:disabled), .themed button.primary:hover:not(:disabled) { background: linear-gradient(180deg, #ffe58a, var(--c-gold-light)); }
+.home .panel button:disabled, .themed button:disabled { opacity: 0.55; transform: none; }
+.home .lobby-item { padding: 0.4rem 0.6rem; background: #12101e; border: var(--border-gold-thin); border-radius: var(--radius-sm); }
+.home .lobby-code { color: var(--c-gold-light); }
+.home .tutorial-cta { display: inline-block; align-self: center; padding: 0.7rem 1.4rem; font-family: var(--font-title); font-weight: 700; color: var(--c-ink); text-decoration: none; background: linear-gradient(180deg, var(--c-gold-light), var(--c-gold)); border: 2px solid var(--c-gold-dark); border-radius: var(--radius-md); box-shadow: 0 0 14px rgba(255, 211, 77, 0.35), 0 3px 8px rgba(0, 0, 0, 0.6); }
+.home .tutorial-cta:hover { background: linear-gradient(180deg, #ffe58a, var(--c-gold-light)); text-decoration: none; }
+.themed .players li { background: #12101e; border: var(--border-gold-thin); }
+.themed .room-code { font-family: var(--font-title); color: var(--c-gold-light); text-shadow: var(--shadow-text); }
+.themed .spinner { border-color: var(--c-gold-dark); border-top-color: var(--c-gold-light); }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } .home button { transition: none; } }
 
 /* Partida: cena 3D em tela cheia com HUD em HTML por cima */
 .match { position: fixed; inset: 0; overflow: hidden; font-family: var(--font-body); color: var(--c-text); }

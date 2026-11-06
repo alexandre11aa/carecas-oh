@@ -1,4 +1,5 @@
 // src/client/screens/homeScreen.ts
+import { CARD_BACK_PATH } from "../scene/texturePaths.js";
 import { createRoom, joinRoom, subscribeLobby, unsubscribeLobby } from "../network/socket.js";
 import { getState, loadNickname, saveNickname } from "../state.js";
 import { el, type Screen } from "./dom.js";
@@ -7,15 +8,45 @@ import { NICKNAME_HINT, canSubmitNickname } from "./nickname.js";
 import { createTutorial } from "./tutorialScreen.js";
 import { isTutorialVisible } from "./tutorialSections.js";
 
+const DECO_FRONT_PATH = "/cards/esquiva_da_gloria_divina.png";
+
+/** Carta decorativa inclinada. O fundo em CSS é o fallback: a imagem carrega sem bloquear e some se falhar. */
+const createDecoCard = (className: string, src: string): HTMLElement => {
+  const card = el("div", `deco-card ${className}`);
+  card.setAttribute("aria-hidden", "true");
+  const image = el("img");
+  image.alt = "";
+  image.setAttribute("aria-hidden", "true");
+  image.loading = "lazy";
+  image.decoding = "async";
+  image.draggable = false;
+  image.addEventListener("error", () => image.remove());
+  image.src = src;
+  card.append(image);
+  return card;
+};
+
+/** Painel temático com título opcional. */
+const createPanel = (title: string | null, ...children: HTMLElement[]): HTMLElement => {
+  const panel = el("section", "panel");
+  if (title) panel.append(el("h2", "panel-title", title));
+  panel.append(...children);
+  return panel;
+};
+
 /** Tela inicial. Com `presetCode` (rota /sala/CODIGO) mostra só a entrada na sala indicada. */
 export const createHomeScreen = (presetCode: string | null): Screen => {
   const home = el("div", "home");
   const element = el("main", "screen");
   home.append(element);
-  element.append(
-    el("h1", undefined, "Carecas Oh"),
-    el("p", "hint", presetCode ? `Você foi convidado para a sala ${presetCode}.` : "Duelo de cartas 1x1. Sem cadastro."),
+  const hero = el("header", "hero");
+  hero.append(
+    createDecoCard("deco-left", CARD_BACK_PATH),
+    createDecoCard("deco-right", DECO_FRONT_PATH),
+    el("h1", "game-title", "Carecas Oh"),
+    el("p", "hero-subtitle", presetCode ? `Você foi convidado para a sala ${presetCode}.` : "Duelo de cartas 1x1. Sem cadastro."),
   );
+  element.append(hero);
 
   const nicknameInput = el("input");
   nicknameInput.placeholder = "Seu apelido";
@@ -30,8 +61,8 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
 
   const nicknameHint = el("p", "hint", NICKNAME_HINT);
 
-  const createButton =el("button", "primary", "Criar sala");
-  const joinButton = el("button", undefined, presetCode ? `Entrar na sala ${presetCode}` : "Entrar");
+  const createButton = el("button", "primary", "Criar duelo");
+  const joinButton = el("button", presetCode ? "primary" : undefined, presetCode ? `Entrar na sala ${presetCode}` : "Entrar");
   const error = el("p", "error");
   error.setAttribute("role", "alert");
 
@@ -72,18 +103,26 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
     if (event.key === "Enter") submitJoin();
   });
 
-  element.append(nicknameInput, nicknameHint);
+  element.append(createPanel("Duelista", nicknameInput, nicknameHint));
   if (presetCode) {
-    element.append(joinButton);
+    element.append(createPanel(null, joinButton, error));
   } else {
-    element.append(createButton, el("p", "hint", "ou entre com um código"), codeInput, joinButton);
+    element.append(
+      createPanel(
+        "Novo duelo",
+        createButton,
+        el("p", "hint divider", "ou entre com um código"),
+        el("div", "join-row"),
+        error,
+      ),
+    );
+    element.querySelector(".join-row")?.append(codeInput, joinButton);
   }
-  element.append(error);
 
   // Lista de salas abertas: só na home geral, não no convite /sala/CODIGO.
   const lobbyList = el("ul", "lobby-list");
   const lobbyEmpty = el("p", "hint", "Nenhuma sala aberta no momento");
-  if (!presetCode) element.append(el("h2", undefined, "Salas abertas"), lobbyEmpty, lobbyList);
+  if (!presetCode) element.append(createPanel("Salas abertas", lobbyEmpty, lobbyList));
 
   let renderedRooms: unknown = null;
   const renderLobby = () => {
