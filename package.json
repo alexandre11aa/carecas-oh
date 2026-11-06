@@ -7,6 +7,7 @@
     "dev": "vite",
     "check": "tsc --noEmit",
     "test": "vitest run",
+    "smoke": "vitest run --config vitest.smoke.config.ts",
     "build": "vite build && tsc --noEmit false --outDir dist/server --rootDir src"
   },
   "dependencies": {

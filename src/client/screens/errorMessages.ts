@@ -1,0 +1,48 @@
+// src/client/screens/errorMessages.ts
+
+const MESSAGES: Record<string, string> = {
+  INVALID_PAYLOAD: "Dados inválidos. Confira o apelido (1 a 20 caracteres) e o código (4 caracteres).",
+  ROOM_NOT_FOUND: "Sala não encontrada. Confira o código e tente de novo.",
+  ROOM_FULL: "Esta sala já está cheia.",
+  INVALID_TOKEN: "Sua sessão expirou. Entre em uma sala novamente.",
+  NOT_IN_ROOM: "Você não está em uma sala.",
+  MATCH_NOT_STARTED: "A partida ainda não começou.",
+  MATCH_ALREADY_STARTED: "A partida já começou.",
+  MATCH_NOT_ENDED: "A partida ainda não terminou.",
+  REMATCH_UNAVAILABLE: "Não há revanche: o oponente não está na sala.",
+  // Jogadas recusadas pela engine
+  MATCH_ENDED: "A partida já terminou.",
+  NOT_YOUR_TURN: "Não é o seu turno.",
+  INVALID_PHASE: "Essa jogada não é permitida nesta fase.",
+  ACTION_NOT_AVAILABLE: "Essa jogada não está disponível agora.",
+  CARD_NOT_IN_HAND: "Essa carta não está na sua mão.",
+  NOT_A_MONSTER: "Essa carta não é um monstro.",
+  NORMAL_SUMMON_ALREADY_USED: "Você já fez a invocação normal deste turno.",
+  INVALID_ZONE: "Zona inválida.",
+  ZONE_OCCUPIED: "Essa zona já está ocupada.",
+  FIELD_FULL: "Seu campo de monstros está cheio.",
+  NOT_ENOUGH_TRIBUTES: "Faltam tributos para invocar este monstro.",
+  INVALID_TRIBUTES: "Tributos inválidos.",
+  MONSTER_NOT_ON_FIELD: "Esse monstro não está no campo.",
+  CANNOT_CHANGE_POSITION: "Este monstro não pode mudar de posição agora.",
+  ALREADY_CHANGED_POSITION: "Este monstro já mudou de posição neste turno.",
+  NOT_FACE_DOWN: "Este monstro não está virado para baixo.",
+  ATTACK_NOT_ALLOWED_ON_FIRST_TURN: "Não é possível atacar no primeiro turno.",
+  NOT_IN_ATTACK_POSITION: "Só monstros em posição de ataque podem atacar.",
+  ALREADY_ATTACKED: "Este monstro já atacou neste turno.",
+  INVALID_TARGET: "Alvo inválido.",
+  DIRECT_ATTACK_NOT_ALLOWED: "Ataque direto só é possível quando o oponente não tem monstros.",
+  NOT_A_SPELL_OR_TRAP: "Essa carta não é uma magia nem uma armadilha.",
+  NOT_A_SPELL: "Essa carta não é uma magia.",
+  SPELL_NOT_AVAILABLE: "Essa magia não está disponível.",
+  SPELL_TRAP_ZONES_FULL: "Suas zonas de magia e armadilha estão cheias.",
+  RESPONSE_PENDING: "Aguarde a resposta do oponente.",
+  NO_RESPONSE_WINDOW: "Não há nada para responder agora.",
+  TRAP_NOT_AVAILABLE: "Essa armadilha não está disponível.",
+  NOT_A_TRAP: "Essa carta não é uma armadilha.",
+  TRAP_NOT_ACTIVE_YET: "Essa armadilha só pode ser ativada a partir do turno seguinte ao que foi baixada.",
+  TRAP_TRIGGER_MISMATCH: "Essa armadilha não responde a esta jogada.",
+};
+
+/** Traduz o `code` de erro do servidor para uma mensagem em português. */
+export const errorMessage = (code: string): string => MESSAGES[code] ?? "Algo deu errado. Tente novamente.";

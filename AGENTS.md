@@ -76,7 +76,7 @@ Seguem as regras do Yu-Gi-Oh, com monstros, magias, armadilhas e tributo.
 
 - **Magia:** ativada da mão pelo jogador do turno, nas fases Principais, com efeito imediato; depois vai ao cemitério.
 - **Armadilha:** baixada virada na zona de magia/armadilha e ativada no turno do oponente, a partir do turno seguinte ao que foi baixada.
-- **Janela de resposta:** quando o jogador do turno faz uma ação que pode ser respondida (invocação, ataque ou ativação de magia), o jogo abre uma janela em que o oponente decide ativar ou não uma armadilha. O efeito da armadilha resolve antes da ação original. Na Sprint 1 só existe uma resposta por janela: cadeia com múltiplos efeitos não é suportada.
+- **Janela de resposta:** quando o jogador do turno faz uma ação que pode ser respondida (invocação, ataque ou ativação de magia), o jogo abre uma janela em que o oponente decide ativar ou não uma armadilha. O efeito da armadilha resolve antes da ação original. Na Sprint 1 só existe uma resposta por janela: cadeia com múltiplos efeitos não é suportada. No motor, a ação interrompida fica guardada em `pendingResponse` do estado (sem ser aplicada); só o defensor age, com `ACTIVATE_TRAP` ou `PASS_RESPONSE`, e a ação original é retomada depois (a menos que o efeito a cancele). Gatilhos: declaração de ataque, invocação (`SUMMON_CARD`) e ativação de magia. Os efeitos das armadilhas são dados tipados (`TrapEffect`) em `cards.ts`, interpretados em `rules/traps.ts`.
 
 ## Fluxo da partida
 
@@ -99,6 +99,7 @@ src/engine/
   createMatch.ts        cria o estado inicial a partir dos decks e da semente
   applyAction.ts        (estado, ação) => resultado
   playerView.ts         filtra o estado visível a cada jogador
+  eventView.ts          filtra os eventos (GameEvent) visíveis a cada jogador
   index.ts              exportações públicas
 ```
 
@@ -111,10 +112,14 @@ src/engine/
 - `applyAction` retorna `{ ok: true, state, events }` ou `{ ok: false, code }`. Jogadas inválidas fazem parte do fluxo e não lançam exceção.
 - Ações são uma união discriminada pelo campo `type`, em `UPPER_SNAKE_CASE` (`SUMMON_CARD`, `ATTACK`, `END_TURN`).
 - `playerView` é o único caminho para gerar dados enviados aos jogadores. A mão do oponente, a ordem dos decks e a semente nunca são incluídas.
+- `playerView(state, viewer)` devolve `you` (mão e campo completos, deck só como `deckCount`) e `opponent` (contagem de mão/deck; monstros e magias/armadilhas virados viram `cardId: null`, sem `attackBonus`/`hasAttacked`). Públicos: vida, fase, turno, cemitérios e, nos monstros virados para cima, `attackBonus`, `hasAttacked` e `changedPositionOnTurn`. `pendingResponse` aparece como `{ responder, canRespond: false }` para o jogador do turno; só o defensor recebe gatilho e ação interrompida (alvos de ataque e magia vão por zona; ids de tributos virados são removidos). Todo campo novo do estado exige decidir aqui se é público.
+- `eventView(event, viewer)` é o único caminho de eventos aos jogadores: o servidor nunca envia `GameEvent` bruto. Ids de cartas ocultas do oponente viram `null` (compra, monstro baixado/mudado de posição virado, magia/armadilha baixada, reforço de ataque; alvos de ataque e magia são por zona, públicos). Evento novo que carregue `cardId` exige decidir aqui se é público.
 
 ### Cartas
 
 - Cartas são dados tipados em `cards.ts`. Não crie uma classe nem um arquivo de código para cada carta.
+- Efeitos de magia são dados tipados (`effect` em `SpellCard`, união `SpellEffect` em `types.ts`: `BOOST_ATTACK`, `HEAL`, `DAMAGE`, `DESTROY_MONSTER`, `DRAW`), interpretados por `rules/spells.ts`. Efeito novo = novo `kind` na união e um caso no interpretador, nunca código por carta.
+- Balanceamento (Sprint 1): `dealDecks` divide por categoria (monstro nível 1-4, 5-6, 7+, magia, armadilha) para equilibrar os decks. `DESTROY_MONSTER` e `DESTROY_ATTACKER` aceitam `maxAttack` opcional (ATK com bônus). `arcane_draw` continua "compre 1 carta": o risco de deck vazio antes da hora é decisão consciente.
 - Use apenas cartas, artes, nomes e identidade visual próprios. Não copie material oficial de Yu-Gi-Oh.
 
 ```ts
@@ -136,6 +141,7 @@ src/engine/
 ```text
 src/server/
   index.ts              inicia o Express, o Socket.IO e os arquivos estáticos
+  app.ts                createApp: monta Express, Socket.IO e estáticos sem escutar porta (testável)
   sockets/
     handlers.ts         recebe e responde aos eventos
     schemas.ts          schemas Zod das mensagens recebidas
@@ -157,9 +163,11 @@ src/server/
 - Nomes de funções em `camelCase`, no formato `<ação><Entidade>`: `createRoom`, `joinRoom`, `submitAction`.
 - Funções de service recebem um único objeto como argumento: `joinRoom({ code, nickname })`.
 - O cliente nunca é confiável: toda mensagem passa pelo Zod, e o jogador é identificado pelo servidor, nunca por um campo enviado pelo cliente.
-- Após cada jogada válida, cada jogador recebe o próprio resultado de `playerView`.
+- Após cada jogada válida, cada jogador recebe `match:state` com o próprio `playerView` e os eventos filtrados por `eventView`. A semente é gerada no servidor e nunca sai dele.
+- A partida (estado completo) fica em `Room.match` no store; o lado (P1/P2) de cada jogador vem do token, nunca da mensagem.
 - Erros enviados ao cliente têm um `code` estável, e a interface escolhe a mensagem em português.
 - O estado das partidas fica apenas em `store/`.
+- Fim de partida: `Room.match` guarda `outcome` (vencedor e motivo) e `rematchVotes`; a partida encerrada continua na sala até a revanche (`match:rematch`, precisa dos dois votos, troca os lados e sorteia de novo) ou a saída. `room:leave` no meio da partida é desistência (o outro vence com `OPPONENT_LEFT`); perder a conexão não é. Detalhes em `docs/events.md`.
 
 ### Salas e reconexão
 
@@ -183,8 +191,11 @@ src/client/
   network/
     socket.ts           conexão, envio e recebimento de eventos
   screens/              telas em HTML: início, sala de espera e interface da partida
+    matchActions.ts     lógica pura (testável): PlayerView + seleção => comandos e `match:action` a enviar
+    matchEnd.ts         lógica pura: textos de resultado e estado do botão de revanche
   scene/
     scene.ts            renderer, câmera, luzes e loop
+    layout.ts           lógica pura (sem WebGL, testável): PlayerView -> posições das cartas na mesa e clique -> slot (`pickSlot`)
     table.ts            mesa e zonas
     cardMesh.ts         criação e atualização das cartas
     monsterSprite.ts    arte do monstro em pé sobre a carta
@@ -197,6 +208,7 @@ src/client/
 - Arquivos em `camelCase.ts`. A primeira linha de cada arquivo é um comentário com o caminho: `// src/client/scene/cardMesh.ts`.
 - O cliente importa de `src/engine/` apenas tipos e dados públicos das cartas. Nunca chama `applyAction` para decidir o resultado de uma jogada.
 - A comunicação com o servidor passa por `network/socket.ts`.
+- `state.ts` guarda o último estado do servidor, inclusive a última visão da partida (`match`, vinda de `match:state`); a tela da partida (`screens/matchScreen.ts`) abre quando ela existe e a cena apenas a representa. Monstros virados do oponente (`cardId: null`) aparecem como carta de costas.
 - `state.ts` guarda o último estado do servidor. Estado visual, como carta selecionada, fica separado.
 - Texto de interface, mensagens e comentários em português. Identificadores de código em inglês.
 
@@ -239,7 +251,7 @@ O que cobrir:
 
 - **Engine:** cada regra, incluindo jogadas válidas e inválidas, e a garantia de que `playerView` não vaza informação oculta.
 - **Server:** cada evento, incluindo caminho feliz, payload inválido, sala inexistente, jogador sem permissão e reconexão.
-- **Client:** não há testes automatizados no início. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
+- **Client:** a lógica pura (`scene/layout.ts`, `screens/matchActions.ts`, `screens/matchEnd.ts`, `state.ts`) tem testes; DOM e WebGL não. Mantenha a decisão de qual ação enviar nos módulos puros. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
 - **Correção de bug:** um teste que falharia antes da correção, quando o bug estiver em `engine` ou `server`.
 
 Como escrever:
@@ -300,9 +312,12 @@ npm run dev                 # desenvolvimento fora do Docker
 npm run check               # checagem de tipos (tsc --noEmit)
 npm test                    # testes
 npm run build               # build de produção
+npm run smoke               # inicia o dist/server compilado e checa /healthz e room:create (rode após o build)
 ```
 
-Antes de entregar uma tarefa, rode `npm run check`, `npm test` e `npm run build`.
+Antes de entregar uma tarefa, rode `npm run check`, `npm test`, `npm run build` e `npm run smoke`.
+
+**Imports com extensão `.js`:** o `tsconfig.json` usa `module`/`moduleResolution` `NodeNext`, porque o `tsc` emite ESM que o Node executa direto. Todo import relativo em `src/` (engine, server e client) leva extensão `.js` mesmo apontando para um `.ts` (`import { x } from "./types.js"`), e pastas importam o `index.js` explicitamente (`./rules/index.js`). O Vite e o Vitest resolvem isso normalmente. Sem a extensão, o `npm run check` falha.
 
 ## Limitações conhecidas
 

@@ -49,7 +49,7 @@ O dono do repo é o único autor. Nada no histórico deve indicar IA:
 
 ## Verificação (rodada pelo dev antes de entregar e pelo reviewer)
 Comandos, na ordem. Se vazio, o agente deve avisar que não há verificação automatizada.
-- `npm run check && npm test && npm run build`
+- `npm run check && npm test && npm run build && npm run smoke`
 
 ## Checklist extra do reviewer (além do guia de padrões)
 - Regra de jogo ou funcionalidade de servidor nova/alterada **sem testes correspondentes** (seção "Testes" do guia) → reprovar
