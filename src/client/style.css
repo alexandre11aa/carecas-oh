@@ -172,7 +172,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .lobby-host { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Detalhe da carta (painel em HTML sobre a partida; também usado no tutorial) */
-.card-detail { position: absolute; top: 5rem; right: 0.75rem; width: min(18rem, 40vw); max-height: 60vh; overflow-y: auto; pointer-events: none; }
+/* Abaixo do HUD superior (oponente, turno/fase/contagem) e acima da mão/comandos; o conteúdo longo rola dentro do painel */
+.card-detail { position: absolute; top: 10rem; right: 0.75rem; width: min(18rem, 40vw); max-height: max(8rem, calc(100vh - 10rem - 16rem)); overflow-y: auto; pointer-events: none; }
 .card-detail[hidden] { display: none; }
 .card-view { box-sizing: border-box; padding: 0.7rem 0.8rem; border-radius: 0.5rem; background: #f3ead2; color: #222; border-top: 0.4rem solid #b5803a; font-size: 0.85rem; overflow-wrap: anywhere; word-break: break-word; }
 .card-view.spell { border-top-color: #2f8a78; }
