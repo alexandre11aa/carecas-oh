@@ -1,5 +1,6 @@
 // src/engine/applyAction.ts
 import { attack } from "./rules/combat";
+import { activateSpell, setSpellTrap } from "./rules/spells";
 import { changePosition, flipSummon, summonMonster } from "./rules/summon";
 import { drawPhase, endTurn, nextPhaseOf } from "./rules/turn";
 import type { Action, ActionResult, MatchState, PlayerId } from "./types";
@@ -30,6 +31,10 @@ export const applyAction = (state: MatchState, player: PlayerId, action: Action)
       return changePosition(state, player, action);
     case "FLIP_SUMMON":
       return flipSummon(state, player, action);
+    case "SET_SPELL_TRAP":
+      return setSpellTrap(state, player, action);
+    case "ACTIVATE_SPELL":
+      return activateSpell(state, player, action);
     case "ATTACK":
       return attack(state, player, action);
     default:
