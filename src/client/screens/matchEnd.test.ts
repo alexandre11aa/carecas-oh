@@ -1,7 +1,7 @@
 // src/client/screens/matchEnd.test.ts
 import { describe, expect, it } from "vitest";
 import type { MatchEnded } from "../state.js";
-import { endSummary, rematchState } from "./matchEnd.js";
+import { canSurrender, endSummary, rematchState } from "./matchEnd.js";
 
 const ended = (reason: MatchEnded["reason"], you = false, opponent = false): MatchEnded => ({
   winner: "P1",
@@ -55,5 +55,19 @@ describe("rematchState", () => {
     const state = rematchState(ended("OPPONENT_LEFT"), false);
     expect(state.disabled).toBe(true);
     expect(state.status).toBe("O oponente saiu: não há revanche.");
+  });
+});
+
+describe("canSurrender", () => {
+  it("mostra_o_botao_com_a_partida_em_andamento", () => {
+    expect(canSurrender(null, null)).toBe(true);
+  });
+
+  it("esconde_o_botao_com_vencedor", () => {
+    expect(canSurrender("P1", null)).toBe(false);
+  });
+
+  it("esconde_o_botao_com_resultado_recebido", () => {
+    expect(canSurrender(null, ended("OPPONENT_LEFT"))).toBe(false);
   });
 });

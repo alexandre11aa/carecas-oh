@@ -24,7 +24,7 @@ import {
 import { buildNotices, deltaText, lifePercent, lifeSides, MAX_LIFE, type Notice, type NoticeSide } from "./matchNotices.js";
 import { buildCardDetail, slotCardId } from "./cardDetail.js";
 import { createCardView } from "./cardView.js";
-import { endSummary, rematchState } from "./matchEnd.js";
+import { canSurrender, endSummary, rematchState } from "./matchEnd.js";
 import { actingPlayer, opponentNickname, secondsRemaining, timerLevel, turnBannerText } from "./turnTimer.js";
 
 const NOTICE_MS = 2200;
@@ -78,7 +78,9 @@ export const createMatchScreen = (): Screen => {
   turnBanner.append(el("span", "turn-banner-text"), countdown);
   turnInfo.append(turnBanner, turnLine, phaseLine, noticeLine);
   const top = el("div", "hud-bar");
-  top.append(opponentInfo, turnInfo);
+  const surrenderButton = el("button", "surrender-button", "Desistir");
+  surrenderButton.type = "button";
+  top.append(opponentInfo, turnInfo, surrenderButton);
 
   const youInfo = infoBoxes.you.box;
   const hintLine = el("p", "hud-hint");
@@ -103,13 +105,24 @@ export const createMatchScreen = (): Screen => {
   const endOverlay = el("div", "end-overlay");
   endOverlay.hidden = true;
   endOverlay.append(endBox);
+  const surrenderTitle = el("h2", undefined, "Desistir da partida?");
+  const surrenderText = el("p", "hint", "O oponente vencerá.");
+  const surrenderConfirm = el("button", "primary", "Desistir");
+  surrenderConfirm.type = "button";
+  const surrenderCancel = el("button", undefined, "Cancelar");
+  surrenderCancel.type = "button";
+  const surrenderBox = el("div", "end-box");
+  surrenderBox.append(surrenderTitle, surrenderText, surrenderConfirm, surrenderCancel);
+  const surrenderOverlay = el("div", "end-overlay surrender-overlay");
+  surrenderOverlay.hidden = true;
+  surrenderOverlay.append(surrenderBox);
   const turnToast = el("div", "turn-toast");
   turnToast.hidden = true;
   const eventNotice = el("div", "event-notice");
   eventNotice.hidden = true;
   const detailPanel = el("aside", "card-detail");
   detailPanel.hidden = true;
-  element.append(canvasBox, hud, detailPanel, turnToast, eventNotice, endOverlay);
+  element.append(canvasBox, hud, detailPanel, turnToast, eventNotice, endOverlay, surrenderOverlay);
 
   // Detalhe da carta sob o ponteiro (mão ou mesa). Guarda só o id; cartas ocultas (null) não mostram nada.
   let detailCardId: string | null = null;
@@ -190,6 +203,13 @@ export const createMatchScreen = (): Screen => {
 
   rematchButton.addEventListener("click", () => sendRematch(acceptRematch));
   lobbyButton.addEventListener("click", () => leaveRoom());
+  // Desistir exige confirmação: o clique no botão só abre o diálogo; apenas "Desistir" nele envia `room:leave`.
+  surrenderButton.addEventListener("click", () => (surrenderOverlay.hidden = false));
+  surrenderCancel.addEventListener("click", () => (surrenderOverlay.hidden = true));
+  surrenderConfirm.addEventListener("click", () => {
+    surrenderOverlay.hidden = true;
+    leaveRoom();
+  });
 
   const runCommand = (command: Command) => {
     if (command.action) {
@@ -321,6 +341,10 @@ export const createMatchScreen = (): Screen => {
         return card;
       }),
     );
+
+    const surrenderAllowed = canSurrender(match.winner, ended);
+    surrenderButton.hidden = !surrenderAllowed;
+    if (!surrenderAllowed) surrenderOverlay.hidden = true;
 
     if (match.winner && !playing && noticeQueue.length === 0) {
       const summary = endSummary(match.viewer, match.winner, ended);

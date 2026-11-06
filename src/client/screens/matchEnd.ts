@@ -35,3 +35,6 @@ export const rematchState = (
     status,
   };
 };
+
+/** O botão "Desistir" só existe com a partida em andamento: sem vencedor e sem resultado. */
+export const canSurrender = (winner: PlayerId | null, ended: MatchEnded | null): boolean => winner === null && ended === null;
