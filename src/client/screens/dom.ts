@@ -13,4 +13,4 @@ export const el = <K extends keyof HTMLElementTagNameMap>(
 };
 
 /** Contrato de uma tela: `element` é montado uma vez e `update` reflete o estado novo. */
-export type Screen = { element: HTMLElement; update: () => void };
+export type Screen = { element: HTMLElement; update: () => void; /** Libera recursos (por exemplo, o WebGL) ao trocar de tela. */ destroy?: () => void };

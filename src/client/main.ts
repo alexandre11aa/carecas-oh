@@ -1,6 +1,7 @@
 // src/client/main.ts
 import { connect, joinRoom } from "./network/socket.js";
 import { createHomeScreen } from "./screens/homeScreen.js";
+import { createMatchScreen } from "./screens/matchScreen.js";
 import { createLoadingScreen } from "./screens/loadingScreen.js";
 import { createWaitingRoomScreen } from "./screens/waitingRoomScreen.js";
 import type { Screen } from "./screens/dom.js";
@@ -28,8 +29,9 @@ const render = () => {
     key = "loading";
     create = createLoadingScreen;
   } else if (state.room) {
-    key = "waiting";
-    create = createWaitingRoomScreen;
+    // O primeiro match:state (ou o de uma reconexão) abre a mesa; sem partida, sala de espera.
+    key = state.match ? "match" : "waiting";
+    create = state.match ? createMatchScreen : createWaitingRoomScreen;
     if (urlCode !== state.room.code) history.replaceState(null, "", `/sala/${state.room.code}`);
   } else {
     if (location.pathname !== "/" && !urlCode) history.replaceState(null, "", "/");
@@ -46,6 +48,7 @@ const render = () => {
 
   if (key !== currentKey) {
     currentKey = key;
+    current?.destroy?.();
     current = create();
     root.replaceChildren(current.element);
   } else {

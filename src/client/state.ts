@@ -1,4 +1,5 @@
 // src/client/state.ts
+import type { PlayerView } from "../engine/playerView.js";
 
 export type PublicPlayer = { nickname: string; connected: boolean; ready?: boolean };
 export type PublicRoom = { code: string; players: PublicPlayer[] };
@@ -9,6 +10,8 @@ export type ClientState = {
   /** Verdadeiro até o servidor responder à primeira conexão (inclui o rejoin automático). */
   booting: boolean;
   room: PublicRoom | null;
+  /** Última visão da partida recebida em `match:state`; null fora de partida. */
+  match: PlayerView | null;
   /** Código do último erro recebido (a tela escolhe a mensagem). */
   errorCode: string | null;
   /** Há uma requisição de sala (criar/entrar) aguardando resposta. */
@@ -19,9 +22,17 @@ let state: ClientState = {
   connection: "connecting",
   booting: true,
   room: null,
+  match: null,
   errorCode: null,
   busy: false,
 };
+
+/**
+ * Partida a manter depois de uma atualização da sala. Quando ninguém está pronto, a partida foi
+ * encerrada no servidor (o "pronto" só é zerado nesse caso), então a visão antiga é descartada.
+ */
+export const matchAfterRoomUpdate = (room: PublicRoom, match: PlayerView | null): PlayerView | null =>
+  room.players.some((player) => player.ready) ? match : null;
 
 const listeners = new Set<(state: ClientState) => void>();
 

@@ -60,3 +60,20 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Partida: cena 3D em tela cheia com HUD em HTML por cima */
+.match { position: fixed; inset: 0; overflow: hidden; }
+.match-canvas { position: absolute; inset: 0; }
+.match-canvas canvas { display: block; }
+.hud { position: absolute; inset: 0; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 0.75rem; }
+.hud-bar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.hud-box { background: rgba(20, 20, 31, 0.8); border-radius: 0.4rem; padding: 0.4rem 0.8rem; }
+.hud-lp { font-size: 1.4rem; font-weight: 700; color: #c8a23a; }
+.hud-center { text-align: center; }
+.hud-banner { margin: 0; font-weight: 600; }
+.hand { display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap; }
+.hand-card { width: 7rem; padding: 0.4rem; border-radius: 0.4rem; background: #f3ead2; color: #222; font-size: 0.8rem; text-align: center; border-top: 0.4rem solid #b5803a; }
+.hand-card.spell { border-top-color: #2f8a78; }
+.hand-card.trap { border-top-color: #8a3a6a; }
+.hand-card b { display: block; }
+.match-notice { position: absolute; top: 40%; width: 100%; text-align: center; }
