@@ -1,18 +1,18 @@
 // src/engine/index.ts
 export const ENGINE_READY = true;
 
-export * from "./types";
-export { CARDS, getCard } from "./cards";
-export { nextRandom, shuffle } from "./rng";
-export { DECK_SIZE, dealDecks } from "./decks";
-export type { DealtDecks } from "./decks";
-export { createMatch, INITIAL_LIFE_POINTS, INITIAL_HAND_SIZE } from "./createMatch";
-export { applyAction } from "./applyAction";
-export { canAttack, opponentOf } from "./rules/turn";
-export { requiredTributes } from "./rules/summon";
-export { SPELL_TRAP_ZONES } from "./createMatch";
-export { resolveTrapEffect } from "./rules/traps";
-export { playerView } from "./playerView";
+export * from "./types.js";
+export { CARDS, getCard } from "./cards.js";
+export { nextRandom, shuffle } from "./rng.js";
+export { DECK_SIZE, dealDecks } from "./decks.js";
+export type { DealtDecks } from "./decks.js";
+export { createMatch, INITIAL_LIFE_POINTS, INITIAL_HAND_SIZE } from "./createMatch.js";
+export { applyAction } from "./applyAction.js";
+export { canAttack, opponentOf } from "./rules/turn.js";
+export { requiredTributes } from "./rules/summon.js";
+export { SPELL_TRAP_ZONES } from "./createMatch.js";
+export { resolveTrapEffect } from "./rules/traps.js";
+export { playerView } from "./playerView.js";
 export type {
   HiddenMonsterView,
   HiddenSpellTrapView,
@@ -20,6 +20,6 @@ export type {
   OwnPlayerView,
   PendingResponseView,
   PlayerView,
-} from "./playerView";
-export { eventView } from "./eventView";
-export type { EventView } from "./eventView";
+} from "./playerView.js";
+export { eventView } from "./eventView.js";
+export type { EventView } from "./eventView.js";

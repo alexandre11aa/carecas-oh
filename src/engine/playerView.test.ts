@@ -1,9 +1,9 @@
 // src/engine/playerView.test.ts
 import { describe, expect, it } from "vitest";
-import { applyAction } from "./applyAction";
-import { createMatch } from "./createMatch";
-import { playerView } from "./playerView";
-import type { MatchState, MonsterOnField, PlayerId, SpellTrapOnField } from "./types";
+import { applyAction } from "./applyAction.js";
+import { createMatch } from "./createMatch.js";
+import { playerView } from "./playerView.js";
+import type { MatchState, MonsterOnField, PlayerId, SpellTrapOnField } from "./types.js";
 
 const pad = <T,>(list: (T | null)[]): (T | null)[] => [...list, ...Array<null>(5 - list.length).fill(null)];
 

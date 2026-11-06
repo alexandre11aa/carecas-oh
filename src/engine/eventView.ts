@@ -1,6 +1,6 @@
 // src/engine/eventView.ts
 // Sanitizador de eventos: único caminho de eventos aos jogadores (ver playerView).
-import type { GameEvent, PlayerId } from "./types";
+import type { GameEvent, PlayerId } from "./types.js";
 
 type HiddenCardEvent =
   | Extract<GameEvent, { type: "CARD_DRAWN" }>

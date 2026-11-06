@@ -1,6 +1,6 @@
 // src/engine/rules/turn.ts
 // Ciclo de turnos: compra automática, fases e fim de turno. Funções puras.
-import type { GameEvent, MatchState, Phase, PlayerId } from "../types";
+import type { GameEvent, MatchState, Phase, PlayerId } from "../types.js";
 
 export const opponentOf = (player: PlayerId): PlayerId => (player === "P1" ? "P2" : "P1");
 

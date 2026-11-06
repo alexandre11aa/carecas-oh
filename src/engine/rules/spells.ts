@@ -1,8 +1,8 @@
 // src/engine/rules/spells.ts
 // Baixar magia/armadilha e ativar magia; os efeitos vêm de dados em cards.ts. Funções puras.
-import { getCard } from "../cards";
-import type { Action, ActionResult, GameEvent, MatchState, PlayerId, PlayerState, SpellEffect } from "../types";
-import { opponentOf } from "./turn";
+import { getCard } from "../cards.js";
+import type { Action, ActionResult, GameEvent, MatchState, PlayerId, PlayerState, SpellEffect } from "../types.js";
+import { opponentOf } from "./turn.js";
 
 type Failure = Extract<ActionResult, { ok: false }>;
 

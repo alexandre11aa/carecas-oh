@@ -1,6 +1,6 @@
 // src/engine/rules/combat.ts
 // Combate: ataque entre monstros, ataque direto, dano e vitória por pontos de vida. Funções puras.
-import { getCard } from "../cards";
+import { getCard } from "../cards.js";
 import type {
   Action,
   ActionResult,
@@ -9,8 +9,8 @@ import type {
   MonsterOnField,
   PlayerId,
   PlayerState,
-} from "../types";
-import { canAttack, opponentOf } from "./turn";
+} from "../types.js";
+import { canAttack, opponentOf } from "./turn.js";
 
 type Failure = Extract<ActionResult, { ok: false }>;
 type AttackAction = Extract<Action, { type: "ATTACK" }>;

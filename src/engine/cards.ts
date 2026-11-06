@@ -1,6 +1,6 @@
 // src/engine/cards.ts
 // 20 cartas provisórias; valores gerados aleatoriamente uma vez e fixados aqui.
-import type { Card } from "./types";
+import type { Card } from "./types.js";
 
 const image = (id: string): string => `/cards/${id}.webp`;
 

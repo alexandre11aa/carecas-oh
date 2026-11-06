@@ -1,6 +1,6 @@
 // src/engine/createMatch.test.ts
 import { describe, expect, it } from "vitest";
-import { createMatch } from "./createMatch";
+import { createMatch } from "./createMatch.js";
 
 describe("createMatch", () => {
   it("cria_jogadores_com_8000_lp_5_cartas_na_mao_e_5_no_deck", () => {

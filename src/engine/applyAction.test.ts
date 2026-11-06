@@ -1,9 +1,9 @@
 // src/engine/applyAction.test.ts
 import { describe, expect, it } from "vitest";
-import { applyAction } from "./applyAction";
-import { createMatch } from "./createMatch";
-import { canAttack, opponentOf } from "./rules/turn";
-import type { MatchState } from "./types";
+import { applyAction } from "./applyAction.js";
+import { createMatch } from "./createMatch.js";
+import { canAttack, opponentOf } from "./rules/turn.js";
+import type { MatchState } from "./types.js";
 
 const next = (state: MatchState): MatchState => {
   const r = applyAction(state, state.currentPlayer, { type: "NEXT_PHASE" });

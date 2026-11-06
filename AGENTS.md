@@ -312,9 +312,12 @@ npm run dev                 # desenvolvimento fora do Docker
 npm run check               # checagem de tipos (tsc --noEmit)
 npm test                    # testes
 npm run build               # build de produção
+npm run smoke               # inicia o dist/server compilado e checa /healthz e room:create (rode após o build)
 ```
 
-Antes de entregar uma tarefa, rode `npm run check`, `npm test` e `npm run build`.
+Antes de entregar uma tarefa, rode `npm run check`, `npm test`, `npm run build` e `npm run smoke`.
+
+**Imports com extensão `.js`:** o `tsconfig.json` usa `module`/`moduleResolution` `NodeNext`, porque o `tsc` emite ESM que o Node executa direto. Todo import relativo em `src/` (engine, server e client) leva extensão `.js` mesmo apontando para um `.ts` (`import { x } from "./types.js"`), e pastas importam o `index.js` explicitamente (`./rules/index.js`). O Vite e o Vitest resolvem isso normalmente. Sem a extensão, o `npm run check` falha.
 
 ## Limitações conhecidas
 
