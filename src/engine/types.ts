@@ -112,10 +112,10 @@ export type Action =
   | { type: "SET_SPELL_TRAP"; cardId: string }
   | { type: "CHANGE_POSITION"; cardId: string }
   | { type: "FLIP_SUMMON"; cardId: string }
-  | { type: "ACTIVATE_SPELL"; cardId: string; targetCardId?: string | null }
+  | { type: "ACTIVATE_SPELL"; cardId: string; targetZone?: number | null } // alvo por zona (0-4): do próprio campo em BOOST_ATTACK, do oponente em DESTROY_MONSTER
   | { type: "ACTIVATE_TRAP"; cardId: string }
   | { type: "PASS_RESPONSE" }
-  | { type: "ATTACK"; attackerCardId: string; targetCardId: string | null }
+  | { type: "ATTACK"; attackerCardId: string; targetZone: number | null } // targetZone: zona do oponente; null = ataque direto
   | { type: "NEXT_PHASE" }
   | { type: "END_TURN" };
 
@@ -161,12 +161,12 @@ export type GameEvent =
   | { type: "CARD_SENT_TO_GRAVEYARD"; player: PlayerId; cardId: string }
   | { type: "POSITION_CHANGED"; player: PlayerId; cardId: string; position: MonsterPosition; faceDown: boolean }
   | { type: "MONSTER_FLIPPED"; player: PlayerId; cardId: string }
-  | { type: "ATTACK_DECLARED"; player: PlayerId; attackerCardId: string; targetCardId: string | null }
+  | { type: "ATTACK_DECLARED"; player: PlayerId; attackerCardId: string; targetZone: number | null }
   | { type: "DAMAGE_DEALT"; player: PlayerId; amount: number }
   | { type: "SPELL_TRAP_SET"; player: PlayerId; cardId: string; zone: number }
-  | { type: "SPELL_ACTIVATED"; player: PlayerId; cardId: string; targetCardId: string | null }
+  | { type: "SPELL_ACTIVATED"; player: PlayerId; cardId: string; targetZone: number | null }
   | { type: "LIFE_RESTORED"; player: PlayerId; amount: number }
-  | { type: "ATTACK_BOOSTED"; player: PlayerId; cardId: string; amount: number }
+  | { type: "ATTACK_BOOSTED"; player: PlayerId; cardId: string; zone: number; amount: number }
   | { type: "RESPONSE_WINDOW_OPENED"; responder: PlayerId; trigger: TrapTrigger }
   | { type: "RESPONSE_PASSED"; player: PlayerId }
   | { type: "TRAP_ACTIVATED"; player: PlayerId; cardId: string; trigger: TrapTrigger }

@@ -112,7 +112,7 @@ Direção: cliente → servidor
 Payload (união discriminada por `type`, espelha `Action` da engine):
 { "type": "SUMMON_CARD", "cardId": "ash_sprite", "tributeCardIds": [], "zone": 0 }
 
-Tipos: `SUMMON_CARD`, `SET_MONSTER` (`cardId`, `tributeCardIds`, `zone` 0-4), `SET_SPELL_TRAP`, `CHANGE_POSITION`, `FLIP_SUMMON`, `ACTIVATE_TRAP` (`cardId`), `ACTIVATE_SPELL` (`cardId`, `targetCardId` opcional), `ATTACK` (`attackerCardId`, `targetCardId` ou null), `PASS_RESPONSE`, `NEXT_PHASE`, `END_TURN`. Campos extras (como um jogador) são rejeitados: o jogador é identificado pelo servidor pela conexão.
+Tipos: `SUMMON_CARD`, `SET_MONSTER` (`cardId`, `tributeCardIds`, `zone` 0-4), `SET_SPELL_TRAP`, `CHANGE_POSITION`, `FLIP_SUMMON`, `ACTIVATE_TRAP` (`cardId`), `ACTIVATE_SPELL` (`cardId`, `targetZone` 0-4 opcional: zona do próprio campo em `BOOST_ATTACK`, do oponente em `DESTROY_MONSTER`), `ATTACK` (`attackerCardId`, `targetZone` 0-4 do oponente, ou null para ataque direto). Alvos vão por zona, nunca por id, para poder mirar monstros virados do oponente sem revelá-los (zona vazia ou fora de 0-4: `INVALID_TARGET`), `PASS_RESPONSE`, `NEXT_PHASE`, `END_TURN`. Campos extras (como um jogador) são rejeitados: o jogador é identificado pelo servidor pela conexão.
 
 Respostas: `match:state` para cada jogador conectado da sala
 Erros: `INVALID_PAYLOAD`, `NOT_IN_ROOM`, `MATCH_NOT_STARTED`, ou o código da engine (`NOT_YOUR_TURN`, `INVALID_PHASE`, `RESPONSE_PENDING`, `CARD_NOT_IN_HAND` etc., ver `ErrorCode` em `src/engine/types.ts`)
@@ -124,7 +124,7 @@ Direção: servidor → cliente
 Payload:
 { "view": { "viewer": "P1", "turn": 2, "currentPlayer": "P1", "phase": "MAIN_1", "winner": null, "you": { ... }, "opponent": { ... }, "pendingResponse": null }, "events": [{ "type": "CARD_DRAWN", "player": "P2", "cardId": null }] }
 
-`view` é o resultado de `playerView` para o destinatário; `events` são os eventos da jogada passados por `eventView` (o servidor nunca envia `GameEvent` bruto). Para eventos do oponente, ids de cartas ocultas viram `null`: `CARD_DRAWN`, `MONSTER_SUMMONED`/`POSITION_CHANGED` com carta virada, `SPELL_TRAP_SET`, `targetCardId` de `SPELL_ACTIVATED` e `cardId` de `ATTACK_BOOSTED`. Nunca inclui a semente nem a mão/deck do oponente. Enviado ao iniciar a partida (`events: []`), após cada ação válida e na reconexão (`events: []`, restaura o estado atual).
+`view` é o resultado de `playerView` para o destinatário; `events` são os eventos da jogada passados por `eventView` (o servidor nunca envia `GameEvent` bruto). Para eventos do oponente, ids de cartas ocultas viram `null`: `CARD_DRAWN`, `MONSTER_SUMMONED`/`POSITION_CHANGED` com carta virada, `SPELL_TRAP_SET` e `cardId` de `ATTACK_BOOSTED` (que traz também `zone`). `ATTACK_DECLARED` e `SPELL_ACTIVATED` identificam o alvo por `targetZone`, público. Nunca inclui a semente nem a mão/deck do oponente. Enviado ao iniciar a partida (`events: []`), após cada ação válida e na reconexão (`events: []`, restaura o estado atual).
 
 ## Erros
 

@@ -47,10 +47,10 @@ const setup = ({ mine, theirs, turn = 5, phase = "BATTLE", myLife, theirLife }: 
   return { state, p, o };
 };
 
-const hit = (attackerCardId: string, targetCardId: string | null): Action => ({
+const hit = (attackerCardId: string, targetZone: number | null): Action => ({
   type: "ATTACK",
   attackerCardId,
-  targetCardId,
+  targetZone,
 });
 
 const ok = (state: MatchState, p: PlayerId, action: Action) => {
@@ -63,14 +63,14 @@ describe("ATTACK ataque contra ataque", () => {
   it("destroi_o_defensor_mais_fraco_e_causa_a_diferenca_ao_dono", () => {
     // dune_scout 1700 x bone_knight 1500
     const { state, p, o } = setup({ mine: [field("dune_scout")], theirs: [field("bone_knight")] });
-    const r = ok(state, p, hit("dune_scout", "bone_knight"));
+    const r = ok(state, p, hit("dune_scout", 0));
     expect(r.state.players[o].lifePoints).toBe(7800);
     expect(r.state.players[o].monsters).toEqual(empty());
     expect(r.state.players[o].graveyard).toEqual(["bone_knight"]);
     expect(r.state.players[p].lifePoints).toBe(8000);
     expect(r.state.players[p].monsters[0]).toEqual(field("dune_scout", { hasAttacked: true }));
     expect(r.events).toEqual([
-      { type: "ATTACK_DECLARED", player: p, attackerCardId: "dune_scout", targetCardId: "bone_knight" },
+      { type: "ATTACK_DECLARED", player: p, attackerCardId: "dune_scout", targetZone: 0 },
       { type: "CARD_SENT_TO_GRAVEYARD", player: o, cardId: "bone_knight" },
       { type: "DAMAGE_DEALT", player: o, amount: 200 },
     ]);
@@ -78,7 +78,7 @@ describe("ATTACK ataque contra ataque", () => {
 
   it("destroi_o_atacante_mais_fraco_e_causa_a_diferenca_a_ele", () => {
     const { state, p, o } = setup({ mine: [field("bone_knight")], theirs: [field("dune_scout")] });
-    const r = ok(state, p, hit("bone_knight", "dune_scout"));
+    const r = ok(state, p, hit("bone_knight", 0));
     expect(r.state.players[p].lifePoints).toBe(7800);
     expect(r.state.players[p].monsters).toEqual(empty());
     expect(r.state.players[p].graveyard).toEqual(["bone_knight"]);
@@ -88,7 +88,7 @@ describe("ATTACK ataque contra ataque", () => {
 
   it("empate_destroi_ambos_sem_dano", () => {
     const { state, p, o } = setup({ mine: [field("bone_knight")], theirs: [field("bone_knight")] });
-    const r = ok(state, p, hit("bone_knight", "bone_knight"));
+    const r = ok(state, p, hit("bone_knight", 0));
     expect(r.state.players[p].lifePoints).toBe(8000);
     expect(r.state.players[o].lifePoints).toBe(8000);
     expect(r.state.players[p].monsters).toEqual(empty());
@@ -105,7 +105,7 @@ describe("ATTACK ataque contra defesa", () => {
       mine: [field("dune_scout")],
       theirs: [field("moss_golem", { position: "DEFENSE" })],
     });
-    const r = ok(state, p, hit("dune_scout", "moss_golem"));
+    const r = ok(state, p, hit("dune_scout", 0));
     expect(r.state.players[o].lifePoints).toBe(8000);
     expect(r.state.players[o].monsters).toEqual(empty());
     expect(r.state.players[o].graveyard).toEqual(["moss_golem"]);
@@ -118,7 +118,7 @@ describe("ATTACK ataque contra defesa", () => {
       mine: [field("bone_knight")],
       theirs: [field("frost_witch", { position: "DEFENSE" })],
     });
-    const r = ok(state, p, hit("bone_knight", "frost_witch"));
+    const r = ok(state, p, hit("bone_knight", 0));
     expect(r.state.players[p].lifePoints).toBe(7500);
     expect(r.state.players[p].monsters[0]?.cardId).toBe("bone_knight");
     expect(r.state.players[o].monsters[0]?.cardId).toBe("frost_witch");
@@ -132,7 +132,7 @@ describe("ATTACK ataque contra defesa", () => {
       mine: [field("crystal_bat")],
       theirs: [field("bone_knight", { position: "DEFENSE" })],
     });
-    const r = ok(state, p, hit("crystal_bat", "bone_knight"));
+    const r = ok(state, p, hit("crystal_bat", 0));
     expect(r.state.players[p].lifePoints).toBe(8000);
     expect(r.state.players[o].lifePoints).toBe(8000);
     expect(r.state.players[p].monsters[0]?.cardId).toBe("crystal_bat");
@@ -145,7 +145,7 @@ describe("ATTACK ataque contra defesa", () => {
       mine: [field("dune_scout")],
       theirs: [field("moss_golem", { position: "DEFENSE", faceDown: true })],
     });
-    const r = ok(state, p, hit("dune_scout", "moss_golem"));
+    const r = ok(state, p, hit("dune_scout", 0));
     expect(r.events).toContainEqual({ type: "MONSTER_FLIPPED", player: o, cardId: "moss_golem" });
     expect(r.state.players[o].graveyard).toEqual(["moss_golem"]);
   });
@@ -155,7 +155,7 @@ describe("ATTACK ataque contra defesa", () => {
       mine: [field("bone_knight")],
       theirs: [field("frost_witch", { position: "DEFENSE", faceDown: true })],
     });
-    const r = ok(state, p, hit("bone_knight", "frost_witch"));
+    const r = ok(state, p, hit("bone_knight", 0));
     expect(r.state.players[o].monsters[0]).toEqual(
       field("frost_witch", { position: "DEFENSE", faceDown: false }),
     );
@@ -200,7 +200,7 @@ describe("ATTACK direto e vitória", () => {
       theirs: [field("frost_witch", { position: "DEFENSE" })],
       myLife: 500,
     });
-    const r = ok(state, p, hit("bone_knight", "frost_witch"));
+    const r = ok(state, p, hit("bone_knight", 0));
     expect(r.state.players[p].lifePoints).toBe(0);
     expect(r.state.winner).toBe(o);
   });
@@ -211,7 +211,7 @@ describe("ATTACK direto e vitória", () => {
       theirs: [field("bone_knight")],
       theirLife: 200,
     });
-    const r = ok(state, p, hit("dune_scout", "bone_knight"));
+    const r = ok(state, p, hit("dune_scout", 0));
     expect(r.state.winner).toBe(p);
     expect(r.state.players[opponentOf(p)].graveyard).toEqual(["bone_knight"]);
   });
@@ -278,16 +278,33 @@ describe("ATTACK erros", () => {
 
   it("nao_permite_atacar_alvo_que_nao_esta_no_campo_do_oponente", () => {
     const { state, p } = setup({ mine: [field("dune_scout"), field("bone_knight")], theirs: [field("tide_imp")] });
-    expect(applyAction(state, p, hit("dune_scout", "bone_knight"))).toEqual({
+    expect(applyAction(state, p, hit("dune_scout", 1))).toEqual({
       ok: false,
       code: "INVALID_TARGET",
     });
   });
 
+  it("rejeita_zona_fora_do_intervalo_ou_nao_inteira", () => {
+    const { state, p } = setup({ mine: [field("dune_scout")], theirs: [field("tide_imp")] });
+    for (const zone of [-1, 5, 99, 0.5, Number.NaN]) {
+      expect(applyAction(state, p, hit("dune_scout", zone))).toEqual({ ok: false, code: "INVALID_TARGET" });
+    }
+  });
+
+  it("ataca_monstro_virado_pela_zona_sem_conhecer_o_id", () => {
+    const { state, p, o } = setup({
+      mine: [field("dune_scout")],
+      theirs: [null, field("moss_golem", { position: "DEFENSE", faceDown: true })],
+    });
+    const r = ok(state, p, hit("dune_scout", 1));
+    expect(r.events).toContainEqual({ type: "ATTACK_DECLARED", player: p, attackerCardId: "dune_scout", targetZone: 1 });
+    expect(r.events).toContainEqual({ type: "MONSTER_FLIPPED", player: o, cardId: "moss_golem" });
+  });
+
   it("nao_altera_o_estado_recebido", () => {
     const { state, p } = setup({ mine: [field("dune_scout")], theirs: [field("bone_knight")] });
     const copy = structuredClone(state);
-    ok(state, p, hit("dune_scout", "bone_knight"));
+    ok(state, p, hit("dune_scout", 0));
     expect(state).toEqual(copy);
   });
 });
