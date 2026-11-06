@@ -2,7 +2,7 @@
 // 20 cartas provisórias; valores gerados aleatoriamente uma vez e fixados aqui.
 import type { Card } from "./types.js";
 
-const image = (id: string): string => `/cards/${id}.webp`;
+const image = (id: string): string => `/cards/${id}.png`;
 
 export const CARDS: readonly Card[] = [
   // Monstros nível 1-4 (sem tributo)

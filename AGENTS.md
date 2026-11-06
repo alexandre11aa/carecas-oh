@@ -130,7 +130,7 @@ src/engine/
   type: "MONSTER",
   attack: 1600,
   defense: 1200,
-  image: "/cards/ash_dragon.webp",
+  image: "/cards/ash_dragon.png",
   description: "Um dragão que renasce das próprias cinzas.",
 }
 ```
@@ -226,7 +226,7 @@ src/client/
 - Monstros invocados aparecem como uma imagem em pé sobre a carta, sem modelos 3D.
 - Não adicione modelos 3D, motor de física ou pós-processamento sem permissão.
 - Menus, mão, botões e textos longos ficam em HTML sobre a cena.
-- Reaproveite geometrias, materiais e texturas entre cartas. Imagens de cartas usam WebP.
+- Reaproveite geometrias, materiais e texturas entre cartas. Imagens de cartas usam PNG.
 - A cena apenas representa o estado: animações não alteram regras nem decidem resultados.
 - Ao receber um novo estado, a interface executa as animações em ordem e termina mostrando exatamente o estado do servidor.
 - Uma reconexão interrompe as animações e restaura diretamente o estado atual.
