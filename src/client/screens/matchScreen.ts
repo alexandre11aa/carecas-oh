@@ -126,7 +126,10 @@ export const createMatchScreen = (): Screen => {
   eventNotice.hidden = true;
   const detailPanel = el("aside", "card-detail");
   detailPanel.hidden = true;
-  element.append(canvasBox, hud, detailPanel, turnToast, eventNotice, endOverlay, surrenderOverlay);
+  // Contêiner flex central: empilha toast (acima) e evento (abaixo) sem depender de transform (o GSAP anima scale/y do aviso).
+  const toasts = el("div", "match-toasts");
+  toasts.append(turnToast, eventNotice);
+  element.append(canvasBox, hud, detailPanel, toasts, endOverlay, surrenderOverlay);
 
   // Detalhe da carta sob o ponteiro (mão ou mesa). Guarda só o id; cartas ocultas (null) não mostram nada.
   let detailCardId: string | null = null;
