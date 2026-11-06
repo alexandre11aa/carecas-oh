@@ -1,8 +1,16 @@
 // src/client/state.ts
 import type { PlayerView } from "../engine/playerView.js";
+import type { PlayerId } from "../engine/types.js";
 
 export type PublicPlayer = { nickname: string; connected: boolean; ready?: boolean };
 export type PublicRoom = { code: string; hasMatch: boolean; players: PublicPlayer[] };
+
+/** Fim de partida recebido em `match:ended`: vencedor, motivo e votos de revanche. */
+export type MatchEnded = {
+  winner: PlayerId;
+  reason: "LIFE_ZERO" | "DECK_OUT" | "OPPONENT_LEFT";
+  rematch: { you: boolean; opponent: boolean };
+};
 
 /** Último estado recebido do servidor. Estado visual (campos digitados etc.) fica nas telas. */
 export type ClientState = {
@@ -12,6 +20,8 @@ export type ClientState = {
   room: PublicRoom | null;
   /** Última visão da partida recebida em `match:state`; null fora de partida. */
   match: PlayerView | null;
+  /** Resultado da partida encerrada (`match:ended`); null enquanto a partida está em andamento. */
+  ended: MatchEnded | null;
   /** Código do último erro recebido (a tela escolhe a mensagem). */
   errorCode: string | null;
   /** Há uma requisição de sala (criar/entrar) aguardando resposta. */
@@ -23,6 +33,7 @@ let state: ClientState = {
   booting: true,
   room: null,
   match: null,
+  ended: null,
   errorCode: null,
   busy: false,
 };

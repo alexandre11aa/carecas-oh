@@ -1,7 +1,8 @@
 // src/client/network/socket.ts
 import { io } from "socket.io-client";
 import type { PlayerView } from "../../engine/playerView.js";
-import { clearToken, getState, loadToken, matchForRoom, saveToken, setState, type PublicRoom } from "../state.js";
+import type { Action } from "../../engine/types.js";
+import { clearToken, getState, loadToken, matchForRoom, saveToken, setState, type MatchEnded, type PublicRoom } from "../state.js";
 
 type RoomReply = { room: PublicRoom; token: string };
 
@@ -9,7 +10,8 @@ const socket = io({ autoConnect: false });
 
 const applyReply = ({ room, token }: RoomReply): void => {
   saveToken(token);
-  setState({ room, match: matchForRoom(room, getState().match), busy: false, booting: false, errorCode: null });
+  const match = matchForRoom(room, getState().match);
+  setState({ room, match, ended: match ? getState().ended : null, busy: false, booting: false, errorCode: null });
 };
 
 /** Liga os eventos do servidor ao estado e abre a conexão. Chamar uma única vez. */
@@ -33,13 +35,17 @@ export const connect = (): void => {
   );
 
   // A visão substitui diretamente o estado anterior (inclusive na reconexão, sem animações).
-  socket.on("match:state", ({ view }: { view: PlayerView }) => setState({ match: view }));
+  socket.on("match:state", ({ view }: { view: PlayerView }) =>
+    // Partida em andamento (inclusive a revanche) não tem resultado; o erro anterior perde o sentido.
+    setState({ match: view, ended: view.winner ? getState().ended : null, errorCode: null }),
+  );
+  socket.on("match:ended", (ended: MatchEnded) => setState({ ended }));
 
   socket.on("app:error", ({ event, code }: { event: string; code: string }) => {
     if (event === "room:rejoin" && code === "INVALID_TOKEN") {
       // Sala removida ou token antigo: volta ao estado sem sala, sem exibir erro.
       clearToken();
-      setState({ room: null, match: null, booting: false, busy: false });
+      setState({ room: null, match: null, ended: null, booting: false, busy: false });
       return;
     }
     setState({ errorCode: code, busy: false, booting: false });
@@ -61,10 +67,21 @@ export const joinRoom = (code: string, nickname: string): void => {
 export const leaveRoom = (): void => {
   socket.emit("room:leave");
   clearToken();
-  setState({ room: null, match: null, errorCode: null });
+  setState({ room: null, match: null, ended: null, errorCode: null });
 };
 
 /** Marca o jogador como pronto (`room:ready`). */
 export const sendReady = (): void => {
   socket.emit("room:ready");
+};
+
+/** Envia uma jogada (`match:action`); quem decide o resultado é o servidor. */
+export const sendAction = (action: Action): void => {
+  setState({ errorCode: null });
+  socket.emit("match:action", action);
+};
+
+/** Vota por revanche (`accept: true`) ou retira o voto (`accept: false`). */
+export const sendRematch = (accept: boolean): void => {
+  socket.emit("match:rematch", { accept });
 };
