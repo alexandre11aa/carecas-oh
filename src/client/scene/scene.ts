@@ -10,6 +10,7 @@ import {
   PlaneGeometry,
   Raycaster,
   Scene,
+  type Texture,
   Vector2,
   Vector3,
   WebGLRenderer,
@@ -17,7 +18,10 @@ import {
 import type { PlayerView } from "../../engine/playerView.js";
 import { createCardMesh, updateCardMesh } from "./cardMesh.js";
 import { allSlots, CARD_HEIGHT, CARD_WIDTH, layoutBoard, pickSlot, type Slot } from "./layout.js";
+import { backgroundCover, pickSurface } from "./surfaces.js";
 import { createTable } from "./table.js";
+import { BACKGROUND_PATH, TABLE_PATH } from "./texturePaths.js";
+import { loadTexture } from "./textures.js";
 
 export type MatchScene = {
   /** Reflete exatamente o estado recebido (cartas ausentes saem da mesa). */
@@ -44,7 +48,32 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
   const light = new DirectionalLight(0xffffff, 1.2);
   light.position.set(3, 10, 6);
   scene.add(light);
-  scene.add(createTable());
+  const table = createTable();
+  scene.add(table.group);
+
+  // Texturas opcionais: enquanto carregam (ou se faltarem) valem as cores acima; a troca ocorre ao terminar.
+  // Fundo: `scene.background` com a textura em "cover" (sem esticar). O cache de `loadTexture` é o dono das
+  // texturas, então o dispose da cena não as libera; `disposed` impede aplicá-las a uma cena já destruída.
+  let disposed = false;
+  let backgroundTexture: Texture | null = null;
+  let viewAspect = 1;
+  const fitBackground = () => {
+    const image = backgroundTexture?.image as { width?: number; height?: number } | undefined;
+    if (!backgroundTexture || !image?.width || !image?.height) return;
+    const cover = backgroundCover(image.width / image.height, viewAspect);
+    backgroundTexture.repeat.set(cover.repeatX, cover.repeatY);
+    backgroundTexture.offset.set(cover.offsetX, cover.offsetY);
+  };
+  void loadTexture(BACKGROUND_PATH).then((texture) => {
+    if (disposed || !texture || pickSurface(texture) === "color") return;
+    backgroundTexture = texture;
+    fitBackground();
+    scene.background = texture;
+  });
+  void loadTexture(TABLE_PATH).then((texture) => {
+    if (disposed || pickSurface(texture) === "color") return;
+    table.setTexture(texture);
+  });
 
   const camera = new PerspectiveCamera(45, 1, 0.1, 100);
   camera.position.set(0, 11, 9);
@@ -126,16 +155,20 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
     resize: (width, height) => {
       if (width === 0 || height === 0) return;
       renderer.setSize(width, height);
+      viewAspect = width / height;
+      fitBackground();
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
     },
     dispose: () => {
+      disposed = true;
       cancelAnimationFrame(frame);
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);
       renderer.domElement.removeEventListener("pointermove", onPointerMove);
       renderer.domElement.removeEventListener("pointerleave", onPointerLeave);
       markerGeometry.dispose();
       markerMaterial.dispose();
+      table.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     },
