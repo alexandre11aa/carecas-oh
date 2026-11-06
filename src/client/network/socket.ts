@@ -4,11 +4,14 @@ import type { EventView } from "../../engine/eventView.js";
 import type { PlayerView } from "../../engine/playerView.js";
 import type { Action } from "../../engine/types.js";
 import { createTurnClock, turnNotice } from "../screens/turnTimer.js";
-import { clearToken, getState, loadToken, matchForRoom, saveToken, setState, type MatchEnded, type PublicRoom } from "../state.js";
+import { clearToken, getState, loadToken, lobbyRoomsFromPayload, matchForRoom, saveToken, setState, type MatchEnded, type PublicRoom } from "../state.js";
 
 type RoomReply = { room: PublicRoom; token: string };
 
 const socket = io({ autoConnect: false });
+
+/** A home quer a lista de salas; usado para reassinar após reconexão. */
+let lobbyWanted = false;
 
 const applyReply = ({ room, token }: RoomReply): void => {
   saveToken(token);
@@ -24,10 +27,14 @@ export const connect = (): void => {
     const token = loadToken();
     if (token) socket.emit("room:rejoin", { token });
     else setState({ booting: false });
+    // A assinatura do lobby se perde com a conexão; reassina se a home ainda a quer.
+    if (lobbyWanted) socket.emit("lobby:subscribe");
   });
 
   socket.on("disconnect", () => setState({ connection: "offline" }));
   socket.io.on("reconnect_attempt", () => setState({ connection: "connecting" }));
+
+  socket.on("lobby:rooms", (payload: unknown) => setState({ lobbyRooms: lobbyRoomsFromPayload(payload) }));
 
   socket.on("room:created", applyReply);
   socket.on("room:joined", applyReply);
@@ -62,6 +69,19 @@ export const connect = (): void => {
   });
 
   socket.connect();
+};
+
+/** Assina a lista de salas abertas (`lobby:subscribe`); reassinada sozinha após reconexão. */
+export const subscribeLobby = (): void => {
+  lobbyWanted = true;
+  if (socket.connected) socket.emit("lobby:subscribe");
+};
+
+/** Cancela a assinatura da lista de salas (`lobby:unsubscribe`). */
+export const unsubscribeLobby = (): void => {
+  lobbyWanted = false;
+  if (socket.connected) socket.emit("lobby:unsubscribe");
+  setState({ lobbyRooms: [] });
 };
 
 export const createRoom = (nickname: string): void => {
