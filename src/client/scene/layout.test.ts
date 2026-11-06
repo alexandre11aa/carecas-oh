@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createMatch } from "../../engine/createMatch.js";
 import { playerView } from "../../engine/playerView.js";
 import type { MatchState } from "../../engine/types.js";
-import { allSlots, layoutBoard, slotPosition } from "./layout.js";
+import { allSlots, layoutBoard, pickSlot, slotPosition } from "./layout.js";
 
 const baseState = (): MatchState => createMatch(123);
 
@@ -67,5 +67,21 @@ describe("layout da mesa", () => {
     const keys = layoutBoard(playerView(state, "P1")).map((p) => p.key);
     expect(keys).not.toContain("you:deck:0");
     expect(keys).toContain("opponent:deck:0");
+  });
+});
+
+describe("pickSlot", () => {
+  it("devolve_o_slot_cujo_centro_foi_clicado_para_todos_os_slots", () => {
+    for (const slot of allSlots()) expect(pickSlot(slot.x, slot.z)?.key).toBe(slot.key);
+  });
+
+  it("devolve_o_slot_para_pontos_dentro_da_zona_fora_do_centro", () => {
+    const { x, z } = slotPosition("opponent", "monster", 2);
+    expect(pickSlot(x + 0.5, z - 0.8)?.key).toBe("opponent:monster:2");
+  });
+
+  it("devolve_null_fora_de_qualquer_slot", () => {
+    expect(pickSlot(0, 0)).toBeNull();
+    expect(pickSlot(20, 20)).toBeNull();
   });
 });
