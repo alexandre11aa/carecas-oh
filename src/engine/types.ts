@@ -101,7 +101,12 @@ export type ErrorCode =
   | "MONSTER_NOT_ON_FIELD"
   | "CANNOT_CHANGE_POSITION"
   | "ALREADY_CHANGED_POSITION"
-  | "NOT_FACE_DOWN";
+  | "NOT_FACE_DOWN"
+  | "ATTACK_NOT_ALLOWED_ON_FIRST_TURN"
+  | "NOT_IN_ATTACK_POSITION"
+  | "ALREADY_ATTACKED"
+  | "INVALID_TARGET"
+  | "DIRECT_ATTACK_NOT_ALLOWED";
 
 export type GameEvent =
   | { type: "CARD_DRAWN"; player: PlayerId; cardId: string }
@@ -111,7 +116,9 @@ export type GameEvent =
   | { type: "MONSTER_SUMMONED"; player: PlayerId; cardId: string; zone: number; position: MonsterPosition; faceDown: boolean }
   | { type: "CARD_SENT_TO_GRAVEYARD"; player: PlayerId; cardId: string }
   | { type: "POSITION_CHANGED"; player: PlayerId; cardId: string; position: MonsterPosition; faceDown: boolean }
-  | { type: "MONSTER_FLIPPED"; player: PlayerId; cardId: string };
+  | { type: "MONSTER_FLIPPED"; player: PlayerId; cardId: string }
+  | { type: "ATTACK_DECLARED"; player: PlayerId; attackerCardId: string; targetCardId: string | null }
+  | { type: "DAMAGE_DEALT"; player: PlayerId; amount: number };
 
 export type ActionResult =
   | { ok: true; state: MatchState; events: GameEvent[] }
