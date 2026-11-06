@@ -53,13 +53,14 @@ Seguem as regras do Yu-Gi-Oh, com monstros, magias, armadilhas e tributo.
 - Existem 20 cartas provisórias. Ao iniciar a partida, cada jogador recebe 10 cartas sorteadas sem repetição, sem que as cartas se repitam entre os jogadores. O sorteio usa a semente do estado.
 - Mão inicial de 5 cartas; as outras 5 ficam no deck.
 - Perde quem não puder comprar quando for obrigado a comprar.
+- Cada turno tem limite de 30 segundos para o jogador da vez (ou o defensor, se houver janela de resposta aberta). O prazo recomeça a cada ação válida. Ao expirar, o servidor passa a resposta pendente ou encerra o turno. O relógio vive no servidor (`roomService`), nunca na engine.
 - Vence também quem zerar os pontos de vida do oponente.
 
 ### Fases do turno
 
 1. **Compra (Draw):** o jogador do turno compra 1 carta.
 2. **Principal 1 (Main 1):** invocar, baixar, mudar posição e usar magias.
-3. **Batalha (Battle):** monstros em ataque podem atacar.
+3. **Batalha (Battle):** monstros em ataque podem atacar. No primeiro turno da partida ninguém ataca (o servidor recusa com `ATTACK_NOT_ALLOWED_ON_FIRST_TURN`).
 4. **Principal 2 (Main 2):** o mesmo que na Principal 1, respeitando os limites do turno.
 5. **Fim (End):** o turno passa ao oponente.
 
