@@ -57,7 +57,11 @@ export const endTurn = (state: MatchState): TurnStep => {
     phase: "DRAW",
     players: {
       ...state.players,
-      [player]: { ...state.players[player], normalSummonUsed: false },
+      [player]: {
+        ...state.players[player],
+        normalSummonUsed: false,
+        monsters: state.players[player].monsters.map((m) => (m ? { ...m, hasAttacked: false } : m)),
+      },
     },
   };
   const draw = drawPhase(next);
