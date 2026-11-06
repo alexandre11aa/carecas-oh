@@ -5,10 +5,12 @@ Formato `<domínio>:<ação>`. Veja as regras em `AGENTS.md`, seção "Eventos".
 Objeto `room` usado nas respostas (nunca inclui tokens):
 
 ```json
-{ "code": "X7K2", "players": [{ "nickname": "Ana", "connected": true, "ready": false }] }
+{ "code": "X7K2", "hasMatch": false, "players": [{ "nickname": "Ana", "connected": true, "ready": false }] }
 ```
 
 `ready` indica quem marcou "pronto" na sala de espera.
+
+`hasMatch` é o sinal explícito para o cliente manter ou descartar a partida: `true` enquanto a sala guarda uma partida (em andamento ou encerrada, inclusive depois que o oponente desiste com `OPPONENT_LEFT`, quando `ready` volta a `false` para todos); `false` quando a sala está sem partida (antes de começar ou depois que um novo jogador entra numa sala com partida encerrada). O cliente descarta o `match` só quando recebe `hasMatch: false`, e nunca deduz isso de `ready`. Vale em todos os eventos que carregam `room`: `room:created`, `room:joined`, `room:rejoined` e `room:updated`.
 
 O código tem 4 caracteres (letras maiúsculas sem I/O e dígitos 2-9). O `token` é um UUID aleatório, exclusivo de cada jogador, que o cliente guarda no `localStorage` para usar em `room:rejoin`.
 
@@ -31,7 +33,7 @@ Erros: `INVALID_PAYLOAD`
 Direção: servidor → cliente
 
 Payload:
-{ "room": { "code": "X7K2", "players": [{ "nickname": "Ana", "connected": true, "ready": false }] }, "token": "3b0c...-uuid" }
+{ "room": { "code": "X7K2", "hasMatch": false, "players": [{ "nickname": "Ana", "connected": true, "ready": false }] }, "token": "3b0c...-uuid" }
 
 ### room:join
 
@@ -50,7 +52,7 @@ Erros: `INVALID_PAYLOAD`, `ROOM_NOT_FOUND`, `ROOM_FULL`
 Direção: servidor → cliente
 
 Payload:
-{ "room": { "code": "X7K2", "players": [{ "nickname": "Ana", "connected": true, "ready": false }, { "nickname": "Bia", "connected": true, "ready": false }] }, "token": "9f1a...-uuid" }
+{ "room": { "code": "X7K2", "hasMatch": false, "players": [{ "nickname": "Ana", "connected": true, "ready": false }, { "nickname": "Bia", "connected": true, "ready": false }] }, "token": "9f1a...-uuid" }
 
 ### room:rejoin
 
@@ -69,7 +71,7 @@ Erros: `INVALID_PAYLOAD`, `INVALID_TOKEN` (token desconhecido ou sala já removi
 Direção: servidor → cliente
 
 Payload:
-{ "room": { "code": "X7K2", "players": [...] }, "token": "3b0c...-uuid" }
+{ "room": { "code": "X7K2", "hasMatch": false, "players": [...] }, "token": "3b0c...-uuid" }
 
 ### room:leave
 
@@ -92,7 +94,7 @@ Erros: nenhum (sem efeito se o jogador não estiver em sala)
 Direção: servidor → cliente
 
 Payload:
-{ "room": { "code": "X7K2", "players": [{ "nickname": "Bia", "connected": false, "ready": false }] } }
+{ "room": { "code": "X7K2", "hasMatch": false, "players": [{ "nickname": "Bia", "connected": false, "ready": false }] } }
 
 Enviado aos demais jogadores quando alguém entra, reconecta, sai ou perde a conexão (`connected: false`). Ao perder a conexão o jogador mantém a vaga para `room:rejoin`; a sala é removida se todos ficarem desconectados por mais de 60 segundos.
 
