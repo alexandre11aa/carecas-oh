@@ -19,12 +19,12 @@ export const CARDS: readonly Card[] = [
   // Monstros nível 7+ (2 tributos)
   { id: "ash_dragon", name: "Dragão de Cinzas", type: "MONSTER", level: 7, attack: 2800, defense: 2100, image: image("ash_dragon"), description: "Um dragão que renasce das próprias cinzas." },
   { id: "abyss_titan", name: "Titã do Abismo", type: "MONSTER", level: 8, attack: 3000, defense: 2500, image: image("abyss_titan"), description: "Desperta das profundezas uma vez por século." },
-  { id: "sun_phoenix", name: "Fênix Solar", type: "MONSTER", level: 7, attack: 2600, defense: 2300, image: image("sun_phoenix"), description: "Sua luz queima e cura ao mesmo tempo." },
   // Magias
-  { id: "healing_spring", name: "Fonte Curativa", type: "SPELL", image: image("healing_spring"), description: "Recupera pontos de vida do conjurador." },
-  { id: "power_surge", name: "Surto de Poder", type: "SPELL", image: image("power_surge"), description: "Aumenta o ataque de um monstro até o fim do turno." },
-  { id: "wind_gust", name: "Rajada de Vento", type: "SPELL", image: image("wind_gust"), description: "Devolve uma carta do campo à mão do dono." },
-  { id: "arcane_draw", name: "Sabedoria Arcana", type: "SPELL", image: image("arcane_draw"), description: "Compre 1 carta." },
+  { id: "healing_spring", name: "Fonte Curativa", type: "SPELL", effect: { kind: "HEAL", amount: 1000 }, image: image("healing_spring"), description: "Recupera pontos de vida do conjurador." },
+  { id: "power_surge", name: "Surto de Poder", type: "SPELL", effect: { kind: "BOOST_ATTACK", amount: 700 }, image: image("power_surge"), description: "Aumenta o ataque de um monstro até o fim do turno." },
+  { id: "wind_gust", name: "Rajada de Vento", type: "SPELL", effect: { kind: "DESTROY_MONSTER" }, image: image("wind_gust"), description: "Destrói um monstro do oponente." },
+  { id: "fire_bolt", name: "Raio de Fogo", type: "SPELL", effect: { kind: "DAMAGE", amount: 800 }, image: image("fire_bolt"), description: "Causa 800 de dano direto ao oponente." },
+  { id: "arcane_draw", name: "Sabedoria Arcana", type: "SPELL", effect: { kind: "DRAW", count: 1 }, image: image("arcane_draw"), description: "Compre 1 carta." },
   // Armadilhas
   { id: "spike_pit", name: "Fosso de Espinhos", type: "TRAP", image: image("spike_pit"), description: "Destrói um monstro que declarou ataque." },
   { id: "mirror_wall", name: "Muralha Espelhada", type: "TRAP", image: image("mirror_wall"), description: "Anula um ataque." },

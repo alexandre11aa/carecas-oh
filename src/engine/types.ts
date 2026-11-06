@@ -14,10 +14,19 @@ export type MonsterCard = {
   description: string;
 };
 
+/** Efeito de magia como dado: o motor interpreta, sem código por carta. */
+export type SpellEffect =
+  | { kind: "BOOST_ATTACK"; amount: number } // alvo: monstro próprio; vale até o fim do turno
+  | { kind: "HEAL"; amount: number } // cura o conjurador
+  | { kind: "DAMAGE"; amount: number } // dano direto ao oponente
+  | { kind: "DESTROY_MONSTER" } // alvo: monstro do oponente
+  | { kind: "DRAW"; count: number }; // o conjurador compra cartas
+
 export type SpellCard = {
   id: string;
   name: string;
   type: "SPELL";
+  effect: SpellEffect;
   image: string;
   description: string;
 };
@@ -45,6 +54,8 @@ export type MonsterOnField = {
   summonedOnTurn: number;
   hasAttacked: boolean;
   changedPositionOnTurn: number | null;
+  /** Bônus de ATK temporário (magias); zerado ao fim do turno. Ausente equivale a 0. */
+  attackBonus?: number;
 };
 
 export type SpellTrapOnField = {
@@ -76,10 +87,10 @@ export type MatchState = {
 export type Action =
   | { type: "SUMMON_CARD"; cardId: string; tributeCardIds: string[]; zone: number }
   | { type: "SET_MONSTER"; cardId: string; tributeCardIds: string[]; zone: number }
-  | { type: "SET_TRAP"; cardId: string }
+  | { type: "SET_SPELL_TRAP"; cardId: string }
   | { type: "CHANGE_POSITION"; cardId: string }
   | { type: "FLIP_SUMMON"; cardId: string }
-  | { type: "ACTIVATE_SPELL"; cardId: string }
+  | { type: "ACTIVATE_SPELL"; cardId: string; targetCardId?: string | null }
   | { type: "ACTIVATE_TRAP"; cardId: string }
   | { type: "ATTACK"; attackerCardId: string; targetCardId: string | null }
   | { type: "NEXT_PHASE" }
@@ -106,7 +117,11 @@ export type ErrorCode =
   | "NOT_IN_ATTACK_POSITION"
   | "ALREADY_ATTACKED"
   | "INVALID_TARGET"
-  | "DIRECT_ATTACK_NOT_ALLOWED";
+  | "DIRECT_ATTACK_NOT_ALLOWED"
+  | "NOT_A_SPELL_OR_TRAP"
+  | "NOT_A_SPELL"
+  | "SPELL_NOT_AVAILABLE"
+  | "SPELL_TRAP_ZONES_FULL";
 
 export type GameEvent =
   | { type: "CARD_DRAWN"; player: PlayerId; cardId: string }
@@ -118,7 +133,11 @@ export type GameEvent =
   | { type: "POSITION_CHANGED"; player: PlayerId; cardId: string; position: MonsterPosition; faceDown: boolean }
   | { type: "MONSTER_FLIPPED"; player: PlayerId; cardId: string }
   | { type: "ATTACK_DECLARED"; player: PlayerId; attackerCardId: string; targetCardId: string | null }
-  | { type: "DAMAGE_DEALT"; player: PlayerId; amount: number };
+  | { type: "DAMAGE_DEALT"; player: PlayerId; amount: number }
+  | { type: "SPELL_TRAP_SET"; player: PlayerId; cardId: string; zone: number }
+  | { type: "SPELL_ACTIVATED"; player: PlayerId; cardId: string; targetCardId: string | null }
+  | { type: "LIFE_RESTORED"; player: PlayerId; amount: number }
+  | { type: "ATTACK_BOOSTED"; player: PlayerId; cardId: string; amount: number };
 
 export type ActionResult =
   | { ok: true; state: MatchState; events: GameEvent[] }

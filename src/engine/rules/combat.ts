@@ -19,7 +19,8 @@ const fail = (code: Failure["code"]): Failure => ({ ok: false, code });
 
 const statOf = (monster: MonsterOnField, stat: "attack" | "defense"): number => {
   const card = getCard(monster.cardId);
-  return card?.type === "MONSTER" ? card[stat] : 0;
+  if (card?.type !== "MONSTER") return 0;
+  return stat === "attack" ? card.attack + (monster.attackBonus ?? 0) : card.defense;
 };
 
 /** Ataca com um monstro em ataque, uma vez por turno, contra um monstro do oponente ou direto (alvo nulo). */

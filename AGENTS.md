@@ -115,6 +115,7 @@ src/engine/
 ### Cartas
 
 - Cartas são dados tipados em `cards.ts`. Não crie uma classe nem um arquivo de código para cada carta.
+- Efeitos de magia são dados tipados (`effect` em `SpellCard`, união `SpellEffect` em `types.ts`: `BOOST_ATTACK`, `HEAL`, `DAMAGE`, `DESTROY_MONSTER`, `DRAW`), interpretados por `rules/spells.ts`. Efeito novo = novo `kind` na união e um caso no interpretador, nunca código por carta.
 - Use apenas cartas, artes, nomes e identidade visual próprios. Não copie material oficial de Yu-Gi-Oh.
 
 ```ts
