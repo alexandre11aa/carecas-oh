@@ -1,14 +1,31 @@
 // src/client/scene/scene.ts
-import { AmbientLight, Color, DirectionalLight, PerspectiveCamera, Scene, WebGLRenderer } from "three";
-import type { Mesh } from "three";
+import {
+  AmbientLight,
+  Color,
+  DirectionalLight,
+  Mesh,
+  MeshBasicMaterial,
+  PerspectiveCamera,
+  Plane,
+  PlaneGeometry,
+  Raycaster,
+  Scene,
+  Vector2,
+  Vector3,
+  WebGLRenderer,
+} from "three";
 import type { PlayerView } from "../../engine/playerView.js";
 import { createCardMesh, updateCardMesh } from "./cardMesh.js";
-import { layoutBoard } from "./layout.js";
+import { allSlots, CARD_HEIGHT, CARD_WIDTH, layoutBoard, pickSlot, type Slot } from "./layout.js";
 import { createTable } from "./table.js";
 
 export type MatchScene = {
   /** Reflete exatamente o estado recebido (cartas ausentes saem da mesa). */
   setView: (view: PlayerView) => void;
+  /** Destaca slots (chaves de `slotKey`) sobre a mesa; lista vazia limpa o destaque. */
+  setHighlights: (keys: readonly string[]) => void;
+  /** Registra o tratador de cliques sobre a mesa: recebe o slot sob o ponteiro. */
+  onPick: (handler: (slot: Slot) => void) => void;
   resize: (width: number, height: number) => void;
   dispose: () => void;
 };
@@ -32,6 +49,32 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
   camera.lookAt(0, 0, 0.8);
 
   const meshes = new Map<string, Mesh>();
+
+  // Marcadores de destaque: um por slot, criados uma vez e só alternados entre visível/oculto.
+  const markerGeometry = new PlaneGeometry(CARD_WIDTH + 0.2, CARD_HEIGHT + 0.2).rotateX(-Math.PI / 2);
+  const markerMaterial = new MeshBasicMaterial({ color: 0xffd34d, transparent: true, opacity: 0.45, depthWrite: false });
+  const markers = new Map<string, Mesh>();
+  for (const slot of allSlots()) {
+    const marker = new Mesh(markerGeometry, markerMaterial);
+    marker.position.set(slot.x, 0.05, slot.z);
+    marker.visible = false;
+    markers.set(slot.key, marker);
+    scene.add(marker);
+  }
+
+  // Clique: raio da câmera até o plano da mesa, convertido em slot por `pickSlot` (lógica pura).
+  const raycaster = new Raycaster();
+  const tablePlane = new Plane(new Vector3(0, 1, 0), 0);
+  let pickHandler: ((slot: Slot) => void) | null = null;
+  const onPointerDown = (event: PointerEvent) => {
+    const rect = renderer.domElement.getBoundingClientRect();
+    const ndc = new Vector2(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
+    raycaster.setFromCamera(ndc, camera);
+    const point = raycaster.ray.intersectPlane(tablePlane, new Vector3());
+    const slot = point ? pickSlot(point.x, point.z) : null;
+    if (slot) pickHandler?.(slot);
+  };
+  renderer.domElement.addEventListener("pointerdown", onPointerDown);
   let frame = 0;
   const loop = () => {
     renderer.render(scene, camera);
@@ -59,6 +102,13 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
         updateCardMesh(mesh, placement);
       }
     },
+    setHighlights: (keys) => {
+      const active = new Set(keys);
+      for (const [key, marker] of markers) marker.visible = active.has(key);
+    },
+    onPick: (handler) => {
+      pickHandler = handler;
+    },
     resize: (width, height) => {
       if (width === 0 || height === 0) return;
       renderer.setSize(width, height);
@@ -67,6 +117,9 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
     },
     dispose: () => {
       cancelAnimationFrame(frame);
+      renderer.domElement.removeEventListener("pointerdown", onPointerDown);
+      markerGeometry.dispose();
+      markerMaterial.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     },

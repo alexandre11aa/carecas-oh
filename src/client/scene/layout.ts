@@ -34,7 +34,7 @@ export const slotPosition = (side: Side, kind: SlotKind, zone = 0): { x: number;
   return { x: base * sign, z: ROW_Z[kind] * sign };
 };
 
-const slotKey = (side: Side, kind: SlotKind, zone: number): string => `${side}:${kind}:${zone}`;
+export const slotKey = (side: Side, kind: SlotKind, zone: number): string => `${side}:${kind}:${zone}`;
 
 /** Todos os slots da mesa (zonas de monstro e magia/armadilha, deck e cemitério dos dois lados). */
 export const allSlots = (): Slot[] => {
@@ -99,3 +99,10 @@ export const layoutBoard = (view: PlayerView): CardPlacement[] => [
   ...sidePlacements("you", view.you.monsters, view.you.spellTraps, view.you.deckCount, view.you.graveyard),
   ...sidePlacements("opponent", view.opponent.monsters, view.opponent.spellTraps, view.opponent.deckCount, view.opponent.graveyard),
 ];
+
+/** Slot sob um ponto do plano da mesa (coordenadas x/z do mundo), ou null se o ponto cair fora de qualquer slot. */
+export const pickSlot = (x: number, z: number): Slot | null => {
+  const halfWidth = ZONE_SPACING / 2;
+  const halfHeight = CARD_HEIGHT / 2;
+  return allSlots().find((slot) => Math.abs(x - slot.x) <= halfWidth && Math.abs(z - slot.z) <= halfHeight) ?? null;
+};

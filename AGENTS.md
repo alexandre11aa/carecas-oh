@@ -191,9 +191,11 @@ src/client/
   network/
     socket.ts           conexão, envio e recebimento de eventos
   screens/              telas em HTML: início, sala de espera e interface da partida
+    matchActions.ts     lógica pura (testável): PlayerView + seleção => comandos e `match:action` a enviar
+    matchEnd.ts         lógica pura: textos de resultado e estado do botão de revanche
   scene/
     scene.ts            renderer, câmera, luzes e loop
-    layout.ts           lógica pura (sem WebGL, testável): PlayerView -> posições das cartas na mesa
+    layout.ts           lógica pura (sem WebGL, testável): PlayerView -> posições das cartas na mesa e clique -> slot (`pickSlot`)
     table.ts            mesa e zonas
     cardMesh.ts         criação e atualização das cartas
     monsterSprite.ts    arte do monstro em pé sobre a carta
@@ -249,7 +251,7 @@ O que cobrir:
 
 - **Engine:** cada regra, incluindo jogadas válidas e inválidas, e a garantia de que `playerView` não vaza informação oculta.
 - **Server:** cada evento, incluindo caminho feliz, payload inválido, sala inexistente, jogador sem permissão e reconexão.
-- **Client:** não há testes automatizados no início. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
+- **Client:** a lógica pura (`scene/layout.ts`, `screens/matchActions.ts`, `screens/matchEnd.ts`, `state.ts`) tem testes; DOM e WebGL não. Mantenha a decisão de qual ação enviar nos módulos puros. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
 - **Correção de bug:** um teste que falharia antes da correção, quando o bug estiver em `engine` ou `server`.
 
 Como escrever:

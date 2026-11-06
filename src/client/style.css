@@ -77,3 +77,20 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .hand-card.trap { border-top-color: #8a3a6a; }
 .hand-card b { display: block; }
 .match-notice { position: absolute; top: 40%; width: 100%; text-align: center; }
+
+/* Partida: interação (botões, dicas, fim) */
+.hud button, .hud .hand-card { pointer-events: auto; }
+.hud-hint { margin: 0 0 0.4rem; text-align: center; color: #ddd; text-shadow: 0 1px 3px #000; }
+.hud .error { text-align: center; text-shadow: 0 1px 3px #000; }
+.hud-commands { display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.4rem; }
+.hud-commands:empty { display: none; }
+.hud-commands button { padding: 0.5rem 0.8rem; font-size: 0.9rem; }
+.hand-card { cursor: pointer; font-family: inherit; border: 0; border-top: 0.4rem solid #b5803a; }
+.hand-card.spell { border-top-color: #2f8a78; }
+.hand-card.trap { border-top-color: #8a3a6a; }
+.hand-card.selected { outline: 3px solid #ffd34d; transform: translateY(-0.4rem); }
+.end-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(10, 10, 20, 0.75); }
+.end-overlay[hidden] { display: none; }
+.end-box { display: flex; flex-direction: column; gap: 0.75rem; min-width: 18rem; max-width: 24rem; padding: 1.5rem; text-align: center; background: #24243a; border-radius: 0.6rem; }
+.end-box h2 { margin: 0; font-size: 2rem; color: #c8a23a; }
+.end-box .hint { word-break: normal; min-height: 1.2em; }
