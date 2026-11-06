@@ -86,7 +86,7 @@ export const createTutorial = (): Tutorial => {
 
   let observer: IntersectionObserver | null = null;
   if (typeof IntersectionObserver !== "undefined") {
-    // Faixa de leitura no meio superior da tela.
+    // Faixa de leitura logo abaixo da barra fixa, para que a seção levada ao topo por uma âncora fique ativa.
     observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -97,7 +97,7 @@ export const createTutorial = (): Tutorial => {
         }
         markActive();
       },
-      { rootMargin: "-40% 0px -55% 0px" },
+      { rootMargin: "-20% 0px -75% 0px" },
     );
     for (const node of sectionElements) observer.observe(node);
   }

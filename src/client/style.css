@@ -52,6 +52,7 @@ html { scroll-behavior: smooth; }
 .tutorial-table th { background: #22223a; color: #eee; }
 .tutorial-group-title { margin: 1.5rem 0 0.75rem; font-size: 1.2rem; color: #c8a23a; }
 .tutorial-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 0.75rem; }
+.tutorial-section > :last-child { margin-bottom: 0; }
 @media (max-width: 30rem) {
   .tutorial-section { padding: 1.5rem 0.25rem; scroll-margin-top: 6rem; }
   .tutorial-section h2 { font-size: 1.4rem; }
