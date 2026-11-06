@@ -9,10 +9,44 @@ body {
   color: #eee;
 }
 
+html { scroll-behavior: smooth; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
 #app {
   display: flex;
   justify-content: center;
   padding: 2rem 1rem;
+}
+
+/* Home: lobby no topo e tutorial em página infinita abaixo (a página rola) */
+.home { display: flex; flex-direction: column; align-items: center; gap: 3rem; width: 100%; }
+.tutorial-cta { color: #c8a23a; text-decoration: none; font-weight: 600; padding: 0.5rem; }
+.tutorial-cta:hover { text-decoration: underline; }
+.tutorial { width: 100%; max-width: 44rem; }
+.tutorial-nav {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem 0.75rem;
+  padding: 0.6rem 0.5rem;
+  background: #1b1b2a;
+  border-bottom: 1px solid #34344f;
+}
+.tutorial-nav a { color: #aaa; text-decoration: none; padding: 0.25rem 0.5rem; border-radius: 0.3rem; font-size: 0.9rem; }
+.tutorial-nav a:hover { color: #eee; }
+.tutorial-nav a[aria-current] { color: #1b1b2a; background: #c8a23a; font-weight: 600; }
+.tutorial-section { min-height: 70vh; padding: 3rem 0.5rem; scroll-margin-top: 4.5rem; border-bottom: 1px solid #2a2a40; }
+.tutorial-section h2 { margin: 0 0 1rem; font-size: 1.8rem; }
+.tutorial-section p { margin: 0; color: #ccc; line-height: 1.6; }
+@media (max-width: 30rem) {
+  .tutorial-section { min-height: 55vh; padding: 2rem 0.25rem; }
+  .tutorial-section h2 { font-size: 1.4rem; }
 }
 
 .screen {
