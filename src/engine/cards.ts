@@ -27,7 +27,7 @@ export const CARDS: readonly Card[] = [
   { id: "arcane_draw", name: "Sabedoria Arcana", type: "SPELL", effect: { kind: "DRAW", count: 1 }, image: image("arcane_draw"), description: "Compre 1 carta.", flavor: "Os antigos tomos revelam seus segredos a quem sabe ouvi-los." },
   // Armadilhas
   { id: "spike_pit", name: "Fosso de Espinhos", type: "TRAP", trigger: "ATTACK_DECLARED", effect: { kind: "DESTROY_ATTACKER", maxAttack: 2000 }, image: image("spike_pit"), description: "Destrói um monstro atacante com ATK 2000 ou menos.", flavor: "O chão parece firme, até o primeiro passo em falso." },
-  { id: "mirror_wall", name: "Muralha Espelhada", type: "TRAP", trigger: "ATTACK_DECLARED", effect: { kind: "NEGATE_ATTACK" }, image: image("mirror_wall"), description: "Anula um ataque.", flavor: "Quem investe contra ela só encontra o próprio reflexo." },
+  { id: "divine_glory_evasion", name: "Esquiva da Glória Divina", type: "TRAP", trigger: "ATTACK_DECLARED", effect: { kind: "NEGATE_ATTACK" }, image: "/cards/esquiva_da_gloria_divina.png", description: "Anula um ataque.", flavor: "Quem investe contra ela só encontra o próprio reflexo." },
   { id: "hidden_snare", name: "Laço Escondido", type: "TRAP", trigger: "SUMMON", effect: { kind: "NEGATE_SUMMON" }, image: image("hidden_snare"), description: "Impede uma invocação.", flavor: "Esperou em silêncio por tanto tempo que quase foi esquecido." },
   { id: "dark_veil", name: "Véu Sombrio", type: "TRAP", trigger: "SPELL_ACTIVATION", effect: { kind: "NEGATE_SPELL" }, image: image("dark_veil"), description: "Cancela a ativação de uma magia.", flavor: "Uma cortina de sombras que abafa até as palavras mais poderosas." },
 ];
