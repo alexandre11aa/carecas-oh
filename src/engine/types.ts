@@ -83,3 +83,19 @@ export type Action =
   | { type: "ATTACK"; attackerCardId: string; targetCardId: string | null }
   | { type: "NEXT_PHASE" }
   | { type: "END_TURN" };
+
+export type ErrorCode =
+  | "MATCH_ENDED"
+  | "NOT_YOUR_TURN"
+  | "INVALID_PHASE"
+  | "ACTION_NOT_AVAILABLE";
+
+export type GameEvent =
+  | { type: "CARD_DRAWN"; player: PlayerId; cardId: string }
+  | { type: "PHASE_CHANGED"; phase: Phase }
+  | { type: "TURN_STARTED"; player: PlayerId; turn: number }
+  | { type: "MATCH_ENDED"; winner: PlayerId };
+
+export type ActionResult =
+  | { ok: true; state: MatchState; events: GameEvent[] }
+  | { ok: false; code: ErrorCode };
