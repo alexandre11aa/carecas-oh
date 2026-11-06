@@ -84,6 +84,9 @@ const resolveEffect = (
       const zone = enemy.monsters.findIndex((m) => m?.cardId === targetCardId);
       const target = enemy.monsters[zone];
       if (!target) return fail("INVALID_TARGET");
+      const targetCard = getCard(target.cardId);
+      const attack = targetCard?.type === "MONSTER" ? targetCard.attack + (target.attackBonus ?? 0) : 0;
+      if (effect.maxAttack !== undefined && attack > effect.maxAttack) return fail("INVALID_TARGET");
       events.push({ type: "CARD_SENT_TO_GRAVEYARD", player: enemyId, cardId: target.cardId });
       return {
         self,

@@ -162,6 +162,54 @@ describe("armadilha: gatilho de declaracao de ataque", () => {
   });
 });
 
+describe("armadilha: maxAttack do spike_pit", () => {
+  it("destroi_atacante_com_ataque_ate_o_limite", () => {
+    const { state, p, o } = battle(["spike_pit"]);
+    const opened = ok(state, p, attackWith("dune_scout", "bone_knight"));
+    const r = ok(opened.state, o, activate("spike_pit"));
+    expect(r.state.players[p].monsters[0]).toBeNull();
+    expect(r.state.players[p].graveyard).toEqual(["dune_scout"]);
+    expect(r.state.players[o].lifePoints).toBe(8000);
+  });
+
+  it("nao_destroi_atacante_com_ataque_acima_do_limite_e_o_ataque_segue", () => {
+    const { state, p, o } = setup({
+      mine: [field("storm_hawk")],
+      theirs: [field("bone_knight")],
+      theirTraps: [trap("spike_pit")],
+    });
+    const opened = ok(state, p, attackWith("storm_hawk", "bone_knight"));
+    const r = ok(opened.state, o, activate("spike_pit"));
+    expect(r.state.players[p].monsters[0]?.cardId).toBe("storm_hawk");
+    expect(r.state.players[o].graveyard).toEqual(["spike_pit", "bone_knight"]);
+    expect(r.state.players[o].lifePoints).toBe(7400);
+  });
+
+  it("maxAttack_considera_o_bonus_do_atacante", () => {
+    const { state, p, o } = setup({
+      mine: [field("dune_scout", { attackBonus: 400 })],
+      theirs: [field("bone_knight")],
+      theirTraps: [trap("spike_pit")],
+    });
+    const opened = ok(state, p, attackWith("dune_scout", "bone_knight"));
+    const r = ok(opened.state, o, activate("spike_pit"));
+    expect(r.state.players[p].monsters[0]?.cardId).toBe("dune_scout");
+    expect(r.state.players[p].graveyard).toEqual([]);
+  });
+
+  it("mirror_wall_anula_atacante_forte", () => {
+    const { state, p, o } = setup({
+      mine: [field("abyss_titan")],
+      theirs: [field("bone_knight")],
+      theirTraps: [trap("mirror_wall")],
+    });
+    const opened = ok(state, p, attackWith("abyss_titan", "bone_knight"));
+    const r = ok(opened.state, o, activate("mirror_wall"));
+    expect(r.events).toContainEqual({ type: "ATTACK_NEGATED", player: p, attackerCardId: "abyss_titan" });
+    expect(r.state.players[o].monsters[0]?.cardId).toBe("bone_knight");
+  });
+});
+
 describe("armadilha: gatilho de invocacao", () => {
   const summonSetup = () =>
     setup({ hand: ["dune_scout"], phase: "MAIN_1", theirTraps: [trap("hidden_snare")] });

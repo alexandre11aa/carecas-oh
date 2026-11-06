@@ -152,6 +152,24 @@ describe("efeitos de magia", () => {
     expect(r.events).toContainEqual({ type: "CARD_SENT_TO_GRAVEYARD", player: o, cardId: "dune_scout" });
   });
 
+  it("destroi_monstro_com_ataque_no_limite_do_maxAttack", () => {
+    const { state, p, o } = setup({ hand: ["wind_gust"], theirs: [field("storm_hawk", {}), field("dune_scout")] });
+    // storm_hawk tem 2100 (acima do limite de 2000)
+    expect(applyAction(state, p, activate("wind_gust", "storm_hawk"))).toEqual({ ok: false, code: "INVALID_TARGET" });
+    const r = ok(state, p, activate("wind_gust", "dune_scout"));
+    expect(r.state.players[o].graveyard).toEqual(["dune_scout"]);
+  });
+
+  it("maxAttack_considera_o_bonus_de_ataque_do_alvo", () => {
+    const { state, p } = setup({ hand: ["wind_gust"], theirs: [field("dune_scout", { attackBonus: 400 })] });
+    expect(applyAction(state, p, activate("wind_gust", "dune_scout"))).toEqual({ ok: false, code: "INVALID_TARGET" });
+  });
+
+  it("wind_gust_nao_destroi_o_titan_do_abismo", () => {
+    const { state, p } = setup({ hand: ["wind_gust"], theirs: [field("abyss_titan")] });
+    expect(applyAction(state, p, activate("wind_gust", "abyss_titan"))).toEqual({ ok: false, code: "INVALID_TARGET" });
+  });
+
   it("destruir_exige_alvo_do_oponente", () => {
     const { state, p } = setup({ hand: ["wind_gust"], mine: [field("tide_imp")], theirs: [field("dune_scout")] });
     expect(applyAction(state, p, activate("wind_gust"))).toEqual({ ok: false, code: "INVALID_TARGET" });
@@ -180,10 +198,10 @@ describe("efeitos de magia", () => {
     expect(boosted.state.players[p].monsters[0]?.attackBonus).toBe(700);
     expect(boosted.events).toContainEqual({ type: "ATTACK_BOOSTED", player: p, cardId: "tide_imp", amount: 700 });
 
-    // tide_imp 400 + 700 = 1100 contra ash_sprite 700 em ataque: destrói e causa 400 de dano
+    // tide_imp 600 + 700 = 1300 contra ash_sprite 700 em ataque: destrói e causa 600 de dano
     const battle = ok(boosted.state, p, { type: "NEXT_PHASE" });
     const hit = ok(battle.state, p, { type: "ATTACK", attackerCardId: "tide_imp", targetCardId: "ash_sprite" });
-    expect(hit.state.players[o].lifePoints).toBe(7600);
+    expect(hit.state.players[o].lifePoints).toBe(7400);
     expect(hit.state.players[o].graveyard).toEqual(["ash_sprite"]);
 
     // o bônus acaba ao fim do turno
