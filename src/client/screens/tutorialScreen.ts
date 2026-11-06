@@ -50,7 +50,7 @@ export type Tutorial = {
 
 /** Monta o tutorial em página infinita; a seção ativa vem de um IntersectionObserver. */
 export const createTutorial = (): Tutorial => {
-  const cta = el("a", "tutorial-cta", "Role para ver o tutorial ↓");
+  const cta = el("a", "tutorial-cta", "Aprender a jogar: ver o tutorial ↓");
   cta.href = sectionHref(TUTORIAL_SECTIONS[0].id);
 
   const element = el("div", "tutorial");
@@ -86,7 +86,7 @@ export const createTutorial = (): Tutorial => {
 
   let observer: IntersectionObserver | null = null;
   if (typeof IntersectionObserver !== "undefined") {
-    // Faixa de leitura no meio superior da tela.
+    // Faixa de leitura logo abaixo da barra fixa, para que a seção levada ao topo por uma âncora fique ativa.
     observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -97,7 +97,7 @@ export const createTutorial = (): Tutorial => {
         }
         markActive();
       },
-      { rootMargin: "-40% 0px -55% 0px" },
+      { rootMargin: "-20% 0px -75% 0px" },
     );
     for (const node of sectionElements) observer.observe(node);
   }

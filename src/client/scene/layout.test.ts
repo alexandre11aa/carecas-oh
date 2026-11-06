@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createMatch } from "../../engine/createMatch.js";
 import { playerView } from "../../engine/playerView.js";
 import type { MatchState } from "../../engine/types.js";
-import { allSlots, layoutBoard, pickSlot, slotPosition } from "./layout.js";
+import { allSlots, CARD_HEIGHT, CARD_WIDTH, layoutBoard, pickSlot, slotPosition } from "./layout.js";
 
 const baseState = (): MatchState => createMatch(123);
 
@@ -47,7 +47,7 @@ describe("layout da mesa", () => {
   it("monstro_virado_do_oponente_vira_carta_de_costas_sem_identidade", () => {
     const state = baseState();
     state.players.P2.monsters[3] = { cardId: "tide_imp", position: "DEFENSE", faceDown: true, summonedOnTurn: 1, hasAttacked: false, changedPositionOnTurn: null };
-    state.players.P2.spellTraps[0] = { cardId: "mirror_wall", faceDown: true, setOnTurn: 1 };
+    state.players.P2.spellTraps[0] = { cardId: "divine_glory_evasion", faceDown: true, setOnTurn: 1 };
     const byKey = new Map(layoutBoard(playerView(state, "P1")).map((p) => [p.key, p]));
     expect(byKey.get("opponent:monster:3")).toMatchObject({ cardId: null, faceDown: true, yaw: Math.PI + Math.PI / 2 });
     expect(byKey.get("opponent:spellTrap:0")).toMatchObject({ cardId: null, faceDown: true });
@@ -83,5 +83,11 @@ describe("pickSlot", () => {
   it("devolve_null_fora_de_qualquer_slot", () => {
     expect(pickSlot(0, 0)).toBeNull();
     expect(pickSlot(20, 20)).toBeNull();
+  });
+});
+
+describe("proporcao_da_carta", () => {
+  it("usa_a_proporcao_1030_por_1500", () => {
+    expect(CARD_WIDTH / CARD_HEIGHT).toBeCloseTo(1030 / 1500, 10);
   });
 });

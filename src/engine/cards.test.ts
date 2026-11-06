@@ -29,6 +29,19 @@ describe("cards", () => {
     );
   });
 
+  it("esquiva_da_gloria_divina_tem_id_nome_efeito_e_imagem_definidos", () => {
+    const card = CARDS.find((c) => c.id === "divine_glory_evasion");
+    expect(card).toMatchObject({
+      id: "divine_glory_evasion",
+      name: "Esquiva da Glória Divina",
+      type: "TRAP",
+      trigger: "ATTACK_DECLARED",
+      effect: { kind: "NEGATE_ATTACK" },
+      image: "/cards/esquiva_da_gloria_divina.png",
+    });
+    expect(CARDS.some((c) => c.id === "mirror_wall")).toBe(false);
+  });
+
   it("e_serializavel_em_json", () => {
     expect(JSON.parse(JSON.stringify(CARDS))).toEqual(CARDS);
   });

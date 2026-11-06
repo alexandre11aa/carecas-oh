@@ -1,10 +1,17 @@
 // src/client/scene/cardMesh.ts
 import { CanvasTexture, Mesh, MeshLambertMaterial, PlaneGeometry, SRGBColorSpace } from "three";
 import { getCard } from "../../engine/cards.js";
+import { chooseFace, faceImageUrl } from "./cardArt.js";
+import { loadTexture } from "./textures.js";
+import { CARD_BACK_PATH } from "./texturePaths.js";
 import { CARD_HEIGHT, CARD_WIDTH, type CardPlacement } from "./layout.js";
 
+// Canvas provisório na proporção 1030:1500 (412x600). Desenha-se em coordenadas lógicas de
+// 256 de largura (TEX_W) e a altura proporcional (TEX_H); o contexto é escalado para o canvas.
+const CANVAS_W = 412;
+const CANVAS_H = 600;
 const TEX_W = 256;
-const TEX_H = 366;
+const TEX_H = (TEX_W * CANVAS_H) / CANVAS_W;
 
 /** Geometria única compartilhada por todas as cartas: plano deitado, com a frente voltada para cima. */
 const geometry = new PlaneGeometry(CARD_WIDTH, CARD_HEIGHT).rotateX(-Math.PI / 2);
@@ -15,9 +22,11 @@ const COLORS = { MONSTER: "#b5803a", SPELL: "#2f8a78", TRAP: "#8a3a6a" } as cons
 
 const makeCanvas = (): [HTMLCanvasElement, CanvasRenderingContext2D] => {
   const canvas = document.createElement("canvas");
-  canvas.width = TEX_W;
-  canvas.height = TEX_H;
-  return [canvas, canvas.getContext("2d") as CanvasRenderingContext2D];
+  canvas.width = CANVAS_W;
+  canvas.height = CANVAS_H;
+  const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+  ctx.scale(CANVAS_W / TEX_W, CANVAS_W / TEX_W);
+  return [canvas, ctx];
 };
 
 const wrap = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] => {
@@ -71,7 +80,12 @@ const backTexture = (): CanvasTexture => {
   return new CanvasTexture(canvas);
 };
 
-/** Material compartilhado por identidade de carta; `null` é o verso. */
+/**
+ * Material compartilhado por identidade de carta; `null` é o verso (PNG único `CARD_BACK_PATH`, nunca a imagem da frente; canvas enquanto carrega ou sem o arquivo).
+ * A frente começa com o canvas provisório; se o PNG existir, ele substitui o mapa do próprio material
+ * ao terminar de carregar (sem texto sobreposto: a arte já é a carta inteira). Como o material é por
+ * carta e não por malha, uma imagem tardia nunca atinge a carta errada. Em 404 permanece o canvas.
+ */
 const materialFor = (cardId: string | null): MeshLambertMaterial => {
   const key = cardId ?? "back";
   let material = materials.get(key);
@@ -80,6 +94,18 @@ const materialFor = (cardId: string | null): MeshLambertMaterial => {
     map.colorSpace = SRGBColorSpace;
     material = new MeshLambertMaterial({ map });
     materials.set(key, material);
+    // Verso: um único material (chave "back") compartilhado por todas as cartas viradas; usa o PNG do dono.
+    const url = cardId === null ? CARD_BACK_PATH : faceImageUrl(cardId);
+    if (url) {
+      const target = material;
+      void loadTexture(url).then((texture) => {
+        if (!texture || chooseFace(url, true) !== "image") return;
+        const previous = target.map;
+        target.map = texture;
+        target.needsUpdate = true;
+        previous?.dispose();
+      });
+    }
   }
   return material;
 };
