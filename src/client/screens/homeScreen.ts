@@ -4,10 +4,14 @@ import { getState, loadNickname, saveNickname } from "../state.js";
 import { el, type Screen } from "./dom.js";
 import { errorMessage } from "./errorMessages.js";
 import { NICKNAME_HINT, canSubmitNickname } from "./nickname.js";
+import { createTutorial } from "./tutorialScreen.js";
+import { isTutorialVisible } from "./tutorialSections.js";
 
 /** Tela inicial. Com `presetCode` (rota /sala/CODIGO) mostra só a entrada na sala indicada. */
 export const createHomeScreen = (presetCode: string | null): Screen => {
+  const home = el("div", "home");
   const element = el("main", "screen");
+  home.append(element);
   element.append(
     el("h1", undefined, "Carecas Oh"),
     el("p", "hint", presetCode ? `Você foi convidado para a sala ${presetCode}.` : "Duelo de cartas 1x1. Sem cadastro."),
@@ -117,7 +121,20 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
   };
   nicknameInput.addEventListener("input", update);
   update();
-  if (presetCode) return { element, update };
+  if (presetCode) return { element: home, update };
   subscribeLobby();
-  return { element, update, destroy: unsubscribeLobby };
+  // Tutorial abaixo do lobby: só na home geral.
+  const tutorial = isTutorialVisible(presetCode) ? createTutorial() : null;
+  if (tutorial) {
+    element.append(tutorial.cta);
+    home.append(tutorial.element);
+  }
+  return {
+    element: home,
+    update,
+    destroy: () => {
+      unsubscribeLobby();
+      tutorial?.destroy();
+    },
+  };
 };
