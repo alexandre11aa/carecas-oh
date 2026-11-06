@@ -1,5 +1,5 @@
 // src/client/screens/homeScreen.ts
-import { createRoom, joinRoom } from "../network/socket.js";
+import { createRoom, joinRoom, subscribeLobby, unsubscribeLobby } from "../network/socket.js";
 import { getState, loadNickname, saveNickname } from "../state.js";
 import { el, type Screen } from "./dom.js";
 import { errorMessage } from "./errorMessages.js";
@@ -76,6 +76,35 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
   }
   element.append(error);
 
+  // Lista de salas abertas: só na home geral, não no convite /sala/CODIGO.
+  const lobbyList = el("ul", "lobby-list");
+  const lobbyEmpty = el("p", "hint", "Nenhuma sala aberta no momento");
+  if (!presetCode) element.append(el("h2", undefined, "Salas abertas"), lobbyEmpty, lobbyList);
+
+  let renderedRooms: unknown = null;
+  const renderLobby = () => {
+    const { lobbyRooms, busy } = getState();
+    const nicknameOk = canSubmitNickname(nicknameInput.value);
+    if (lobbyRooms !== renderedRooms) {
+      renderedRooms = lobbyRooms;
+      lobbyEmpty.hidden = lobbyRooms.length > 0;
+      lobbyList.replaceChildren(
+        ...lobbyRooms.map((room) => {
+          const item = el("li", "lobby-item");
+          const join = el("button", undefined, "Entrar");
+          join.setAttribute("aria-label", `Entrar na sala ${room.code} de ${room.hostNickname}`);
+          join.addEventListener("click", () => {
+            const nickname = readNickname();
+            if (nickname) joinRoom(room.code, nickname);
+          });
+          item.append(el("span", "lobby-code", room.code), el("span", "lobby-host", room.hostNickname), join);
+          return item;
+        }),
+      );
+    }
+    lobbyList.querySelectorAll("button").forEach((button) => (button.disabled = busy || !nicknameOk));
+  };
+
   const update = () => {
     const { busy, errorCode } = getState();
     const nicknameOk = canSubmitNickname(nicknameInput.value);
@@ -84,8 +113,11 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
     nicknameHint.hidden = nicknameOk;
     if (errorCode) error.textContent = errorMessage(errorCode);
     else if (busy) error.textContent = "";
+    if (!presetCode) renderLobby();
   };
   nicknameInput.addEventListener("input", update);
   update();
-  return { element, update };
+  if (presetCode) return { element, update };
+  subscribeLobby();
+  return { element, update, destroy: unsubscribeLobby };
 };
