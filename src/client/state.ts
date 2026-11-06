@@ -1,6 +1,7 @@
 // src/client/state.ts
 import type { PlayerView } from "../engine/playerView.js";
 import type { PlayerId } from "../engine/types.js";
+import type { TurnClock } from "./screens/turnTimer.js";
 
 export type PublicPlayer = { nickname: string; connected: boolean; ready?: boolean };
 export type PublicRoom = { code: string; hasMatch: boolean; players: PublicPlayer[] };
@@ -20,6 +21,10 @@ export type ClientState = {
   room: PublicRoom | null;
   /** Última visão da partida recebida em `match:state`; null fora de partida. */
   match: PlayerView | null;
+  /** Prazo do turno do último `match:state` (recalculado a cada estado); null sem partida ou com partida encerrada. */
+  turnClock: TurnClock | null;
+  /** Aviso temporário de turno (`seq` muda a cada aviso novo); null se não há. */
+  turnNotice: { seq: number; text: string } | null;
   /** Resultado da partida encerrada (`match:ended`); null enquanto a partida está em andamento. */
   ended: MatchEnded | null;
   /** Código do último erro recebido (a tela escolhe a mensagem). */
@@ -33,6 +38,8 @@ let state: ClientState = {
   booting: true,
   room: null,
   match: null,
+  turnClock: null,
+  turnNotice: null,
   ended: null,
   errorCode: null,
   busy: false,
