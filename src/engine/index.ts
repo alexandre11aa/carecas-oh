@@ -12,3 +12,12 @@ export { canAttack, opponentOf } from "./rules/turn";
 export { requiredTributes } from "./rules/summon";
 export { SPELL_TRAP_ZONES } from "./createMatch";
 export { resolveTrapEffect } from "./rules/traps";
+export { playerView } from "./playerView";
+export type {
+  HiddenMonsterView,
+  HiddenSpellTrapView,
+  OpponentPlayerView,
+  OwnPlayerView,
+  PendingResponseView,
+  PlayerView,
+} from "./playerView";
