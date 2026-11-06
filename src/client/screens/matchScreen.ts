@@ -20,7 +20,7 @@ const handCardLabel = (cardId: string): { kind: string; title: string; detail: s
   return { kind: card.type === "SPELL" ? "spell" : "trap", title: card.name, detail: card.type === "SPELL" ? "Magia" : "Armadilha" };
 };
 
-/** Mesa 3D com HUD em HTML (vida, fase, turno e mão). Somente representa o último `match:state`. */
+/** Mesa 3D com HUD em HTML (vida, fase, turno, mão, jogadas, resposta e fim). Representa o último `match:state`; as jogadas vão ao servidor por `match:action`. */
 export const createMatchScreen = (): Screen => {
   const element = el("main", "match");
   const canvasBox = el("div", "match-canvas");
