@@ -25,6 +25,8 @@ export type MatchErrorCode = "NOT_IN_ROOM" | "MATCH_NOT_STARTED" | "MATCH_ALREAD
 
 export type PublicRoom = {
   code: string;
+  /** Verdadeiro enquanto a sala guarda uma partida (em andamento ou encerrada); o cliente só descarta a sua quando é falso. */
+  hasMatch: boolean;
   players: { nickname: string; connected: boolean; ready: boolean }[];
 };
 
@@ -76,6 +78,7 @@ export type RoomService = {
 
 export const toPublicRoom = (room: Room): PublicRoom => ({
   code: room.code,
+  hasMatch: room.match !== null,
   players: room.players.map((p) => ({ nickname: p.nickname, connected: p.connectionId !== null, ready: p.ready })),
 });
 
