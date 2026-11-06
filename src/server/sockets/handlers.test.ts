@@ -252,3 +252,118 @@ describe("limpeza de salas", () => {
     expect((await joinedC).room.players).toHaveLength(2);
   });
 });
+
+describe("lobby", () => {
+  const subscribe = async (socket: Socket) => {
+    const reply = once(socket, "lobby:rooms");
+    socket.emit("lobby:subscribe");
+    return reply;
+  };
+
+  it("lista_vazia_ao_assinar_sem_salas_abertas", async () => {
+    const watcher = await client();
+    const { rooms } = await subscribe(watcher);
+    expect(rooms.filter((r: any) => r.hostNickname === "Zeca")).toEqual([]);
+  });
+
+  it("lista_sala_aberta_apenas_com_codigo_e_apelido_do_host", async () => {
+    const a = await client();
+    const { room } = await createRoom(a, "Lia");
+    const watcher = await client();
+    const { rooms } = await subscribe(watcher);
+    expect(rooms.filter((r: any) => r.code === room.code)).toEqual([{ code: room.code, hostNickname: "Lia" }]);
+    expect(JSON.stringify(rooms)).not.toContain(a.id);
+    expect(JSON.stringify(rooms)).not.toContain("token");
+  });
+
+  it("emite_aos_assinantes_quando_sala_e_criada_e_quando_enche", async () => {
+    const watcher = await client();
+    await subscribe(watcher);
+    const a = await client();
+    const created = once<{ rooms: any[] }>(watcher, "lobby:rooms");
+    const { room } = await createRoom(a, "Mia");
+    expect((await created).rooms).toContainEqual({ code: room.code, hostNickname: "Mia" });
+
+    const b = await client();
+    const filled = once<{ rooms: any[] }>(watcher, "lobby:rooms");
+    b.emit("room:join", { code: room.code, nickname: "Noe" });
+    expect((await filled).rooms.some((r) => r.code === room.code)).toBe(false);
+  });
+
+  it("sala_com_host_desconectado_some_e_volta_ao_reconectar", async () => {
+    const a = await client();
+    const { room, token } = await createRoom(a, "Ola");
+    const watcher = await client();
+    await subscribe(watcher);
+    const gone = once<{ rooms: any[] }>(watcher, "lobby:rooms");
+    a.close();
+    expect((await gone).rooms.some((r) => r.code === room.code)).toBe(false);
+    const back = once<{ rooms: any[] }>(watcher, "lobby:rooms");
+    const a2 = await client();
+    a2.emit("room:rejoin", { token });
+    expect((await back).rooms).toContainEqual({ code: room.code, hostNickname: "Ola" });
+  });
+
+  it("sala_removida_ao_host_sair_some_da_lista", async () => {
+    const a = await client();
+    const { room } = await createRoom(a, "Pia");
+    const watcher = await client();
+    await subscribe(watcher);
+    const gone = once<{ rooms: any[] }>(watcher, "lobby:rooms");
+    a.emit("room:leave");
+    expect((await gone).rooms.some((r) => r.code === room.code)).toBe(false);
+  });
+
+  it("sala_com_partida_nao_aparece", async () => {
+    const a = await client();
+    const b = await client();
+    const { room } = await createRoom(a, "Rui");
+    b.emit("room:join", { code: room.code, nickname: "Sol" });
+    await once(b, "room:joined");
+    a.emit("room:ready");
+    b.emit("room:ready");
+    await once(a, "match:state");
+    // O oponente desiste: sobra 1 jogador conectado, mas a sala guarda a partida encerrada.
+    b.emit("room:leave");
+    await once(a, "match:ended");
+    const watcher = await client();
+    const { rooms } = await subscribe(watcher);
+    expect(rooms.some((r: any) => r.code === room.code)).toBe(false);
+  });
+
+  it("unsubscribe_cancela_os_broadcasts", async () => {
+    const watcher = await client();
+    await subscribe(watcher);
+    watcher.emit("lobby:unsubscribe");
+    const spy = new Promise<boolean>((resolve) => {
+      watcher.once("lobby:rooms", () => resolve(true));
+      setTimeout(() => resolve(false), 150);
+    });
+    const a = await client();
+    await createRoom(a, "Tai");
+    expect(await spy).toBe(false);
+  });
+
+  it("quem_cria_sala_sai_do_lobby", async () => {
+    const a = await client();
+    await subscribe(a);
+    await createRoom(a, "Uma");
+    const spy = new Promise<boolean>((resolve) => {
+      a.once("lobby:rooms", () => resolve(true));
+      setTimeout(() => resolve(false), 150);
+    });
+    const b = await client();
+    await createRoom(b, "Vic");
+    expect(await spy).toBe(false);
+  });
+
+  it("rejeita_payload_em_subscribe_e_unsubscribe", async () => {
+    const a = await client();
+    const first = once(a, "app:error");
+    a.emit("lobby:subscribe", { x: 1 });
+    expect(await first).toEqual({ event: "lobby:subscribe", code: "INVALID_PAYLOAD" });
+    const second = once(a, "app:error");
+    a.emit("lobby:unsubscribe", "oi");
+    expect(await second).toEqual({ event: "lobby:unsubscribe", code: "INVALID_PAYLOAD" });
+  });
+});

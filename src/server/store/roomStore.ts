@@ -36,6 +36,7 @@ export type RoomStore = {
   getRoom: (code: string) => Room | undefined;
   getRoomByToken: (token: string) => Room | undefined;
   getRoomByConnection: (connectionId: string) => Room | undefined;
+  listRooms: () => Room[];
   saveRoom: (room: Room) => void;
   removeRoom: (code: string) => void;
 };
@@ -56,6 +57,7 @@ export const createRoomStore = (): RoomStore => {
     getRoomByToken: (token) => find((room) => room.players.some((p) => p.token === token)),
     getRoomByConnection: (connectionId) =>
       find((room) => room.players.some((p) => p.connectionId === connectionId)),
+    listRooms: () => [...rooms.values()],
     saveRoom: (room) => {
       rooms.set(room.code, room);
     },

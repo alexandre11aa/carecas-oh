@@ -14,6 +14,9 @@ export const joinRoomSchema = z.object({
   nickname,
 });
 
+/** `lobby:subscribe` e `lobby:unsubscribe` não levam payload. */
+export const lobbySchema = z.undefined();
+
 export const rejoinRoomSchema = z.object({ token: z.string().min(1).max(100) });
 
 /** `room:ready` sem payload marca pronto; `{ ready: false }` desmarca. */

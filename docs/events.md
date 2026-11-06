@@ -98,6 +98,41 @@ Payload:
 
 Enviado aos demais jogadores quando alguém entra, reconecta, sai ou perde a conexão (`connected: false`). Ao perder a conexão o jogador mantém a vaga para `room:rejoin`; a sala é removida se todos ficarem desconectados por mais de 60 segundos.
 
+## Lobby
+
+Lista de salas abertas. "Sala aberta" = 1 jogador, conectado, sem partida; sala cheia, com partida ou cujo anfitrião perdeu a conexão não aparece. Entrar por código (`room:join`) continua possível para qualquer sala.
+
+### lobby:subscribe
+
+Direção: cliente → servidor
+
+Payload: nenhum
+
+Coloca a conexão no room Socket.IO "lobby" e responde com a lista atual. Quem cria ou entra numa sala (`room:create`, `room:join`, `room:rejoin`) sai do lobby automaticamente.
+
+Respostas: `lobby:rooms`
+Erros: `INVALID_PAYLOAD` (se enviar qualquer payload)
+
+### lobby:unsubscribe
+
+Direção: cliente → servidor
+
+Payload: nenhum
+
+Tira a conexão do lobby. Sem efeito se não estava assinada.
+
+Respostas: nenhuma
+Erros: `INVALID_PAYLOAD` (se enviar qualquer payload)
+
+### lobby:rooms
+
+Direção: servidor → cliente
+
+Payload:
+{ "rooms": [{ "code": "X7K2", "hostNickname": "Ana" }] }
+
+Lista completa de salas abertas (vazia quando não há nenhuma). Enviada em resposta a `lobby:subscribe` e, aos assinantes, sempre que a lista muda: sala criada, sala que enche, sala removida, host que perde ou recupera a conexão, sala que ganha partida. Os itens trazem só `code` e `hostNickname`: nunca tokens nem ids de conexão.
+
 ## Partida
 
 ### room:ready

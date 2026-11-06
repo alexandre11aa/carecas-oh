@@ -30,6 +30,9 @@ export type PublicRoom = {
   players: { nickname: string; connected: boolean; ready: boolean }[];
 };
 
+/** Item da lista de salas abertas do lobby: nada além do código e do apelido do anfitrião. */
+export type LobbyRoom = { code: string; hostNickname: string };
+
 /** Fim de partida visto por um jogador: vencedor, motivo e votos de revanche (`you` = ele mesmo). */
 export type MatchEnd = { winner: PlayerId; reason: EndReason; rematch: { you: boolean; opponent: boolean } };
 
@@ -59,6 +62,8 @@ export type MatchResult =
 export type RoomChange = { code: string; room: PublicRoom | null; deliveries?: Delivery[] };
 
 export type RoomService = {
+  /** Salas abertas: 1 jogador conectado e sem partida. */
+  listOpenRooms: () => LobbyRoom[];
   createRoom: (input: { nickname: string; connectionId: string }) => RoomResult;
   joinRoom: (input: { code: string; nickname: string; connectionId: string }) => RoomResult;
   rejoinRoom: (input: { token: string; connectionId: string }) => RoomResult;
@@ -137,6 +142,14 @@ export const createRoomService = (store: RoomStore): RoomService => {
   });
 
   return {
+    listOpenRooms: () =>
+      store.listRooms().flatMap((room) => {
+        const [host] = room.players;
+        return room.players.length === 1 && host && host.connectionId !== null && room.match === null
+          ? [{ code: room.code, hostNickname: host.nickname }]
+          : [];
+      }),
+
     createRoom: ({ nickname, connectionId }) => {
       const token = randomUUID();
       const room: Room = {
