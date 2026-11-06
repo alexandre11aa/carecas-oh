@@ -3,6 +3,7 @@ import { createRoom, joinRoom } from "../network/socket.js";
 import { getState, loadNickname, saveNickname } from "../state.js";
 import { el, type Screen } from "./dom.js";
 import { errorMessage } from "./errorMessages.js";
+import { NICKNAME_HINT, canSubmitNickname } from "./nickname.js";
 
 /** Tela inicial. Com `presetCode` (rota /sala/CODIGO) mostra só a entrada na sala indicada. */
 export const createHomeScreen = (presetCode: string | null): Screen => {
@@ -23,7 +24,9 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
   codeInput.maxLength = 4;
   codeInput.setAttribute("aria-label", "Código da sala");
 
-  const createButton = el("button", "primary", "Criar sala");
+  const nicknameHint = el("p", "hint", NICKNAME_HINT);
+
+  const createButton =el("button", "primary", "Criar sala");
   const joinButton = el("button", undefined, presetCode ? `Entrar na sala ${presetCode}` : "Entrar");
   const error = el("p", "error");
   error.setAttribute("role", "alert");
@@ -65,7 +68,7 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
     if (event.key === "Enter") submitJoin();
   });
 
-  element.append(nicknameInput);
+  element.append(nicknameInput, nicknameHint);
   if (presetCode) {
     element.append(joinButton);
   } else {
@@ -75,11 +78,14 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
 
   const update = () => {
     const { busy, errorCode } = getState();
-    createButton.disabled = busy;
-    joinButton.disabled = busy;
+    const nicknameOk = canSubmitNickname(nicknameInput.value);
+    createButton.disabled = busy || !nicknameOk;
+    joinButton.disabled = busy || !nicknameOk;
+    nicknameHint.hidden = nicknameOk;
     if (errorCode) error.textContent = errorMessage(errorCode);
     else if (busy) error.textContent = "";
   };
+  nicknameInput.addEventListener("input", update);
   update();
   return { element, update };
 };
