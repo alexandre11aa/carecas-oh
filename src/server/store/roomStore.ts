@@ -24,6 +24,8 @@ export type RoomMatch = {
   outcome: MatchOutcome | null;
   /** Tokens dos jogadores que votaram por revanche (só faz sentido com `outcome`). */
   rematchVotes: string[];
+  /** Prazo (ms, relógio do servidor) para agir; null com a partida encerrada. Fica fora da engine. */
+  turnDeadline: number | null;
 };
 
 export type Room = {
