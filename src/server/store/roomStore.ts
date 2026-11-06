@@ -1,15 +1,26 @@
 // src/server/store/roomStore.ts
+import type { MatchState, PlayerId } from "../../engine/index.js";
 
 export type RoomPlayer = {
   token: string;
   nickname: string;
   /** Id da conexão Socket.IO atual; null quando desconectado. */
   connectionId: string | null;
+  /** Marcou "pronto" na sala de espera. */
+  ready: boolean;
+};
+
+/** Partida em andamento: o estado completo (com informação oculta) fica só aqui, no servidor. */
+export type RoomMatch = {
+  state: MatchState;
+  /** Token do jogador que controla cada lado. */
+  tokens: Record<PlayerId, string>;
 };
 
 export type Room = {
   code: string;
   players: RoomPlayer[];
+  match: RoomMatch | null;
 };
 
 export type RoomStore = {
