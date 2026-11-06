@@ -188,7 +188,8 @@ src/client/
   main.ts               escolhe a tela inicial pela URL
   state.ts              último estado recebido do servidor
   style.css
-  public/cards/         imagens das cartas
+  public/cards/         imagens das cartas (PNG 1030:1500)
+  public/textures/      fundo e mesa (PNG, opcionais)
   network/
     socket.ts           conexão, envio e recebimento de eventos
   screens/              telas em HTML: início, sala de espera e interface da partida
@@ -204,6 +205,8 @@ src/client/
     layout.ts           lógica pura (sem WebGL, testável): PlayerView -> posições das cartas na mesa e clique -> slot (`pickSlot`)
     table.ts            mesa e zonas
     cardMesh.ts         criação e atualização das cartas
+    textures.ts         loadTexture: carrega PNG com cache, redução e fallback (null)
+    texturePaths.ts     caminhos das texturas e tamanho alvo (lógica pura, testável)
     monsterSprite.ts    arte do monstro em pé sobre a carta
   animations/           sequências GSAP: compra, invocação e ataque
     hudEffects.ts       GSAP do HUD: aviso de evento, variação flutuante e barra de vida
