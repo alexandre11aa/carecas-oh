@@ -36,5 +36,6 @@ export const createMatch = (seed: number): MatchState => {
       P2: createPlayer("P2", dealt.decks.P2),
     },
     winner: null,
+    pendingResponse: null,
   };
 };

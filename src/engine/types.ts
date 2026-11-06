@@ -31,10 +31,23 @@ export type SpellCard = {
   description: string;
 };
 
+/** Momento da ação do jogador do turno que abre a janela de resposta. */
+export type TrapTrigger = "ATTACK_DECLARED" | "SUMMON" | "SPELL_ACTIVATION";
+
+/** Efeito de armadilha como dado: o motor interpreta, sem código por carta. */
+export type TrapEffect =
+  | { kind: "NEGATE_ATTACK" } // o ataque não acontece
+  | { kind: "DESTROY_ATTACKER" } // destrói o monstro atacante antes do combate
+  | { kind: "NEGATE_SUMMON" } // a invocação é anulada e o monstro vai ao cemitério
+  | { kind: "NEGATE_SPELL" } // a ativação é anulada e a magia vai ao cemitério
+  | { kind: "DAMAGE"; amount: number }; // dano direto ao dono da ação interrompida
+
 export type TrapCard = {
   id: string;
   name: string;
   type: "TRAP";
+  trigger: TrapTrigger;
+  effect: TrapEffect;
   image: string;
   description: string;
 };
@@ -75,6 +88,14 @@ export type PlayerState = {
   normalSummonUsed: boolean;
 };
 
+/** Janela em que o defensor decide ativar uma armadilha antes de a ação do jogador do turno resolver. */
+export type PendingResponse = {
+  trigger: TrapTrigger;
+  responder: PlayerId;
+  /** Ação interrompida, do jogador do turno; só é aplicada depois da resposta. */
+  action: Action;
+};
+
 export type MatchState = {
   seed: number;
   turn: number;
@@ -82,6 +103,7 @@ export type MatchState = {
   phase: Phase;
   players: Record<PlayerId, PlayerState>;
   winner: PlayerId | null;
+  pendingResponse: PendingResponse | null;
 };
 
 export type Action =
@@ -92,6 +114,7 @@ export type Action =
   | { type: "FLIP_SUMMON"; cardId: string }
   | { type: "ACTIVATE_SPELL"; cardId: string; targetCardId?: string | null }
   | { type: "ACTIVATE_TRAP"; cardId: string }
+  | { type: "PASS_RESPONSE" }
   | { type: "ATTACK"; attackerCardId: string; targetCardId: string | null }
   | { type: "NEXT_PHASE" }
   | { type: "END_TURN" };
@@ -121,7 +144,13 @@ export type ErrorCode =
   | "NOT_A_SPELL_OR_TRAP"
   | "NOT_A_SPELL"
   | "SPELL_NOT_AVAILABLE"
-  | "SPELL_TRAP_ZONES_FULL";
+  | "SPELL_TRAP_ZONES_FULL"
+  | "RESPONSE_PENDING"
+  | "NO_RESPONSE_WINDOW"
+  | "TRAP_NOT_AVAILABLE"
+  | "NOT_A_TRAP"
+  | "TRAP_NOT_ACTIVE_YET"
+  | "TRAP_TRIGGER_MISMATCH";
 
 export type GameEvent =
   | { type: "CARD_DRAWN"; player: PlayerId; cardId: string }
@@ -137,7 +166,13 @@ export type GameEvent =
   | { type: "SPELL_TRAP_SET"; player: PlayerId; cardId: string; zone: number }
   | { type: "SPELL_ACTIVATED"; player: PlayerId; cardId: string; targetCardId: string | null }
   | { type: "LIFE_RESTORED"; player: PlayerId; amount: number }
-  | { type: "ATTACK_BOOSTED"; player: PlayerId; cardId: string; amount: number };
+  | { type: "ATTACK_BOOSTED"; player: PlayerId; cardId: string; amount: number }
+  | { type: "RESPONSE_WINDOW_OPENED"; responder: PlayerId; trigger: TrapTrigger }
+  | { type: "RESPONSE_PASSED"; player: PlayerId }
+  | { type: "TRAP_ACTIVATED"; player: PlayerId; cardId: string; trigger: TrapTrigger }
+  | { type: "ATTACK_NEGATED"; player: PlayerId; attackerCardId: string }
+  | { type: "SUMMON_NEGATED"; player: PlayerId; cardId: string }
+  | { type: "SPELL_NEGATED"; player: PlayerId; cardId: string };
 
 export type ActionResult =
   | { ok: true; state: MatchState; events: GameEvent[] }
