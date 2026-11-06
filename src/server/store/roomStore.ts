@@ -10,11 +10,20 @@ export type RoomPlayer = {
   ready: boolean;
 };
 
+export type EndReason = "LIFE_ZERO" | "DECK_OUT" | "OPPONENT_LEFT";
+
+/** Resultado de uma partida encerrada. */
+export type MatchOutcome = { winner: PlayerId; reason: EndReason };
+
 /** Partida em andamento: o estado completo (com informação oculta) fica só aqui, no servidor. */
 export type RoomMatch = {
   state: MatchState;
   /** Token do jogador que controla cada lado. */
   tokens: Record<PlayerId, string>;
+  /** Preenchido quando a partida termina; a partida encerrada continua na sala até a revanche ou a saída. */
+  outcome: MatchOutcome | null;
+  /** Tokens dos jogadores que votaram por revanche (só faz sentido com `outcome`). */
+  rematchVotes: string[];
 };
 
 export type Room = {

@@ -1,7 +1,7 @@
 // src/server/sockets/handlers.ts
 import type { Server, Socket } from "socket.io";
-import type { MatchResult, RoomChange, RoomResult, RoomService } from "../services/roomService.js";
-import { createRoomSchema, joinRoomSchema, matchActionSchema, readySchema, rejoinRoomSchema } from "./schemas.js";
+import type { Delivery, MatchResult, RoomChange, RoomResult, RoomService } from "../services/roomService.js";
+import { createRoomSchema, joinRoomSchema, matchActionSchema, readySchema, rejoinRoomSchema, rematchSchema } from "./schemas.js";
 
 export type HandlerOptions = {
   /** Tempo até remover uma sala em que todos os jogadores estão desconectados. */
@@ -30,9 +30,18 @@ export const registerHandlers = (io: Server, service: RoomService, { abandonTime
     timers.set(code, timer);
   };
 
+  /** Envia a cada jogador seu estado (se houver) e o fim de partida (se houver). */
+  const sendDeliveries = (deliveries: Delivery[]) => {
+    for (const { connectionId, view, events, ended } of deliveries) {
+      if (view) io.to(connectionId).emit("match:state", { view, events });
+      if (ended) io.to(connectionId).emit("match:ended", ended);
+    }
+  };
+
   const broadcastChange = (change: RoomChange) => {
     if (change.room) io.to(channel(change.code)).emit("room:updated", { room: change.room });
     else cancelTimer(change.code);
+    sendDeliveries(change.deliveries ?? []);
   };
 
   io.on("connection", (socket: Socket) => {
@@ -41,12 +50,13 @@ export const registerHandlers = (io: Server, service: RoomService, { abandonTime
     };
 
     const succeed = (reply: string, result: Extract<RoomResult, { ok: true }>) => {
-      const { room, token, view } = result;
+      const { room, token, view, ended } = result;
       cancelTimer(room.code);
       void socket.join(channel(room.code));
       socket.emit(reply, { room, token });
       // Reconexão no meio da partida: restaura o estado atual (sem eventos para animar).
       if (view) socket.emit("match:state", { view, events: [] });
+      if (ended) socket.emit("match:ended", ended);
       socket.to(channel(room.code)).emit("room:updated", { room });
     };
 
@@ -74,11 +84,7 @@ export const registerHandlers = (io: Server, service: RoomService, { abandonTime
       succeed("room:rejoined", result);
     });
 
-    const deliver = (result: Extract<MatchResult, { ok: true }>) => {
-      for (const { connectionId, view, events } of result.deliveries) {
-        io.to(connectionId).emit("match:state", { view, events });
-      }
-    };
+    const deliver = (result: Extract<MatchResult, { ok: true }>) => sendDeliveries(result.deliveries);
 
     socket.on("room:ready", (payload: unknown) => {
       const parsed = readySchema.safeParse(payload);
@@ -94,6 +100,14 @@ export const registerHandlers = (io: Server, service: RoomService, { abandonTime
       if (!parsed.success) return fail("match:action", "INVALID_PAYLOAD");
       const result = service.submitAction({ connectionId: socket.id, action: parsed.data });
       if (!result.ok) return fail("match:action", result.code);
+      deliver(result);
+    });
+
+    socket.on("match:rematch", (payload: unknown) => {
+      const parsed = rematchSchema.safeParse(payload);
+      if (!parsed.success) return fail("match:rematch", "INVALID_PAYLOAD");
+      const result = service.requestRematch({ connectionId: socket.id, accept: parsed.data.accept });
+      if (!result.ok) return fail("match:rematch", result.code);
       deliver(result);
     });
 
