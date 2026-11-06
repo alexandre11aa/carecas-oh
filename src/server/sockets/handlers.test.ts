@@ -67,6 +67,13 @@ describe("room:create", () => {
     expect(await error).toEqual({ event: "room:create", code: "INVALID_PAYLOAD" });
   });
 
+  it("rejeita_apelido_so_com_espacos", async () => {
+    const a = await client();
+    const error = once(a, "app:error");
+    a.emit("room:create", { nickname: "   " });
+    expect(await error).toEqual({ event: "room:create", code: "INVALID_PAYLOAD" });
+  });
+
   it("rejeita_payload_ausente", async () => {
     const a = await client();
     const error = once(a, "app:error");
@@ -116,6 +123,15 @@ describe("room:join", () => {
     const a = await client();
     const error = once(a, "app:error");
     a.emit("room:join", { code: "x", nickname: "Bia" });
+    expect(await error).toEqual({ event: "room:join", code: "INVALID_PAYLOAD" });
+  });
+
+  it("rejeita_apelido_so_com_espacos", async () => {
+    const a = await client();
+    const b = await client();
+    const { room } = await createRoom(a);
+    const error = once(b, "app:error");
+    b.emit("room:join", { code: room.code, nickname: "   " });
     expect(await error).toEqual({ event: "room:join", code: "INVALID_PAYLOAD" });
   });
 });
