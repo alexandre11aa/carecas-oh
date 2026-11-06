@@ -54,6 +54,12 @@ html { scroll-behavior: smooth; }
   padding: 2rem 1rem;
 }
 
+/* Sala de espera, carregamento e convite (/sala/CODIGO): centralizadas na vertical.
+   margin-block:auto no filho centraliza sem cortar o topo quando o conteúdo é mais alto que a janela
+   (a página rola). A home geral e a partida (.match, fixa) ficam de fora. */
+#app:has(> .themed, > .home--invite) { min-height: 100dvh; }
+#app > .themed, #app > .home--invite { margin-block: auto; }
+
 /* Home: lobby no topo e tutorial em página infinita abaixo (a página rola) */
 .home { display: flex; flex-direction: column; align-items: center; gap: 3rem; width: 100%; }
 .tutorial { width: 100%; max-width: 44rem; }
