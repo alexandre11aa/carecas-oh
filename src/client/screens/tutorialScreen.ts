@@ -1,11 +1,44 @@
 // src/client/screens/tutorialScreen.ts
 import { el } from "./dom.js";
+import { createCardView } from "./cardView.js";
 import {
   TUTORIAL_SECTIONS,
+  groupCardsByType,
   pickActiveSection,
   sectionElementId,
   sectionHref,
+  type TutorialBlock,
 } from "./tutorialSections.js";
+
+const renderBlock = (block: TutorialBlock): HTMLElement => {
+  if (block.kind === "list") {
+    const list = el("ul", "tutorial-list");
+    for (const item of block.items) list.append(el("li", undefined, item));
+    return list;
+  }
+  if (block.kind === "table") {
+    const table = el("table", "tutorial-table");
+    const headRow = el("tr");
+    for (const header of block.headers) headRow.append(el("th", undefined, header));
+    const head = el("thead");
+    head.append(headRow);
+    const body = el("tbody");
+    for (const row of block.rows) {
+      const tr = el("tr");
+      for (const cell of row) tr.append(el("td", undefined, cell));
+      body.append(tr);
+    }
+    table.append(head, body);
+    return table;
+  }
+  const catalog = el("div", "tutorial-catalog");
+  for (const group of groupCardsByType()) {
+    const grid = el("div", "tutorial-card-grid");
+    for (const card of group.cards) grid.append(createCardView(card));
+    catalog.append(el("h3", "tutorial-group-title", group.title), grid);
+  }
+  return catalog;
+};
 
 export type Tutorial = {
   /** Botão/link "role para ver o tutorial", colocado no lobby. */
@@ -35,7 +68,8 @@ export const createTutorial = (): Tutorial => {
     const node = el("section", "tutorial-section");
     node.id = sectionElementId(section.id);
     node.dataset.sectionId = section.id;
-    node.append(el("h2", undefined, section.title), el("p", undefined, section.summary));
+    node.append(el("h2", undefined, section.title), el("p", "tutorial-summary", section.summary));
+    for (const block of section.details) node.append(renderBlock(block));
     sectionElements.push(node);
   }
   element.append(nav, ...sectionElements);
