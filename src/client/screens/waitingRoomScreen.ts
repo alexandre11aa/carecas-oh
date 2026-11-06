@@ -8,7 +8,7 @@ export const roomLink = (code: string): string => `${location.origin}/sala/${cod
 
 /** Sala de espera: código, link, jogadores presentes e botão "Pronto". */
 export const createWaitingRoomScreen = (): Screen => {
-  const element = el("main", "screen");
+  const element = el("main", "screen themed");
   const code = el("p", "room-code");
   const link = el("p", "hint");
   const copyCode = el("button", undefined, "Copiar código");
