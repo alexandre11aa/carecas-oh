@@ -225,7 +225,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .hand-card.spell { border-color: var(--c-spell); }
 .hand-card.trap { border-color: var(--c-trap); }
 .hand-card b { display: block; font-family: var(--font-title); padding-bottom: 0.2rem; margin-bottom: 0.2rem; border-bottom: 1px solid rgba(35, 28, 16, 0.4); }
-.match-notice { position: absolute; top: 40%; width: 100%; text-align: center; }
+.match-notice { position: absolute; top: 50%; left: 0; width: 100%; margin: 0; transform: translateY(-50%); text-align: center; }
 
 /* Partida: interação (botões, dicas, fim) */
 .hud button, .hud .hand-card { pointer-events: auto; }
@@ -258,7 +258,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .turn-countdown.warning { background: #d99a1c; color: #1a1a1a; }
 .turn-countdown.critical { background: #c0392b; color: #fff; animation: turn-pulse 0.6s ease-in-out infinite alternate; }
 @keyframes turn-pulse { from { opacity: 1; } to { opacity: 0.55; } }
-.turn-toast { position: absolute; top: 30%; left: 0; width: 100%; text-align: center; font-family: var(--font-title); font-size: 2.2rem; font-weight: 800; color: var(--c-gold-light); text-shadow: 0 2px 8px #000; pointer-events: none; }
+.match-toasts { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem; padding: 0 5%; pointer-events: none; }
+.turn-toast { max-width: 100%; text-align: center; font-family: var(--font-title); font-size: 2.2rem; font-weight: 800; color: var(--c-gold-light); text-shadow: 0 2px 8px #000; pointer-events: none; }
 
 /* Feedback visual dos eventos: avisos em fila, variação de vida e cemitério */
 .info-box { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 0.2rem 0.5rem; max-width: 22rem; }
@@ -269,13 +270,13 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .life-delta { position: absolute; top: 0; right: 0.5rem; font-size: 1.6rem; font-weight: 800; text-shadow: 0 2px 6px #000; pointer-events: none; }
 .life-delta.damage { color: #ff5a5a; }
 .life-delta.heal { color: var(--c-heal); }
-.event-notice { position: absolute; top: 42%; left: 50%; transform: translateX(-50%); max-width: 90%; padding: 0.5rem 1.2rem; border-radius: var(--radius-md); background: var(--c-panel-alpha); border: var(--border-gold); box-shadow: var(--shadow-panel); font-family: var(--font-title); font-size: 1.3rem; font-weight: 700; text-align: center; text-shadow: var(--shadow-text); pointer-events: none; }
+.event-notice { max-width: 100%; box-sizing: border-box; padding: 0.5rem 1.2rem; border-radius: var(--radius-md); background: var(--c-panel-alpha); border: var(--border-gold); box-shadow: var(--shadow-panel); font-family: var(--font-title); font-size: 1.3rem; font-weight: 700; text-align: center; text-shadow: var(--shadow-text); pointer-events: none; }
 .event-notice[hidden] { display: none; }
 .event-notice.summon { border-color: #4a90d9; }
 .event-notice.graveyard { border-color: #888; }
 .event-notice.damage { border-color: #ff5a5a; }
 .event-notice.heal { border-color: var(--c-heal); }
-.event-notice.end { top: 35%; padding: 1rem 3rem; font-size: 3.2rem; font-weight: 900; color: var(--c-gold-light); border-color: var(--c-gold-light); }
+.event-notice.end { padding: 1rem 3rem; font-size: 3.2rem; font-weight: 900; color: var(--c-gold-light); border-color: var(--c-gold-light); }
 .event-notice.end.defeat { color: var(--c-danger); border-color: #ff5a5a; }
 .end-box h2.victory { color: var(--c-gold-light); }
 .end-box h2.defeat { color: var(--c-danger); }
