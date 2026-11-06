@@ -1,4 +1,5 @@
 // src/client/state.ts
+import type { EventView } from "../engine/eventView.js";
 import type { PlayerView } from "../engine/playerView.js";
 import type { PlayerId } from "../engine/types.js";
 import type { TurnClock } from "./screens/turnTimer.js";
@@ -25,6 +26,8 @@ export type ClientState = {
   turnClock: TurnClock | null;
   /** Aviso temporário de turno (`seq` muda a cada aviso novo); null se não há. */
   turnNotice: { seq: number; text: string } | null;
+  /** Eventos filtrados do último `match:state` (`seq` muda a cada estado; `events` vazio na reconexão); null sem partida. */
+  matchEvents: { seq: number; events: EventView[] } | null;
   /** Resultado da partida encerrada (`match:ended`); null enquanto a partida está em andamento. */
   ended: MatchEnded | null;
   /** Código do último erro recebido (a tela escolhe a mensagem). */
@@ -40,6 +43,7 @@ let state: ClientState = {
   match: null,
   turnClock: null,
   turnNotice: null,
+  matchEvents: null,
   ended: null,
   errorCode: null,
   busy: false,

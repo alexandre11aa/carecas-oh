@@ -1,7 +1,8 @@
 // src/client/network/socket.ts
 import { io } from "socket.io-client";
+import type { EventView } from "../../engine/eventView.js";
 import type { PlayerView } from "../../engine/playerView.js";
-import type { Action, PlayerId } from "../../engine/types.js";
+import type { Action } from "../../engine/types.js";
 import { createTurnClock, turnNotice } from "../screens/turnTimer.js";
 import { clearToken, getState, loadToken, matchForRoom, saveToken, setState, type MatchEnded, type PublicRoom } from "../state.js";
 
@@ -38,14 +39,14 @@ export const connect = (): void => {
   // A visão substitui diretamente o estado anterior (inclusive na reconexão, sem animações).
   socket.on(
     "match:state",
-    ({ view, events, turnDeadline, serverNow }: { view: PlayerView; events?: { type: string; player?: PlayerId }[]; turnDeadline?: number | null; serverNow?: number }) => {
+    ({ view, events, turnDeadline, serverNow }: { view: PlayerView; events?: EventView[]; turnDeadline?: number | null; serverNow?: number }) => {
       const previous = getState();
       // Prazo recalculado a cada estado (renova a cada ação válida); usa o desvio com serverNow, não o relógio local absoluto.
       const turnClock = view.winner ? null : createTurnClock(turnDeadline, serverNow, Date.now());
       const text = turnNotice(events ?? [], view.viewer, previous.turnClock, serverNow);
       const notice = text ? { seq: (previous.turnNotice?.seq ?? 0) + 1, text } : previous.turnNotice;
       // Partida em andamento (inclusive a revanche) não tem resultado; o erro anterior perde o sentido.
-      setState({ match: view, turnClock, turnNotice: notice, ended: view.winner ? previous.ended : null, errorCode: null });
+      setState({ match: view, turnClock, turnNotice: notice, matchEvents: { seq: (previous.matchEvents?.seq ?? 0) + 1, events: events ?? [] }, ended: view.winner ? previous.ended : null, errorCode: null });
     },
   );
   socket.on("match:ended", (ended: MatchEnded) => setState({ ended }));
@@ -54,7 +55,7 @@ export const connect = (): void => {
     if (event === "room:rejoin" && code === "INVALID_TOKEN") {
       // Sala removida ou token antigo: volta ao estado sem sala, sem exibir erro.
       clearToken();
-      setState({ room: null, match: null, turnClock: null, turnNotice: null, ended: null, booting: false, busy: false });
+      setState({ room: null, match: null, turnClock: null, turnNotice: null, matchEvents: null, ended: null, booting: false, busy: false });
       return;
     }
     setState({ errorCode: code, busy: false, booting: false });
@@ -76,7 +77,7 @@ export const joinRoom = (code: string, nickname: string): void => {
 export const leaveRoom = (): void => {
   socket.emit("room:leave");
   clearToken();
-  setState({ room: null, match: null, turnClock: null, turnNotice: null, ended: null, errorCode: null });
+  setState({ room: null, match: null, turnClock: null, turnNotice: null, matchEvents: null, ended: null, errorCode: null });
 };
 
 /** Marca o jogador como pronto (`room:ready`). */
