@@ -10,3 +10,4 @@ export { createMatch, INITIAL_LIFE_POINTS, INITIAL_HAND_SIZE } from "./createMat
 export { applyAction } from "./applyAction";
 export { canAttack, opponentOf } from "./rules/turn";
 export { requiredTributes } from "./rules/summon";
+export { SPELL_TRAP_ZONES } from "./createMatch";

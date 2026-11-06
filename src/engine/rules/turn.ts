@@ -49,7 +49,8 @@ export const drawPhase = (state: MatchState): TurnStep => {
 
 /** Passa o turno ao oponente, reinicia os limites do turno e executa a compra. */
 export const endTurn = (state: MatchState): TurnStep => {
-  const player = opponentOf(state.currentPlayer);
+  const ending = state.currentPlayer;
+  const player = opponentOf(ending);
   const next: MatchState = {
     ...state,
     turn: state.turn + 1,
@@ -57,6 +58,11 @@ export const endTurn = (state: MatchState): TurnStep => {
     phase: "DRAW",
     players: {
       ...state.players,
+      // Bônus de ATK de magias vale até o fim do turno em que foi dado.
+      [ending]: {
+        ...state.players[ending],
+        monsters: state.players[ending].monsters.map((m) => (m?.attackBonus ? { ...m, attackBonus: 0 } : m)),
+      },
       [player]: {
         ...state.players[player],
         normalSummonUsed: false,

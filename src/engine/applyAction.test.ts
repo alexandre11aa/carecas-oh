@@ -127,7 +127,7 @@ describe("applyAction - turnos", () => {
 
   it("acao_ainda_nao_suportada_retorna_action_not_available", () => {
     const state = start();
-    expect(applyAction(state, state.currentPlayer, { type: "SET_TRAP", cardId: "x" })).toEqual({
+    expect(applyAction(state, state.currentPlayer, { type: "ACTIVATE_TRAP", cardId: "x" })).toEqual({
       ok: false,
       code: "ACTION_NOT_AVAILABLE",
     });
