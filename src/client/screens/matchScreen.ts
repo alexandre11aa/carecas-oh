@@ -22,6 +22,8 @@ import {
   type Selection,
 } from "./matchActions.js";
 import { buildNotices, deltaText, lifePercent, lifeSides, MAX_LIFE, type Notice, type NoticeSide } from "./matchNotices.js";
+import { buildCardDetail, slotCardId } from "./cardDetail.js";
+import { createCardView } from "./cardView.js";
 import { endSummary, rematchState } from "./matchEnd.js";
 import { actingPlayer, opponentNickname, secondsRemaining, timerLevel, turnBannerText } from "./turnTimer.js";
 
@@ -105,7 +107,18 @@ export const createMatchScreen = (): Screen => {
   turnToast.hidden = true;
   const eventNotice = el("div", "event-notice");
   eventNotice.hidden = true;
-  element.append(canvasBox, hud, turnToast, eventNotice, endOverlay);
+  const detailPanel = el("aside", "card-detail");
+  detailPanel.hidden = true;
+  element.append(canvasBox, hud, detailPanel, turnToast, eventNotice, endOverlay);
+
+  // Detalhe da carta sob o ponteiro (mão ou mesa). Guarda só o id; cartas ocultas (null) não mostram nada.
+  let detailCardId: string | null = null;
+  const showDetail = (cardId: string | null) => {
+    detailCardId = cardId;
+    const detail = buildCardDetail(cardId);
+    detailPanel.hidden = !detail;
+    detailPanel.replaceChildren(...(detail ? [createCardView(detail)] : []));
+  };
 
   let selection: Selection | null = null;
   let lastMatch: PlayerView | null = null;
@@ -203,6 +216,11 @@ export const createMatchScreen = (): Screen => {
       if (outcome.action) sendAction(outcome.action);
       update();
     });
+    scene.onHover((slot) => {
+      const view = getState().match;
+      const cardId = view && slot ? slotCardId(view, slot) : null;
+      if (cardId !== detailCardId) showDetail(cardId);
+    });
   } catch {
     canvasBox.append(el("p", "match-notice error", "Seu navegador não conseguiu iniciar o 3D (WebGL indisponível)."));
   }
@@ -291,7 +309,12 @@ export const createMatchScreen = (): Screen => {
         const card = el("button", `hand-card ${kind}${selected ? " selected" : ""}`);
         card.type = "button";
         card.append(el("b", undefined, title), el("span", undefined, detail));
+        card.addEventListener("mouseenter", () => showDetail(cardId));
+        card.addEventListener("focus", () => showDetail(cardId));
+        card.addEventListener("mouseleave", () => showDetail(null));
+        card.addEventListener("blur", () => showDetail(null));
         card.addEventListener("click", () => {
+          showDetail(cardId);
           selection = handClick(match, selection, cardId);
           update();
         });
