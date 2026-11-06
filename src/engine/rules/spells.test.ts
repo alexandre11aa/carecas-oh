@@ -61,10 +61,10 @@ const setup = ({
   return { state, p, o };
 };
 
-const activate = (cardId: string, targetCardId?: string | null): Action => ({
+const activate = (cardId: string, targetZone?: number | null): Action => ({
   type: "ACTIVATE_SPELL",
   cardId,
-  targetCardId,
+  targetZone,
 });
 const set = (cardId: string): Action => ({ type: "SET_SPELL_TRAP", cardId });
 
@@ -120,7 +120,7 @@ describe("efeitos de magia", () => {
     expect(r.state.players[p].hand).toEqual([]);
     expect(r.state.players[p].graveyard).toEqual(["healing_spring"]);
     expect(r.events).toEqual([
-      { type: "SPELL_ACTIVATED", player: p, cardId: "healing_spring", targetCardId: null },
+      { type: "SPELL_ACTIVATED", player: p, cardId: "healing_spring", targetZone: null },
       { type: "LIFE_RESTORED", player: p, amount: 1000 },
       { type: "CARD_SENT_TO_GRAVEYARD", player: p, cardId: "healing_spring" },
     ]);
@@ -145,7 +145,7 @@ describe("efeitos de magia", () => {
 
   it("destroi_monstro_do_oponente", () => {
     const { state, p, o } = setup({ hand: ["wind_gust"], theirs: [field("dune_scout"), field("tide_imp")] });
-    const r = ok(state, p, activate("wind_gust", "dune_scout"));
+    const r = ok(state, p, activate("wind_gust", 0));
     expect(r.state.players[o].monsters.map((m) => m?.cardId ?? null)).toEqual([null, "tide_imp", null, null, null]);
     expect(r.state.players[o].graveyard).toEqual(["dune_scout"]);
     expect(r.state.players[p].graveyard).toEqual(["wind_gust"]);
@@ -155,26 +155,39 @@ describe("efeitos de magia", () => {
   it("destroi_monstro_com_ataque_no_limite_do_maxAttack", () => {
     const { state, p, o } = setup({ hand: ["wind_gust"], theirs: [field("storm_hawk", {}), field("dune_scout")] });
     // storm_hawk tem 2100 (acima do limite de 2000)
-    expect(applyAction(state, p, activate("wind_gust", "storm_hawk"))).toEqual({ ok: false, code: "INVALID_TARGET" });
-    const r = ok(state, p, activate("wind_gust", "dune_scout"));
+    expect(applyAction(state, p, activate("wind_gust", 0))).toEqual({ ok: false, code: "INVALID_TARGET" });
+    const r = ok(state, p, activate("wind_gust", 1));
     expect(r.state.players[o].graveyard).toEqual(["dune_scout"]);
   });
 
   it("maxAttack_considera_o_bonus_de_ataque_do_alvo", () => {
     const { state, p } = setup({ hand: ["wind_gust"], theirs: [field("dune_scout", { attackBonus: 400 })] });
-    expect(applyAction(state, p, activate("wind_gust", "dune_scout"))).toEqual({ ok: false, code: "INVALID_TARGET" });
+    expect(applyAction(state, p, activate("wind_gust", 0))).toEqual({ ok: false, code: "INVALID_TARGET" });
   });
 
   it("wind_gust_nao_destroi_o_titan_do_abismo", () => {
     const { state, p } = setup({ hand: ["wind_gust"], theirs: [field("abyss_titan")] });
-    expect(applyAction(state, p, activate("wind_gust", "abyss_titan"))).toEqual({ ok: false, code: "INVALID_TARGET" });
+    expect(applyAction(state, p, activate("wind_gust", 0))).toEqual({ ok: false, code: "INVALID_TARGET" });
   });
 
   it("destruir_exige_alvo_do_oponente", () => {
     const { state, p } = setup({ hand: ["wind_gust"], mine: [field("tide_imp")], theirs: [field("dune_scout")] });
     expect(applyAction(state, p, activate("wind_gust"))).toEqual({ ok: false, code: "INVALID_TARGET" });
-    expect(applyAction(state, p, activate("wind_gust", "tide_imp"))).toEqual({ ok: false, code: "INVALID_TARGET" });
-    expect(applyAction(state, p, activate("wind_gust", "inexistente"))).toEqual({ ok: false, code: "INVALID_TARGET" });
+    // zona do oponente vazia, ou fora do intervalo (o campo próprio não conta para este efeito)
+    expect(applyAction(state, p, activate("wind_gust", 1))).toEqual({ ok: false, code: "INVALID_TARGET" });
+    expect(applyAction(state, p, activate("wind_gust", 5))).toEqual({ ok: false, code: "INVALID_TARGET" });
+    expect(applyAction(state, p, activate("wind_gust", -1))).toEqual({ ok: false, code: "INVALID_TARGET" });
+  });
+
+  it("destroi_monstro_virado_do_oponente_pela_zona", () => {
+    const { state, p, o } = setup({
+      hand: ["wind_gust"],
+      theirs: [null, null, field("tide_imp", { position: "DEFENSE", faceDown: true })],
+    });
+    const r = ok(state, p, activate("wind_gust", 2));
+    expect(r.state.players[o].monsters[2]).toBeNull();
+    expect(r.state.players[o].graveyard).toEqual(["tide_imp"]);
+    expect(r.events).toContainEqual({ type: "SPELL_ACTIVATED", player: p, cardId: "wind_gust", targetZone: 2 });
   });
 
   it("compra_uma_carta", () => {
@@ -194,13 +207,13 @@ describe("efeitos de magia", () => {
 
   it("aumenta_ataque_ate_o_fim_do_turno", () => {
     const { state, p, o } = setup({ hand: ["power_surge"], mine: [field("tide_imp")], theirs: [field("ash_sprite")] });
-    const boosted = ok(state, p, activate("power_surge", "tide_imp"));
+    const boosted = ok(state, p, activate("power_surge", 0));
     expect(boosted.state.players[p].monsters[0]?.attackBonus).toBe(700);
-    expect(boosted.events).toContainEqual({ type: "ATTACK_BOOSTED", player: p, cardId: "tide_imp", amount: 700 });
+    expect(boosted.events).toContainEqual({ type: "ATTACK_BOOSTED", player: p, cardId: "tide_imp", zone: 0, amount: 700 });
 
     // tide_imp 600 + 700 = 1300 contra ash_sprite 700 em ataque: destrói e causa 600 de dano
     const battle = ok(boosted.state, p, { type: "NEXT_PHASE" });
-    const hit = ok(battle.state, p, { type: "ATTACK", attackerCardId: "tide_imp", targetCardId: "ash_sprite" });
+    const hit = ok(battle.state, p, { type: "ATTACK", attackerCardId: "tide_imp", targetZone: 0 });
     expect(hit.state.players[o].lifePoints).toBe(7400);
     expect(hit.state.players[o].graveyard).toEqual(["ash_sprite"]);
 
@@ -212,7 +225,18 @@ describe("efeitos de magia", () => {
   it("aumentar_ataque_exige_monstro_proprio", () => {
     const { state, p } = setup({ hand: ["power_surge"], theirs: [field("dune_scout")] });
     expect(applyAction(state, p, activate("power_surge"))).toEqual({ ok: false, code: "INVALID_TARGET" });
-    expect(applyAction(state, p, activate("power_surge", "dune_scout"))).toEqual({ ok: false, code: "INVALID_TARGET" });
+    expect(applyAction(state, p, activate("power_surge", 0))).toEqual({ ok: false, code: "INVALID_TARGET" });
+    expect(applyAction(state, p, activate("power_surge", 5))).toEqual({ ok: false, code: "INVALID_TARGET" });
+  });
+
+  it("aumenta_ataque_de_monstro_proprio_virado_pela_zona", () => {
+    const { state, p } = setup({
+      hand: ["power_surge"],
+      mine: [null, field("tide_imp", { position: "DEFENSE", faceDown: true })],
+    });
+    const r = ok(state, p, activate("power_surge", 1));
+    expect(r.state.players[p].monsters[1]?.attackBonus).toBe(700);
+    expect(r.events).toContainEqual({ type: "ATTACK_BOOSTED", player: p, cardId: "tide_imp", zone: 1, amount: 700 });
   });
 
   it("ativa_magia_baixada_no_campo_e_libera_a_zona", () => {
@@ -257,7 +281,7 @@ describe("erros ao ativar magia", () => {
   it("falha_nao_altera_o_estado", () => {
     const { state, p } = setup({ hand: ["wind_gust"] });
     const before = JSON.stringify(state);
-    applyAction(state, p, activate("wind_gust", "nada"));
+    applyAction(state, p, activate("wind_gust", 0));
     expect(JSON.stringify(state)).toBe(before);
   });
 });

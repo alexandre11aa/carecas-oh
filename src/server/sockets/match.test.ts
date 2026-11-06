@@ -166,7 +166,13 @@ describe("match:action", () => {
 
   it("rejeita_payload_invalido_e_campo_de_jogador_enviado_pelo_cliente", async () => {
     const m = await startMatch();
-    const payloads = [undefined, { type: "VOAR" }, { type: "NEXT_PHASE", player: "P1" }, { type: "SUMMON_CARD", cardId: "x" }];
+    const payloads = [undefined, { type: "VOAR" }, { type: "NEXT_PHASE", player: "P1" }, { type: "SUMMON_CARD", cardId: "x" },
+      { type: "ATTACK", attackerCardId: "x", targetCardId: "y" },
+      { type: "ATTACK", attackerCardId: "x", targetZone: 5 },
+      { type: "ATTACK", attackerCardId: "x", targetZone: -1 },
+      { type: "ATTACK", attackerCardId: "x", targetZone: 1.5 },
+      { type: "ACTIVATE_SPELL", cardId: "x", targetZone: 9 },
+    ];
     for (const payload of payloads) {
       const error = once(m.a, "app:error");
       m.a.emit("match:action", payload);

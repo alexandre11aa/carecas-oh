@@ -33,12 +33,14 @@ describe("eventView", () => {
     expect(eventView(set, "P2")).toEqual(set);
   });
 
-  it("oculta_alvo_e_reforco_de_magia_do_oponente_mas_mantem_a_magia_ativada", () => {
-    const spell: GameEvent = { type: "SPELL_ACTIVATED", player: "P2", cardId: "s", targetCardId: "m" };
-    const boost: GameEvent = { type: "ATTACK_BOOSTED", player: "P2", cardId: "m", amount: 500 };
-    expect(eventView(spell, "P1")).toEqual({ ...spell, targetCardId: null });
+  it("oculta_id_do_reforco_do_oponente_e_mantem_alvos_por_zona_publicos", () => {
+    const spell: GameEvent = { type: "SPELL_ACTIVATED", player: "P2", cardId: "s", targetZone: 2 };
+    const attack: GameEvent = { type: "ATTACK_DECLARED", player: "P2", attackerCardId: "a", targetZone: 1 };
+    const boost: GameEvent = { type: "ATTACK_BOOSTED", player: "P2", cardId: "m", zone: 2, amount: 500 };
+    expect(eventView(spell, "P1")).toEqual(spell);
+    expect(eventView(attack, "P1")).toEqual(attack);
     expect(eventView(boost, "P1")).toEqual({ ...boost, cardId: null });
-    expect(eventView(spell, "P2")).toEqual(spell);
+    expect(eventView(boost, "P2")).toEqual(boost);
   });
 
   it("nao_altera_eventos_publicos_nem_o_evento_original", () => {

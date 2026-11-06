@@ -144,14 +144,14 @@ describe("playerView", () => {
         pendingResponse: {
           trigger: "ATTACK_DECLARED",
           responder: b,
-          action: { type: "ATTACK", attackerCardId: "dune_scout", targetCardId: null },
+          action: { type: "ATTACK", attackerCardId: "dune_scout", targetZone: null },
         },
       };
       expect(playerView(pending, b).pendingResponse).toEqual({
         responder: b,
         canRespond: true,
         trigger: "ATTACK_DECLARED",
-        action: { type: "ATTACK", attackerCardId: "dune_scout", targetCardId: null },
+        action: { type: "ATTACK", attackerCardId: "dune_scout", targetZone: null },
       });
       expect(playerView(pending, a).pendingResponse).toEqual({ responder: b, canRespond: false });
       expect(JSON.stringify(playerView(pending, a).pendingResponse)).not.toContain("dune_scout");
@@ -170,14 +170,14 @@ describe("playerView", () => {
         ...state,
         players: { ...state.players, [a]: { ...state.players[a], monsters: pad([{ ...attacker, hasAttacked: false }]) } },
       };
-      const r = applyAction(ready, a, { type: "ATTACK", attackerCardId: "dune_scout", targetCardId: "crystal_bat" });
+      const r = applyAction(ready, a, { type: "ATTACK", attackerCardId: "dune_scout", targetZone: 0 });
       if (!r.ok) throw new Error(r.code);
       expect(r.state.pendingResponse).not.toBeNull();
       expect(playerView(r.state, b).pendingResponse).toMatchObject({ canRespond: true, trigger: "ATTACK_DECLARED" });
       expect(playerView(r.state, a).pendingResponse).toEqual({ responder: b, canRespond: false });
     });
 
-    it("remove_tributo_virado_e_alvo_virado_da_acao_vista_pelo_defensor", () => {
+    it("remove_tributo_virado_e_alvo_por_zona_nao_vaza_id_na_acao_vista_pelo_defensor", () => {
       const { state, a, b } = scenario();
       const summon: MatchState = {
         ...state,
@@ -196,9 +196,12 @@ describe("playerView", () => {
         pendingResponse: {
           trigger: "SPELL_ACTIVATION",
           responder: b,
-          action: { type: "ACTIVATE_SPELL", cardId: "power_surge", targetCardId: "tide_imp" },
+          action: { type: "ACTIVATE_SPELL", cardId: "power_surge", targetZone: 0 },
         },
       };
+      expect(playerView(spell, b).pendingResponse).toMatchObject({
+        action: { type: "ACTIVATE_SPELL", cardId: "power_surge", targetZone: 0 },
+      });
       expect(JSON.stringify(playerView(spell, b).pendingResponse)).not.toContain("tide_imp");
       expect(playerView(spell, a).pendingResponse).toEqual({ responder: b, canRespond: false });
     });
