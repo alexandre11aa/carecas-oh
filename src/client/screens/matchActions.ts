@@ -20,12 +20,12 @@ export type Command = { label: string; action?: Action; select?: Selection | nul
 
 export type ClickOutcome = { selection: Selection | null; action?: Action };
 
-const NEXT_PHASE_LABEL: Record<Phase, string> = {
+/** Rótulo da próxima fase; a fase Fim não tem próxima, então não aparece aqui. */
+const NEXT_PHASE_LABEL: Record<Exclude<Phase, "END">, string> = {
   DRAW: "Principal 1",
   MAIN_1: "Batalha",
   BATTLE: "Principal 2",
   MAIN_2: "Fim",
-  END: "próxima",
 };
 
 export const TRIGGER_LABELS: Record<TrapTrigger, string> = {
@@ -113,14 +113,13 @@ export const selectionCommands = (view: PlayerView, selection: Selection | null)
   }
 };
 
-/** Botões de fase/turno do jogador do turno. */
-export const phaseCommands = (view: PlayerView): Command[] =>
-  canAct(view)
-    ? [
-        { label: `Avançar fase (${NEXT_PHASE_LABEL[view.phase]})`, action: { type: "NEXT_PHASE" } },
-        { label: "Encerrar turno", action: { type: "END_TURN" } },
-      ]
-    : [];
+/** Botões de fase/turno do jogador do turno. Na fase Fim não há próxima fase: resta só encerrar o turno. */
+export const phaseCommands = (view: PlayerView): Command[] => {
+  if (!canAct(view)) return [];
+  const endTurn: Command = { label: "Encerrar turno", action: { type: "END_TURN" } };
+  if (view.phase === "END") return [endTurn];
+  return [{ label: `Avançar fase (${NEXT_PHASE_LABEL[view.phase]})`, action: { type: "NEXT_PHASE" } }, endTurn];
+};
 
 /** Janela de resposta: armadilhas elegíveis do defensor (viradas, baixadas em turno anterior, mesmo gatilho) e passar. */
 export const responseCommands = (view: PlayerView): Command[] => {
