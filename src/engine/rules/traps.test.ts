@@ -70,7 +70,7 @@ const battle = (theirTraps: string[]) =>
 
 describe("armadilha: gatilho de declaracao de ataque", () => {
   it("abre_janela_para_o_defensor_sem_aplicar_o_ataque", () => {
-    const { state, p, o } = battle(["mirror_wall"]);
+    const { state, p, o } = battle(["divine_glory_evasion"]);
     const r = ok(state, p, attackWith("dune_scout", 0));
     expect(r.events).toEqual([{ type: "RESPONSE_WINDOW_OPENED", responder: o, trigger: "ATTACK_DECLARED" }]);
     expect(r.state.pendingResponse).toEqual({
@@ -98,23 +98,23 @@ describe("armadilha: gatilho de declaracao de ataque", () => {
     const { state, p } = setup({
       mine: [field("dune_scout")],
       theirs: [field("bone_knight")],
-      theirTraps: [trap("mirror_wall", 5)],
+      theirTraps: [trap("divine_glory_evasion", 5)],
     });
     expect(ok(state, p, attackWith("dune_scout", 0)).state.pendingResponse).toBeNull();
   });
 
   it("ataque_invalido_nao_abre_janela", () => {
-    const { state, p } = battle(["mirror_wall"]);
+    const { state, p } = battle(["divine_glory_evasion"]);
     expect(applyAction(state, p, attackWith("dune_scout", 3))).toEqual({ ok: false, code: "INVALID_TARGET" });
   });
 
   it("negar_ataque_cancela_o_dano_e_gasta_o_ataque", () => {
-    const { state, p, o } = battle(["mirror_wall"]);
+    const { state, p, o } = battle(["divine_glory_evasion"]);
     const open = ok(state, p, attackWith("dune_scout", 0)).state;
-    const r = ok(open, o, activate("mirror_wall"));
+    const r = ok(open, o, activate("divine_glory_evasion"));
     expect(r.events).toEqual([
-      { type: "TRAP_ACTIVATED", player: o, cardId: "mirror_wall", trigger: "ATTACK_DECLARED" },
-      { type: "CARD_SENT_TO_GRAVEYARD", player: o, cardId: "mirror_wall" },
+      { type: "TRAP_ACTIVATED", player: o, cardId: "divine_glory_evasion", trigger: "ATTACK_DECLARED" },
+      { type: "CARD_SENT_TO_GRAVEYARD", player: o, cardId: "divine_glory_evasion" },
       { type: "ATTACK_NEGATED", player: p, attackerCardId: "dune_scout" },
     ]);
     expect(r.state.pendingResponse).toBeNull();
@@ -123,7 +123,7 @@ describe("armadilha: gatilho de declaracao de ataque", () => {
     expect(r.state.players[o].monsters[0]?.cardId).toBe("bone_knight");
     expect(r.state.players[p].monsters[0]).toMatchObject({ cardId: "dune_scout", hasAttacked: true });
     expect(r.state.players[o].spellTraps.every((s) => s === null)).toBe(true);
-    expect(r.state.players[o].graveyard).toEqual(["mirror_wall"]);
+    expect(r.state.players[o].graveyard).toEqual(["divine_glory_evasion"]);
   });
 
   it("destruir_atacante_envia_o_monstro_ao_cemiterio_sem_dano", () => {
@@ -142,7 +142,7 @@ describe("armadilha: gatilho de declaracao de ataque", () => {
   });
 
   it("passar_a_resposta_retoma_o_ataque", () => {
-    const { state, p, o } = battle(["mirror_wall"]);
+    const { state, p, o } = battle(["divine_glory_evasion"]);
     const open = ok(state, p, attackWith("dune_scout", 0)).state;
     const r = ok(open, o, pass);
     expect(r.events[0]).toEqual({ type: "RESPONSE_PASSED", player: o });
@@ -150,14 +150,14 @@ describe("armadilha: gatilho de declaracao de ataque", () => {
     expect(r.state.pendingResponse).toBeNull();
     expect(r.state.players[o].lifePoints).toBe(7800);
     expect(r.state.players[o].monsters[0]).toBeNull();
-    expect(r.state.players[o].spellTraps[0]?.cardId).toBe("mirror_wall");
+    expect(r.state.players[o].spellTraps[0]?.cardId).toBe("divine_glory_evasion");
   });
 
   it("nao_altera_o_estado_recebido", () => {
-    const { state, p, o } = battle(["mirror_wall"]);
+    const { state, p, o } = battle(["divine_glory_evasion"]);
     const open = ok(state, p, attackWith("dune_scout", 0)).state;
     const snapshot = JSON.stringify(open);
-    ok(open, o, activate("mirror_wall"));
+    ok(open, o, activate("divine_glory_evasion"));
     expect(JSON.stringify(open)).toBe(snapshot);
   });
 });
@@ -197,14 +197,14 @@ describe("armadilha: maxAttack do spike_pit", () => {
     expect(r.state.players[p].graveyard).toEqual([]);
   });
 
-  it("mirror_wall_anula_atacante_forte", () => {
+  it("divine_glory_evasion_anula_atacante_forte", () => {
     const { state, p, o } = setup({
       mine: [field("abyss_titan")],
       theirs: [field("bone_knight")],
-      theirTraps: [trap("mirror_wall")],
+      theirTraps: [trap("divine_glory_evasion")],
     });
     const opened = ok(state, p, attackWith("abyss_titan", 0));
-    const r = ok(opened.state, o, activate("mirror_wall"));
+    const r = ok(opened.state, o, activate("divine_glory_evasion"));
     expect(r.events).toContainEqual({ type: "ATTACK_NEGATED", player: p, attackerCardId: "abyss_titan" });
     expect(r.state.players[o].monsters[0]?.cardId).toBe("bone_knight");
   });
@@ -313,7 +313,7 @@ describe("armadilha: efeito de dano", () => {
 });
 
 describe("armadilha: erros e bloqueio durante a janela", () => {
-  const opened = (traps: string[] = ["mirror_wall"]) => {
+  const opened = (traps: string[] = ["divine_glory_evasion"]) => {
     const { state, p, o } = battle(traps);
     return { state: ok(state, p, attackWith("dune_scout", 0)).state, p, o };
   };
@@ -330,9 +330,9 @@ describe("armadilha: erros e bloqueio durante a janela", () => {
   });
 
   it("responder_sem_janela_retorna_no_response_window", () => {
-    const { state, o } = battle(["mirror_wall"]);
+    const { state, o } = battle(["divine_glory_evasion"]);
     expect(applyAction(state, o, pass)).toEqual({ ok: false, code: "NO_RESPONSE_WINDOW" });
-    expect(applyAction(state, o, activate("mirror_wall"))).toEqual({ ok: false, code: "NO_RESPONSE_WINDOW" });
+    expect(applyAction(state, o, activate("divine_glory_evasion"))).toEqual({ ok: false, code: "NO_RESPONSE_WINDOW" });
   });
 
   it("armadilha_inexistente_retorna_trap_not_available", () => {
@@ -344,7 +344,7 @@ describe("armadilha: erros e bloqueio durante a janela", () => {
     const { state, p, o } = setup({
       mine: [field("dune_scout")],
       theirs: [field("bone_knight")],
-      theirTraps: [trap("mirror_wall"), trap("fire_bolt")],
+      theirTraps: [trap("divine_glory_evasion"), trap("fire_bolt")],
     });
     const open = ok(state, p, attackWith("dune_scout", 0)).state;
     expect(applyAction(open, o, activate("fire_bolt"))).toEqual({ ok: false, code: "NOT_A_TRAP" });
@@ -354,7 +354,7 @@ describe("armadilha: erros e bloqueio durante a janela", () => {
     const { state, p, o } = setup({
       mine: [field("dune_scout")],
       theirs: [field("bone_knight")],
-      theirTraps: [trap("mirror_wall"), trap("hidden_snare")],
+      theirTraps: [trap("divine_glory_evasion"), trap("hidden_snare")],
     });
     const open = ok(state, p, attackWith("dune_scout", 0)).state;
     expect(applyAction(open, o, activate("hidden_snare"))).toEqual({ ok: false, code: "TRAP_TRIGGER_MISMATCH" });
@@ -364,7 +364,7 @@ describe("armadilha: erros e bloqueio durante a janela", () => {
     const { state, p, o } = setup({
       mine: [field("dune_scout")],
       theirs: [field("bone_knight")],
-      theirTraps: [trap("mirror_wall"), trap("spike_pit", 5)],
+      theirTraps: [trap("divine_glory_evasion"), trap("spike_pit", 5)],
     });
     const open = ok(state, p, attackWith("dune_scout", 0)).state;
     expect(applyAction(open, o, activate("spike_pit"))).toEqual({ ok: false, code: "TRAP_NOT_ACTIVE_YET" });
@@ -384,10 +384,10 @@ describe("armadilha: erros e bloqueio durante a janela", () => {
       ...state,
       turn: 4,
       currentPlayer: o,
-      players: { ...state.players, [o]: { ...state.players[o], hand: ["mirror_wall"] } },
+      players: { ...state.players, [o]: { ...state.players[o], hand: ["divine_glory_evasion"] } },
     };
-    const afterSet = ok(setupState, o, { type: "SET_SPELL_TRAP", cardId: "mirror_wall" }).state;
-    expect(afterSet.players[o].spellTraps[0]).toMatchObject({ cardId: "mirror_wall", setOnTurn: 4 });
+    const afterSet = ok(setupState, o, { type: "SET_SPELL_TRAP", cardId: "divine_glory_evasion" }).state;
+    expect(afterSet.players[o].spellTraps[0]).toMatchObject({ cardId: "divine_glory_evasion", setOnTurn: 4 });
     const turn5: MatchState = { ...afterSet, turn: 5, currentPlayer: p, phase: "BATTLE" };
     expect(ok(turn5, p, attackWith("dune_scout", 0)).state.pendingResponse).not.toBeNull();
   });
