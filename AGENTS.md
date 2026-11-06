@@ -192,6 +192,7 @@ src/client/
   screens/              telas em HTML: início, sala de espera e interface da partida
   scene/
     scene.ts            renderer, câmera, luzes e loop
+    layout.ts           lógica pura (sem WebGL, testável): PlayerView -> posições das cartas na mesa
     table.ts            mesa e zonas
     cardMesh.ts         criação e atualização das cartas
     monsterSprite.ts    arte do monstro em pé sobre a carta
@@ -204,6 +205,7 @@ src/client/
 - Arquivos em `camelCase.ts`. A primeira linha de cada arquivo é um comentário com o caminho: `// src/client/scene/cardMesh.ts`.
 - O cliente importa de `src/engine/` apenas tipos e dados públicos das cartas. Nunca chama `applyAction` para decidir o resultado de uma jogada.
 - A comunicação com o servidor passa por `network/socket.ts`.
+- `state.ts` guarda o último estado do servidor, inclusive a última visão da partida (`match`, vinda de `match:state`); a tela da partida (`screens/matchScreen.ts`) abre quando ela existe e a cena apenas a representa. Monstros virados do oponente (`cardId: null`) aparecem como carta de costas.
 - `state.ts` guarda o último estado do servidor. Estado visual, como carta selecionada, fica separado.
 - Texto de interface, mensagens e comentários em português. Identificadores de código em inglês.
 
