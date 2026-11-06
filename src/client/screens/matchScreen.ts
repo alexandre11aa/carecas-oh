@@ -1,4 +1,5 @@
 // src/client/screens/matchScreen.ts
+import { floatDelta, flashCounter, playNotice, snapLife, tweenLife } from "../animations/hudEffects.js";
 import { getCard } from "../../engine/cards.js";
 import type { Phase } from "../../engine/types.js";
 import type { PlayerView } from "../../engine/playerView.js";
@@ -20,10 +21,28 @@ import {
   type Command,
   type Selection,
 } from "./matchActions.js";
+import { buildNotices, deltaText, lifePercent, lifeSides, MAX_LIFE, type Notice, type NoticeSide } from "./matchNotices.js";
 import { endSummary, rematchState } from "./matchEnd.js";
 import { actingPlayer, opponentNickname, secondsRemaining, timerLevel, turnBannerText } from "./turnTimer.js";
 
 const NOTICE_MS = 2200;
+const NOTICE_HOLD = 0.9; // segundos de cada aviso de evento
+const END_HOLD = 1.6;
+
+type InfoBox = { box: HTMLElement; life: HTMLElement; fill: HTMLElement; rest: HTMLElement; graveyard: HTMLElement };
+
+/** Caixa de status de um jogador: vida com barra, contadores e cemitério (realçável). */
+const createInfoBox = (): InfoBox => {
+  const box = el("div", "hud-box info-box");
+  const life = el("b", "life-text");
+  const bar = el("span", "life-bar");
+  const fill = el("span", "life-fill");
+  bar.append(fill);
+  const rest = el("span");
+  const graveyard = el("span", "graveyard-count");
+  box.append(life, bar, rest, graveyard);
+  return { box, life, fill, rest, graveyard };
+};
 
 export const PHASE_LABELS: Record<Phase, string> = {
   DRAW: "Compra",
@@ -46,7 +65,8 @@ export const createMatchScreen = (): Screen => {
   const canvasBox = el("div", "match-canvas");
   const hud = el("div", "hud");
 
-  const opponentInfo = el("div", "hud-box");
+  const infoBoxes: Record<NoticeSide, InfoBox> = { opponent: createInfoBox(), you: createInfoBox() };
+  const opponentInfo = infoBoxes.opponent.box;
   const turnInfo = el("div", "hud-box hud-center");
   const turnBanner = el("p", "turn-banner");
   const countdown = el("span", "turn-countdown");
@@ -58,7 +78,7 @@ export const createMatchScreen = (): Screen => {
   const top = el("div", "hud-bar");
   top.append(opponentInfo, turnInfo);
 
-  const youInfo = el("div", "hud-box");
+  const youInfo = infoBoxes.you.box;
   const hintLine = el("p", "hud-hint");
   const errorLine = el("p", "error");
   const commandsBox = el("div", "hud-commands");
@@ -83,13 +103,77 @@ export const createMatchScreen = (): Screen => {
   endOverlay.append(endBox);
   const turnToast = el("div", "turn-toast");
   turnToast.hidden = true;
-  element.append(canvasBox, hud, turnToast, endOverlay);
+  const eventNotice = el("div", "event-notice");
+  eventNotice.hidden = true;
+  element.append(canvasBox, hud, turnToast, eventNotice, endOverlay);
 
   let selection: Selection | null = null;
   let lastMatch: PlayerView | null = null;
   let acceptRematch = true;
   let shownNoticeSeq = getState().turnNotice?.seq ?? 0; // aviso já existente ao abrir a tela (ex.: reconexão) não reaparece
   let toastTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // Fila de avisos dos eventos. A vida dos lados com dano/cura fica "retida" até o aviso aparecer; ao esvaziar a fila tudo volta ao estado do servidor.
+  let shownEventSeq = getState().matchEvents?.seq ?? 0; // eventos já existentes ao abrir a tela não reaparecem
+  const noticeQueue: Notice[] = [];
+  const heldLife = new Set<NoticeSide>();
+  const lifeShown: Record<NoticeSide, { value: number }> = { you: { value: MAX_LIFE }, opponent: { value: MAX_LIFE } };
+  let playing = false;
+  let noticeTimeline: { kill: () => void } | null = null;
+
+  const renderLife = (side: NoticeSide, value: number) => {
+    infoBoxes[side].life.textContent = `LP ${value}`;
+    infoBoxes[side].fill.style.width = `${lifePercent(value)}%`;
+  };
+  const serverLife = (side: NoticeSide): number => (side === "you" ? lastMatch?.you.lifePoints : lastMatch?.opponent.lifePoints) ?? MAX_LIFE;
+  const snapAllLife = () => (["you", "opponent"] as const).forEach((side) => snapLife(lifeShown[side], serverLife(side), (value) => renderLife(side, value)));
+
+  const stopNotices = () => {
+    noticeQueue.length = 0;
+    heldLife.clear();
+    playing = false;
+    noticeTimeline?.kill();
+    noticeTimeline = null;
+    eventNotice.hidden = true;
+  };
+
+  const pumpNotices = () => {
+    if (playing) return;
+    const notice = noticeQueue.shift();
+    if (!notice) {
+      heldLife.clear();
+      snapAllLife();
+      eventNotice.hidden = true;
+      update(); // libera a tela de fim, se houver
+      return;
+    }
+    playing = true;
+    eventNotice.textContent = notice.kind === "DAMAGE" || notice.kind === "HEAL" ? `${notice.text} (${deltaText(notice)})` : notice.text;
+    eventNotice.className = `event-notice ${notice.kind.toLowerCase()} ${notice.side}${notice.victory === false ? " defeat" : ""}`;
+    eventNotice.hidden = false;
+    if (notice.kind === "GRAVEYARD") flashCounter(infoBoxes[notice.side].graveyard);
+    if (notice.kind === "DAMAGE" || notice.kind === "HEAL") {
+      floatDelta(infoBoxes[notice.side].box, deltaText(notice), notice.kind === "DAMAGE" ? "damage" : "heal");
+      tweenLife(lifeShown[notice.side], serverLife(notice.side), (value) => renderLife(notice.side, value));
+    }
+    const isEnd = notice.kind === "END";
+    noticeTimeline = playNotice(eventNotice, isEnd ? END_HOLD : NOTICE_HOLD, !isEnd, () => {
+      playing = false;
+      pumpNotices();
+    });
+  };
+
+  /** Recebe o lote de eventos novo: avisos entram na fila; sem eventos (reconexão) a fila é descartada e o estado é exibido direto. */
+  const receiveEvents = (match: PlayerView, batch: NonNullable<ReturnType<typeof getState>["matchEvents"]>) => {
+    const notices = buildNotices(batch.events, match.viewer);
+    if (notices.length === 0) {
+      if (batch.events.length === 0) stopNotices();
+      return;
+    }
+    lifeSides(notices).forEach((side) => heldLife.add(side));
+    noticeQueue.push(...notices);
+    pumpNotices();
+  };
 
   rematchButton.addEventListener("click", () => sendRematch(acceptRematch));
   lobbyButton.addEventListener("click", () => leaveRoom());
@@ -138,7 +222,7 @@ export const createMatchScreen = (): Screen => {
   const countdownInterval = setInterval(renderCountdown, 250);
 
   const update = () => {
-    const { match, connection, errorCode, ended, room, turnNotice } = getState();
+    const { match, connection, errorCode, ended, room, turnNotice, matchEvents } = getState();
     if (!match) return;
     // Nova visão do servidor: a seleção anterior pode não valer mais.
     if (match !== lastMatch) {
@@ -147,10 +231,19 @@ export const createMatchScreen = (): Screen => {
       scene?.setView(match);
     }
     scene?.setHighlights(highlightKeys(match, selection));
+    if (matchEvents && matchEvents.seq !== shownEventSeq) {
+      shownEventSeq = matchEvents.seq;
+      receiveEvents(match, matchEvents);
+    }
 
     const { you, opponent } = match;
-    opponentInfo.textContent = `Oponente · LP ${opponent.lifePoints} · Mão ${opponent.handCount} · Deck ${opponent.deckCount} · Cemitério ${opponent.graveyard.length}`;
-    youInfo.textContent = `Você · LP ${you.lifePoints} · Deck ${you.deckCount} · Cemitério ${you.graveyard.length}`;
+    infoBoxes.opponent.rest.textContent = ` Oponente · Mão ${opponent.handCount} · Deck ${opponent.deckCount} · `;
+    infoBoxes.opponent.graveyard.textContent = `Cemitério ${opponent.graveyard.length}`;
+    infoBoxes.you.rest.textContent = ` Você · Deck ${you.deckCount} · `;
+    infoBoxes.you.graveyard.textContent = `Cemitério ${you.graveyard.length}`;
+    (["you", "opponent"] as const).forEach((side) => {
+      if (!heldLife.has(side)) snapLife(lifeShown[side], serverLife(side), (value) => renderLife(side, value));
+    });
 
     const acting = actingPlayer(match);
     const actingMine = acting === match.viewer;
@@ -206,7 +299,7 @@ export const createMatchScreen = (): Screen => {
       }),
     );
 
-    if (match.winner) {
+    if (match.winner && !playing && noticeQueue.length === 0) {
       const summary = endSummary(match.viewer, match.winner, ended);
       const rematch = rematchState(ended, opponentInRoom(room?.players ?? []));
       endTitle.textContent = summary.title;
@@ -215,6 +308,7 @@ export const createMatchScreen = (): Screen => {
       rematchButton.disabled = rematch.disabled;
       acceptRematch = rematch.accept;
       rematchStatus.textContent = rematch.status;
+      endTitle.className = match.winner === match.viewer ? "victory" : "defeat";
       endOverlay.hidden = false;
     } else {
       endOverlay.hidden = true;
@@ -228,6 +322,7 @@ export const createMatchScreen = (): Screen => {
     destroy: () => {
       clearInterval(countdownInterval);
       if (toastTimer) clearTimeout(toastTimer);
+      stopNotices();
       observer?.disconnect();
       scene?.dispose();
     },
