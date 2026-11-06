@@ -78,6 +78,7 @@ export type Action =
   | { type: "SET_MONSTER"; cardId: string; tributeCardIds: string[]; zone: number }
   | { type: "SET_TRAP"; cardId: string }
   | { type: "CHANGE_POSITION"; cardId: string }
+  | { type: "FLIP_SUMMON"; cardId: string }
   | { type: "ACTIVATE_SPELL"; cardId: string }
   | { type: "ACTIVATE_TRAP"; cardId: string }
   | { type: "ATTACK"; attackerCardId: string; targetCardId: string | null }
@@ -88,13 +89,29 @@ export type ErrorCode =
   | "MATCH_ENDED"
   | "NOT_YOUR_TURN"
   | "INVALID_PHASE"
-  | "ACTION_NOT_AVAILABLE";
+  | "ACTION_NOT_AVAILABLE"
+  | "CARD_NOT_IN_HAND"
+  | "NOT_A_MONSTER"
+  | "NORMAL_SUMMON_ALREADY_USED"
+  | "INVALID_ZONE"
+  | "ZONE_OCCUPIED"
+  | "FIELD_FULL"
+  | "NOT_ENOUGH_TRIBUTES"
+  | "INVALID_TRIBUTES"
+  | "MONSTER_NOT_ON_FIELD"
+  | "CANNOT_CHANGE_POSITION"
+  | "ALREADY_CHANGED_POSITION"
+  | "NOT_FACE_DOWN";
 
 export type GameEvent =
   | { type: "CARD_DRAWN"; player: PlayerId; cardId: string }
   | { type: "PHASE_CHANGED"; phase: Phase }
   | { type: "TURN_STARTED"; player: PlayerId; turn: number }
-  | { type: "MATCH_ENDED"; winner: PlayerId };
+  | { type: "MATCH_ENDED"; winner: PlayerId }
+  | { type: "MONSTER_SUMMONED"; player: PlayerId; cardId: string; zone: number; position: MonsterPosition; faceDown: boolean }
+  | { type: "CARD_SENT_TO_GRAVEYARD"; player: PlayerId; cardId: string }
+  | { type: "POSITION_CHANGED"; player: PlayerId; cardId: string; position: MonsterPosition; faceDown: boolean }
+  | { type: "MONSTER_FLIPPED"; player: PlayerId; cardId: string };
 
 export type ActionResult =
   | { ok: true; state: MatchState; events: GameEvent[] }

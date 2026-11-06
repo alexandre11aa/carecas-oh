@@ -1,4 +1,5 @@
 // src/engine/applyAction.ts
+import { changePosition, flipSummon, summonMonster } from "./rules/summon";
 import { drawPhase, endTurn, nextPhaseOf } from "./rules/turn";
 import type { Action, ActionResult, MatchState, PlayerId } from "./types";
 
@@ -21,6 +22,13 @@ export const applyAction = (state: MatchState, player: PlayerId, action: Action)
       if (state.phase === "DRAW") return { ok: false, code: "INVALID_PHASE" };
       return { ok: true, ...endTurn(state) };
     }
+    case "SUMMON_CARD":
+    case "SET_MONSTER":
+      return summonMonster(state, player, action);
+    case "CHANGE_POSITION":
+      return changePosition(state, player, action);
+    case "FLIP_SUMMON":
+      return flipSummon(state, player, action);
     default:
       return { ok: false, code: "ACTION_NOT_AVAILABLE" };
   }
