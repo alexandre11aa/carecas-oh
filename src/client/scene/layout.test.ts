@@ -47,7 +47,7 @@ describe("layout da mesa", () => {
   it("monstro_virado_do_oponente_vira_carta_de_costas_sem_identidade", () => {
     const state = baseState();
     state.players.P2.monsters[3] = { cardId: "tide_imp", position: "DEFENSE", faceDown: true, summonedOnTurn: 1, hasAttacked: false, changedPositionOnTurn: null };
-    state.players.P2.spellTraps[0] = { cardId: "mirror_wall", faceDown: true, setOnTurn: 1 };
+    state.players.P2.spellTraps[0] = { cardId: "divine_glory_evasion", faceDown: true, setOnTurn: 1 };
     const byKey = new Map(layoutBoard(playerView(state, "P1")).map((p) => [p.key, p]));
     expect(byKey.get("opponent:monster:3")).toMatchObject({ cardId: null, faceDown: true, yaw: Math.PI + Math.PI / 2 });
     expect(byKey.get("opponent:spellTrap:0")).toMatchObject({ cardId: null, faceDown: true });

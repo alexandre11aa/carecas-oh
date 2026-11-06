@@ -298,7 +298,7 @@ describe("janela de resposta", () => {
         P1: {
           ...base.players.P1,
           spellTraps: [
-            { cardId: "mirror_wall", faceDown: true, setOnTurn },
+            { cardId: "divine_glory_evasion", faceDown: true, setOnTurn },
             { cardId: "hidden_snare", faceDown: true, setOnTurn },
             null,
             null,
@@ -312,7 +312,7 @@ describe("janela de resposta", () => {
 
   it("oferece_so_as_armadilhas_do_gatilho_e_passar", () => {
     expect(responseCommands(defender("ATTACK_DECLARED"))).toEqual([
-      { label: "Ativar Muralha Espelhada", action: { type: "ACTIVATE_TRAP", cardId: "mirror_wall" } },
+      { label: "Ativar Esquiva da Glória Divina", action: { type: "ACTIVATE_TRAP", cardId: "divine_glory_evasion" } },
       { label: "Passar", action: { type: "PASS_RESPONSE" } },
     ]);
     expect(labels(responseCommands(defender("SUMMON")))).toEqual(["Ativar Laço Escondido", "Passar"]);
