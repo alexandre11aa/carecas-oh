@@ -11,3 +11,4 @@ export { applyAction } from "./applyAction";
 export { canAttack, opponentOf } from "./rules/turn";
 export { requiredTributes } from "./rules/summon";
 export { SPELL_TRAP_ZONES } from "./createMatch";
+export { resolveTrapEffect } from "./rules/traps";

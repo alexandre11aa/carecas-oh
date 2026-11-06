@@ -2,14 +2,33 @@
 import { attack } from "./rules/combat";
 import { activateSpell, setSpellTrap } from "./rules/spells";
 import { changePosition, flipSummon, summonMonster } from "./rules/summon";
+import { openResponseWindow, respond } from "./rules/traps";
 import { drawPhase, endTurn, nextPhaseOf } from "./rules/turn";
 import type { Action, ActionResult, MatchState, PlayerId } from "./types";
 
 /** Aplica uma ação do jogador ao estado, sem alterá-lo. Jogada inválida devolve um código estável. */
 export const applyAction = (state: MatchState, player: PlayerId, action: Action): ActionResult => {
   if (state.winner) return { ok: false, code: "MATCH_ENDED" };
+
+  // Com janela aberta, só o defensor age, e apenas para ativar uma armadilha ou passar.
+  if (state.pendingResponse) {
+    const isResponse = action.type === "ACTIVATE_TRAP" || action.type === "PASS_RESPONSE";
+    if (player !== state.pendingResponse.responder || !isResponse) return { ok: false, code: "RESPONSE_PENDING" };
+    return respond(state, player, action, executeAction);
+  }
+  if (action.type === "ACTIVATE_TRAP" || action.type === "PASS_RESPONSE") {
+    return { ok: false, code: "NO_RESPONSE_WINDOW" };
+  }
   if (state.currentPlayer !== player) return { ok: false, code: "NOT_YOUR_TURN" };
 
+  const result = executeAction(state, player, action);
+  if (!result.ok) return result;
+  // Ação válida que o defensor pode responder: abre a janela e adia o efeito até a resposta.
+  return openResponseWindow(state, player, action) ?? result;
+};
+
+/** Executa a ação do jogador do turno, sem considerar janelas de resposta. */
+const executeAction = (state: MatchState, player: PlayerId, action: Action): ActionResult => {
   switch (action.type) {
     case "NEXT_PHASE": {
       if (state.phase === "DRAW") {

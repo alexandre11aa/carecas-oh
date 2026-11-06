@@ -125,11 +125,11 @@ describe("applyAction - turnos", () => {
     expect(applyAction(state, other, { type: "END_TURN" })).toEqual({ ok: false, code: "NOT_YOUR_TURN" });
   });
 
-  it("acao_ainda_nao_suportada_retorna_action_not_available", () => {
+  it("responder_sem_janela_aberta_retorna_no_response_window", () => {
     const state = start();
     expect(applyAction(state, state.currentPlayer, { type: "ACTIVATE_TRAP", cardId: "x" })).toEqual({
       ok: false,
-      code: "ACTION_NOT_AVAILABLE",
+      code: "NO_RESPONSE_WINDOW",
     });
   });
 });
