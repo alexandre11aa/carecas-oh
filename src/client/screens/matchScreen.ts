@@ -4,7 +4,7 @@ import type { Phase } from "../../engine/types.js";
 import type { PlayerView } from "../../engine/playerView.js";
 import { leaveRoom, sendAction, sendRematch } from "../network/socket.js";
 import { createMatchScene, type MatchScene } from "../scene/scene.js";
-import { getState } from "../state.js";
+import { getState, loadNickname } from "../state.js";
 import { el, type Screen } from "./dom.js";
 import { errorMessage } from "./errorMessages.js";
 import {
@@ -21,6 +21,9 @@ import {
   type Selection,
 } from "./matchActions.js";
 import { endSummary, rematchState } from "./matchEnd.js";
+import { actingPlayer, opponentNickname, secondsRemaining, timerLevel, turnBannerText } from "./turnTimer.js";
+
+const NOTICE_MS = 2200;
 
 export const PHASE_LABELS: Record<Phase, string> = {
   DRAW: "Compra",
@@ -45,10 +48,13 @@ export const createMatchScreen = (): Screen => {
 
   const opponentInfo = el("div", "hud-box");
   const turnInfo = el("div", "hud-box hud-center");
+  const turnBanner = el("p", "turn-banner");
+  const countdown = el("span", "turn-countdown");
   const turnLine = el("p", "hud-banner");
   const phaseLine = el("p", "hint");
   const noticeLine = el("p", "hint");
-  turnInfo.append(turnLine, phaseLine, noticeLine);
+  turnBanner.append(el("span", "turn-banner-text"), countdown);
+  turnInfo.append(turnBanner, turnLine, phaseLine, noticeLine);
   const top = el("div", "hud-bar");
   top.append(opponentInfo, turnInfo);
 
@@ -75,11 +81,15 @@ export const createMatchScreen = (): Screen => {
   const endOverlay = el("div", "end-overlay");
   endOverlay.hidden = true;
   endOverlay.append(endBox);
-  element.append(canvasBox, hud, endOverlay);
+  const turnToast = el("div", "turn-toast");
+  turnToast.hidden = true;
+  element.append(canvasBox, hud, turnToast, endOverlay);
 
   let selection: Selection | null = null;
   let lastMatch: PlayerView | null = null;
   let acceptRematch = true;
+  let shownNoticeSeq = getState().turnNotice?.seq ?? 0; // aviso já existente ao abrir a tela (ex.: reconexão) não reaparece
+  let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
   rematchButton.addEventListener("click", () => sendRematch(acceptRematch));
   lobbyButton.addEventListener("click", () => leaveRoom());
@@ -113,8 +123,22 @@ export const createMatchScreen = (): Screen => {
     canvasBox.append(el("p", "match-notice error", "Seu navegador não conseguiu iniciar o 3D (WebGL indisponível)."));
   }
 
+  /** Contagem regressiva do turno; recalculada do último prazo recebido, sem depender do relógio local. */
+  const renderCountdown = () => {
+    const { match, turnClock } = getState();
+    if (!match || match.winner || !turnClock) {
+      countdown.textContent = "";
+      countdown.className = "turn-countdown";
+      return;
+    }
+    const seconds = secondsRemaining(turnClock, Date.now());
+    countdown.textContent = `${seconds} s`;
+    countdown.className = `turn-countdown ${timerLevel(seconds)}`;
+  };
+  const countdownInterval = setInterval(renderCountdown, 250);
+
   const update = () => {
-    const { match, connection, errorCode, ended, room } = getState();
+    const { match, connection, errorCode, ended, room, turnNotice } = getState();
     if (!match) return;
     // Nova visão do servidor: a seleção anterior pode não valer mais.
     if (match !== lastMatch) {
@@ -127,6 +151,20 @@ export const createMatchScreen = (): Screen => {
     const { you, opponent } = match;
     opponentInfo.textContent = `Oponente · LP ${opponent.lifePoints} · Mão ${opponent.handCount} · Deck ${opponent.deckCount} · Cemitério ${opponent.graveyard.length}`;
     youInfo.textContent = `Você · LP ${you.lifePoints} · Deck ${you.deckCount} · Cemitério ${you.graveyard.length}`;
+
+    const acting = actingPlayer(match);
+    const actingMine = acting === match.viewer;
+    turnBanner.className = `turn-banner ${match.winner ? "over" : actingMine ? "mine" : "theirs"}`;
+    turnBanner.hidden = !!match.winner;
+    (turnBanner.firstElementChild as HTMLElement).textContent = `${turnBannerText(match.viewer, acting, opponentNickname(room?.players ?? [], loadNickname()))} · ${PHASE_LABELS[match.phase]}`;
+    renderCountdown();
+    if (turnNotice && turnNotice.seq !== shownNoticeSeq) {
+      shownNoticeSeq = turnNotice.seq;
+      turnToast.textContent = turnNotice.text;
+      turnToast.hidden = false;
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => (turnToast.hidden = true), NOTICE_MS);
+    }
 
     const mine = match.currentPlayer === match.viewer;
     turnLine.textContent = match.winner
@@ -188,6 +226,8 @@ export const createMatchScreen = (): Screen => {
     element,
     update,
     destroy: () => {
+      clearInterval(countdownInterval);
+      if (toastTimer) clearTimeout(toastTimer);
       observer?.disconnect();
       scene?.dispose();
     },
