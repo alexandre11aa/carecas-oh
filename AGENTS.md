@@ -193,6 +193,8 @@ src/client/
   screens/              telas em HTML: início, sala de espera e interface da partida
     matchActions.ts     lógica pura (testável): PlayerView + seleção => comandos e `match:action` a enviar
     matchEnd.ts         lógica pura: textos de resultado e estado do botão de revanche
+    cardDetail.ts       lógica pura: textos de nome, tipo, ATK/DEF, efeito e mecânica da carta e carta visível num slot
+    cardView.ts         componente HTML de carta, reutilizável (partida e tutorial)
     matchNotices.ts     lógica pura: EventView (de `eventView`) => avisos de interface em ordem (carta, invocação, cemitério, dano/cura, fim); fila e animação ficam em `matchScreen.ts`
   scene/
     scene.ts            renderer, câmera, luzes e loop

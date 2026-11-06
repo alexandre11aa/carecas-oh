@@ -26,6 +26,8 @@ export type MatchScene = {
   setHighlights: (keys: readonly string[]) => void;
   /** Registra o tratador de cliques sobre a mesa: recebe o slot sob o ponteiro. */
   onPick: (handler: (slot: Slot) => void) => void;
+  /** Registra o tratador de passagem do ponteiro: recebe o slot sob o ponteiro, ou null fora da mesa. */
+  onHover: (handler: (slot: Slot | null) => void) => void;
   resize: (width: number, height: number) => void;
   dispose: () => void;
 };
@@ -66,15 +68,24 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
   const raycaster = new Raycaster();
   const tablePlane = new Plane(new Vector3(0, 1, 0), 0);
   let pickHandler: ((slot: Slot) => void) | null = null;
-  const onPointerDown = (event: PointerEvent) => {
+  let hoverHandler: ((slot: Slot | null) => void) | null = null;
+  const slotAt = (event: PointerEvent): Slot | null => {
     const rect = renderer.domElement.getBoundingClientRect();
     const ndc = new Vector2(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
     raycaster.setFromCamera(ndc, camera);
     const point = raycaster.ray.intersectPlane(tablePlane, new Vector3());
-    const slot = point ? pickSlot(point.x, point.z) : null;
+    return point ? pickSlot(point.x, point.z) : null;
+  };
+  const onPointerDown = (event: PointerEvent) => {
+    const slot = slotAt(event);
+    hoverHandler?.(slot); // toque (sem hover) também mostra o detalhe
     if (slot) pickHandler?.(slot);
   };
+  const onPointerMove = (event: PointerEvent) => hoverHandler?.(slotAt(event));
+  const onPointerLeave = () => hoverHandler?.(null);
   renderer.domElement.addEventListener("pointerdown", onPointerDown);
+  renderer.domElement.addEventListener("pointermove", onPointerMove);
+  renderer.domElement.addEventListener("pointerleave", onPointerLeave);
   let frame = 0;
   const loop = () => {
     renderer.render(scene, camera);
@@ -109,6 +120,9 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
     onPick: (handler) => {
       pickHandler = handler;
     },
+    onHover: (handler) => {
+      hoverHandler = handler;
+    },
     resize: (width, height) => {
       if (width === 0 || height === 0) return;
       renderer.setSize(width, height);
@@ -118,6 +132,8 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
     dispose: () => {
       cancelAnimationFrame(frame);
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);
+      renderer.domElement.removeEventListener("pointermove", onPointerMove);
+      renderer.domElement.removeEventListener("pointerleave", onPointerLeave);
       markerGeometry.dispose();
       markerMaterial.dispose();
       renderer.dispose();
