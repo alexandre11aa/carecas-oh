@@ -2,7 +2,7 @@
 import type { PlayerView } from "../engine/playerView.js";
 
 export type PublicPlayer = { nickname: string; connected: boolean; ready?: boolean };
-export type PublicRoom = { code: string; players: PublicPlayer[] };
+export type PublicRoom = { code: string; hasMatch: boolean; players: PublicPlayer[] };
 
 /** Último estado recebido do servidor. Estado visual (campos digitados etc.) fica nas telas. */
 export type ClientState = {
@@ -27,12 +27,9 @@ let state: ClientState = {
   busy: false,
 };
 
-/**
- * Partida a manter depois de uma atualização da sala. Quando ninguém está pronto, a partida foi
- * encerrada no servidor (o "pronto" só é zerado nesse caso), então a visão antiga é descartada.
- */
-export const matchAfterRoomUpdate = (room: PublicRoom, match: PlayerView | null): PlayerView | null =>
-  room.players.some((player) => player.ready) ? match : null;
+/** Partida a manter depois de uma atualização da sala: descartada só quando o servidor diz que não há partida. */
+export const matchForRoom = (room: PublicRoom, match: PlayerView | null): PlayerView | null =>
+  room.hasMatch ? match : null;
 
 const listeners = new Set<(state: ClientState) => void>();
 

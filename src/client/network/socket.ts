@@ -1,7 +1,7 @@
 // src/client/network/socket.ts
 import { io } from "socket.io-client";
 import type { PlayerView } from "../../engine/playerView.js";
-import { clearToken, getState, loadToken, matchAfterRoomUpdate, saveToken, setState, type PublicRoom } from "../state.js";
+import { clearToken, getState, loadToken, matchForRoom, saveToken, setState, type PublicRoom } from "../state.js";
 
 type RoomReply = { room: PublicRoom; token: string };
 
@@ -9,7 +9,7 @@ const socket = io({ autoConnect: false });
 
 const applyReply = ({ room, token }: RoomReply): void => {
   saveToken(token);
-  setState({ room, match: matchAfterRoomUpdate(room, getState().match), busy: false, booting: false, errorCode: null });
+  setState({ room, match: matchForRoom(room, getState().match), busy: false, booting: false, errorCode: null });
 };
 
 /** Liga os eventos do servidor ao estado e abre a conexão. Chamar uma única vez. */
@@ -29,7 +29,7 @@ export const connect = (): void => {
   socket.on("room:joined", applyReply);
   socket.on("room:rejoined", applyReply);
   socket.on("room:updated", ({ room }: { room: PublicRoom }) =>
-    setState({ room, match: matchAfterRoomUpdate(room, getState().match) }),
+    setState({ room, match: matchForRoom(room, getState().match) }),
   );
 
   // A visão substitui diretamente o estado anterior (inclusive na reconexão, sem animações).
