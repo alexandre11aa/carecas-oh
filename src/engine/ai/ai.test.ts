@@ -202,12 +202,6 @@ describe("IA nivel facil: decisoes", () => {
     expect(chooseAiAction({ state: ended, side, level: "easy", seed: 1 })).toEqual({ action: null, seed: 1 });
     expect(mustAct(state, side)).toBe(true);
   });
-
-  it("ia_dificil_usa_o_comportamento_facil_por_enquanto", () => {
-    const { state, side } = setup({ hand: ["dune_scout", "fire_bolt"] });
-    const easy = chooseAiAction({ state, side, level: "easy", seed: 9 });
-    expect(chooseAiAction({ state, side, level: "hard", seed: 9 })).toEqual(easy);
-  });
 });
 
 describe("IA: determinismo e informacao oculta", () => {
