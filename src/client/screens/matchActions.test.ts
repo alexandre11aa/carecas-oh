@@ -159,8 +159,8 @@ describe("invocacao por clique", () => {
   });
 
   it("nivel_8_exige_dois_tributos", () => {
-    const view = viewOf({ mine: { hand: ["abyss_titan"], monsters: field(monster("tide_imp"), monster("ash_sprite")) } });
-    const start = { kind: "summon", cardId: "abyss_titan", set: false, tributes: [] } as const;
+    const view = viewOf({ mine: { hand: ["ash_dragon"], monsters: field(monster("tide_imp"), monster("ash_sprite")) } });
+    const start = { kind: "summon", cardId: "ash_dragon", set: false, tributes: [] } as const;
     const one = slotClick(view, start, slot("you", "monster", 0));
     expect(one.action).toBeUndefined();
     const two = slotClick(view, one.selection, slot("you", "monster", 1));

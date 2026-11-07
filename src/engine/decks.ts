@@ -10,12 +10,12 @@ export type DealtDecks = {
 };
 
 /**
- * Pool legado: as 20 cartas originais. Enquanto não houver decks fixos, `dealDecks` sorteia só sobre ele.
+ * Pool legado: as 20 cartas originais (com o General do Cerco no lugar do Titã do Abismo, removido do catálogo). Enquanto não houver decks fixos, `dealDecks` sorteia só sobre ele.
  * Remover quando a issue de decks fixos entrar.
  */
 const LEGACY_POOL = new Set([
   "ash_sprite", "moss_golem", "dune_scout", "tide_imp", "bone_knight", "crystal_bat",
-  "storm_hawk", "iron_minotaur", "frost_witch", "ash_dragon", "abyss_titan",
+  "storm_hawk", "iron_minotaur", "frost_witch", "ash_dragon", "siege_general",
   "healing_spring", "power_surge", "wind_gust", "fire_bolt", "arcane_draw",
   "spike_pit", "divine_glory_evasion", "hidden_snare", "dark_veil",
 ]);

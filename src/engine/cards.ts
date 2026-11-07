@@ -1,5 +1,5 @@
 // src/engine/cards.ts
-// 20 cartas originais (provisórias) mais as cartas dos decks Agressivo, Defensivo e Mágico.
+// Cartas originais (provisórias) mais as cartas dos decks Agressivo, Defensivo, Mágico, Controle, Equilibrado e Estratégico.
 import type { Card } from "./types.js";
 
 const image = (id: string): string => `/cards/${id}.png`;
@@ -18,7 +18,6 @@ export const CARDS: readonly Card[] = [
   { id: "frost_witch", name: "Bruxa do Gelo", type: "MONSTER", level: 5, attack: 1900, defense: 2000, image: image("frost_witch"), description: "Congela o que toca.", flavor: "Seu sussurro congela o ar antes mesmo de ser ouvido." },
   // Monstros nível 7+ (2 tributos)
   { id: "ash_dragon", name: "Dragão de Cinzas", type: "MONSTER", level: 7, attack: 2800, defense: 2100, image: image("ash_dragon"), description: "Um dragão que renasce das próprias cinzas.", flavor: "Cada vez que cai, ergue-se mais poderoso das próprias cinzas." },
-  { id: "abyss_titan", name: "Titã do Abismo", type: "MONSTER", level: 8, attack: 3000, defense: 2500, image: image("abyss_titan"), description: "Desperta das profundezas uma vez por século.", flavor: "As águas se recolhem quando ele desperta no fundo do abismo." },
   // Magias
   { id: "healing_spring", name: "Fonte Curativa", type: "SPELL", effect: { kind: "HEAL", amount: 1000 }, image: image("healing_spring"), description: "Recupera pontos de vida do conjurador.", flavor: "Fonte abençoada que concede refrigério a quem disfruta da oportunidade de beber sua água." },
   { id: "power_surge", name: "Surto de Poder", type: "SPELL", effect: { kind: "BOOST_ATTACK", amount: 700 }, image: image("power_surge"), description: "Aumenta o ataque de um monstro até o fim do turno.", flavor: "Uma onda de energia pura que enche de coragem quem a recebe." },
@@ -61,6 +60,22 @@ export const CARDS: readonly Card[] = [
   { id: "runic_pulse", name: "Pulso Rúnico", type: "SPELL", effect: { kind: "BOOST_ATTACK", amount: 700 }, image: image("runic_pulse"), description: "Aumenta em 700 o ATK de um monstro seu, com runas, até o fim do turno.", flavor: "As runas acendem e o monstro cresce em força." },
   { id: "frost_blast", name: "Rajada Gélida", type: "SPELL", effect: { kind: "DESTROY_MONSTER", maxAttack: 2000 }, image: image("frost_blast"), description: "Destrói, com gelo, um monstro do oponente com ATK 2000 ou menos.", flavor: "Um vento polar que congela e estilhaça o alvo." },
   { id: "runic_seal", name: "Selo Rúnico", type: "TRAP", trigger: "SPELL_ACTIVATION", effect: { kind: "NEGATE_SPELL" }, image: image("runic_seal"), description: "Cancela a ativação de uma magia do oponente.", flavor: "Um selo antigo que silencia qualquer feitiço rival." },
+  // Deck Controle (carta nova)
+  { id: "silent_rupture", name: "Ruptura Silenciosa", type: "SPELL", effect: { kind: "DESTROY_SPELL_TRAP" }, image: image("silent_rupture"), description: "Destrói uma magia ou armadilha do oponente, mesmo virada.", flavor: "Um estalo seco que desfaz o plano antes de ele ser revelado." },
+  // Deck Equilibrado (cartas novas)
+  { id: "vital_exchange", name: "Troca Vital", type: "SPELL", effect: { kind: "DRAIN", amount: 600 }, image: image("vital_exchange"), description: "Causa 600 de dano ao oponente e recupera 600 de vida.", flavor: "O que a sombra toma de um, entrega ao outro." },
+  { id: "mist_wall", name: "Muro de Névoa", type: "TRAP", trigger: "ATTACK_DECLARED", effect: { kind: "NEGATE_ATTACK" }, image: image("mist_wall"), description: "Anula um ataque do oponente, escondendo seus monstros em névoa densa.", flavor: "Quem avança contra a névoa só encontra o vazio." },
+  // Deck Estratégico (todo novo)
+  { id: "cunning_scout", name: "Batedor Astuto", type: "MONSTER", level: 2, attack: 800, defense: 500, image: image("cunning_scout"), description: "Um batedor que sempre sabe onde o inimigo vai estar.", flavor: "Conhece cada atalho do campo de batalha." },
+  { id: "wall_archer", name: "Arqueiro da Muralha", type: "MONSTER", level: 3, attack: 1300, defense: 1300, image: image("wall_archer"), description: "Um arqueiro firme no alto da muralha.", flavor: "Da torre, nenhuma flecha erra o alvo." },
+  { id: "tactical_captain", name: "Capitão Tático", type: "MONSTER", level: 4, attack: 1700, defense: 1000, image: image("tactical_captain"), description: "Um capitão que lê o campo antes do primeiro golpe.", flavor: "Vence a batalha antes mesmo de desembainhar a espada." },
+  { id: "strategist_knight", name: "Cavaleiro Estrategista", type: "MONSTER", level: 5, attack: 2000, defense: 1500, image: image("strategist_knight"), description: "Um cavaleiro que une força e planejamento.", flavor: "Cada avanço seu foi traçado em um mapa muito antes." },
+  { id: "siege_general", name: "General do Cerco", type: "MONSTER", level: 7, attack: 2900, defense: 2000, image: image("siege_general"), description: "Um general que domina qualquer cerco.", flavor: "Nenhuma muralha resistiu à sua paciência." },
+  { id: "retreat_plan", name: "Plano de Retirada", type: "SPELL", effect: { kind: "BOUNCE_MONSTER" }, image: image("retreat_plan"), description: "Devolve um monstro do oponente à mão dele.", flavor: "Recuar a tempo também é uma forma de vencer." },
+  { id: "precise_strike", name: "Golpe Certeiro", type: "SPELL", effect: { kind: "DESTROY_MONSTER", maxAttack: 2000 }, image: image("precise_strike"), description: "Destrói com precisão um monstro do oponente com ATK 2000 ou menos.", flavor: "Um único golpe, no ponto exato." },
+  { id: "tactical_reinforcement", name: "Reforço Tático", type: "SPELL", effect: { kind: "BOOST_ATTACK", amount: 700 }, image: image("tactical_reinforcement"), description: "Aumenta em 700 o ATK de um monstro seu com tropas de apoio, até o fim do turno.", flavor: "Tropas frescas chegam exatamente quando são necessárias." },
+  { id: "inside_information", name: "Informação Privilegiada", type: "SPELL", effect: { kind: "DRAW", count: 1 }, image: image("inside_information"), description: "Compre 1 carta, graças a um informante bem posicionado.", flavor: "Quem sabe o que vem a seguir sempre chega primeiro." },
+  { id: "counter_offensive", name: "Contra-Ofensiva", type: "TRAP", trigger: "ATTACK_DECLARED", effect: { kind: "DESTROY_ATTACKER", maxAttack: 2000 }, image: image("counter_offensive"), description: "Destrói um monstro atacante com ATK 2000 ou menos e revida o ataque.", flavor: "O ataque era exatamente o que ela esperava." },
 ];
 
 export const getCard = (id: string): Card | undefined => CARDS.find((card) => card.id === id);

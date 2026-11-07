@@ -199,13 +199,13 @@ describe("armadilha: maxAttack do spike_pit", () => {
 
   it("divine_glory_evasion_anula_atacante_forte", () => {
     const { state, p, o } = setup({
-      mine: [field("abyss_titan")],
+      mine: [field("ash_dragon")],
       theirs: [field("bone_knight")],
       theirTraps: [trap("divine_glory_evasion")],
     });
-    const opened = ok(state, p, attackWith("abyss_titan", 0));
+    const opened = ok(state, p, attackWith("ash_dragon", 0));
     const r = ok(opened.state, o, activate("divine_glory_evasion"));
-    expect(r.events).toContainEqual({ type: "ATTACK_NEGATED", player: p, attackerCardId: "abyss_titan" });
+    expect(r.events).toContainEqual({ type: "ATTACK_NEGATED", player: p, attackerCardId: "ash_dragon" });
     expect(r.state.players[o].monsters[0]?.cardId).toBe("bone_knight");
   });
 });

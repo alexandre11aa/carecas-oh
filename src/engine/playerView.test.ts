@@ -41,7 +41,7 @@ const scenario = () => {
       [b]: {
         ...base.players[b],
         hand: ["fire_bolt", "wind_gust", "arcane_draw"],
-        deck: ["abyss_titan", "frost_witch"],
+        deck: ["ash_dragon", "frost_witch"],
         graveyard: ["bone_knight"],
         monsters: pad([monster("crystal_bat"), monster("moss_golem", { faceDown: true, position: "DEFENSE" })]),
         spellTraps: pad([setCard("divine_glory_evasion"), setCard("spike_pit", false)]),
@@ -55,7 +55,7 @@ describe("playerView", () => {
   it("nao_vaza_ids_ocultos_do_oponente_nem_a_semente_no_json", () => {
     const { state, a } = scenario();
     const json = JSON.stringify(playerView(state, a));
-    for (const hidden of ["fire_bolt", "wind_gust", "arcane_draw", "abyss_titan", "frost_witch", "moss_golem", "divine_glory_evasion"]) {
+    for (const hidden of ["fire_bolt", "wind_gust", "arcane_draw", "ash_dragon", "frost_witch", "moss_golem", "divine_glory_evasion"]) {
       expect(json).not.toContain(hidden);
     }
     expect(json).not.toContain("seed");
