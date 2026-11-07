@@ -159,6 +159,19 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   box-shadow: inset 0 0 12rem rgba(0, 0, 0, 0.75);
 }
 .home .screen { max-width: 30rem; }
+/* Home geral: uma tela só, sem scroll de página (a lista de salas rola por dentro). */
+#app:has(> .home--lobby) { box-sizing: border-box; height: 100dvh; padding-block: 0.75rem; overflow-y: auto; }
+.home--lobby { gap: 0; }
+.home--lobby .screen { max-width: 44rem; height: 100%; display: flex; flex-direction: column; gap: 0.6rem; }
+.home--lobby .hero { padding: 0.25rem 0; }
+.home--lobby .game-title { font-size: clamp(1.8rem, 6vh, 3rem); }
+.lobby-block { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+.lobby-block .panel { min-height: 0; }
+.lobby-open .lobby-list { flex: 1; min-height: 0; overflow-y: auto; }
+.lobby-open .hint { margin: 0; }
+.lobby-new .hint.divider { margin: 0; }
+.home--lobby .tutorial-links { padding-bottom: 0.25rem; }
+@media (max-width: 40rem) { .lobby-block { grid-template-columns: 1fr; grid-template-rows: auto minmax(7rem, 1fr); } }
 .hero { position: relative; padding: 1.5rem 0 0.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.6rem; }
 .game-title {
   margin: 0;

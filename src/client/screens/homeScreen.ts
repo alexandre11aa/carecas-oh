@@ -6,7 +6,6 @@ import { el, type Screen } from "./dom.js";
 import { errorMessage } from "./errorMessages.js";
 import { NICKNAME_HINT, canSubmitNickname } from "./nickname.js";
 import { createTutorialLinks } from "./tutorialScreen.js";
-import { isTutorialVisible } from "./tutorialSections.js";
 
 const DECO_FRONT_PATH = "/cards/esquiva_da_gloria_divina.png";
 
@@ -36,7 +35,7 @@ const createPanel = (title: string | null, ...children: HTMLElement[]): HTMLElem
 
 /** Tela inicial. Com `presetCode` (rota /sala/CODIGO) mostra só a entrada na sala indicada. */
 export const createHomeScreen = (presetCode: string | null): Screen => {
-  const home = el("div", presetCode ? "home home--invite" : "home");
+  const home = el("div", presetCode ? "home home--invite" : "home home--lobby");
   const element = el("main", "screen");
   home.append(element);
   const hero = el("header", "hero");
@@ -44,7 +43,7 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
     createDecoCard("deco-left", CARD_BACK_PATH),
     createDecoCard("deco-right", DECO_FRONT_PATH),
     el("h1", "game-title", "Carecas Oh"),
-    el("p", "hero-subtitle", presetCode ? `Você foi convidado para a sala ${presetCode}.` : "Duelo de cartas 1x1. Sem cadastro."),
+    ...(presetCode ? [el("p", "hero-subtitle", `Você foi convidado para a sala ${presetCode}.`)] : []),
   );
   element.append(hero);
 
@@ -104,25 +103,22 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
   });
 
   element.append(createPanel("Duelista", nicknameInput, nicknameHint));
-  if (presetCode) {
-    element.append(createPanel(null, joinButton, error));
-  } else {
-    element.append(
-      createPanel(
-        "Novo duelo",
-        createButton,
-        el("p", "hint divider", "ou entre com um código"),
-        el("div", "join-row"),
-        error,
-      ),
-    );
-    element.querySelector(".join-row")?.append(codeInput, joinButton);
-  }
-
   // Lista de salas abertas: só na home geral, não no convite /sala/CODIGO.
   const lobbyList = el("ul", "lobby-list");
   const lobbyEmpty = el("p", "hint", "Nenhuma sala aberta no momento");
-  if (!presetCode) element.append(createPanel("Salas abertas", lobbyEmpty, lobbyList));
+  if (presetCode) {
+    element.append(createPanel(null, joinButton, error));
+  } else {
+    const joinRow = el("div", "join-row");
+    joinRow.append(codeInput, joinButton);
+    const newDuel = createPanel("Novo duelo", createButton, el("p", "hint divider", "ou entre com um código"), joinRow, error);
+    newDuel.classList.add("lobby-new");
+    const openRooms = createPanel("Salas abertas", lobbyEmpty, lobbyList);
+    openRooms.classList.add("lobby-open");
+    const block = el("div", "lobby-block");
+    block.append(newDuel, openRooms);
+    element.append(block);
+  }
 
   let renderedRooms: unknown = null;
   const renderLobby = () => {
@@ -162,8 +158,8 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
   update();
   if (presetCode) return { element: home, update };
   subscribeLobby();
-  // Links para guia e cartas: só na home geral.
-  if (isTutorialVisible(presetCode)) element.append(createTutorialLinks());
+  // Menu para guia e cartas: abaixo do bloco, só na home geral.
+  element.append(createTutorialLinks());
   return {
     element: home,
     update,
