@@ -331,6 +331,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .life-bar { flex: 1 1 6rem; height: 0.6rem; border-radius: var(--radius-sm); background: rgba(0, 0, 0, 0.6); border: var(--border-gold-thin); overflow: hidden; }
 .life-fill { display: block; height: 100%; background: linear-gradient(180deg, var(--c-gold-light), var(--c-gold)); }
 .graveyard-count { display: inline-block; }
+.deck-badge { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.8rem; color: var(--c-gold-light); }
+.deck-badge-image { width: 1.6rem; height: 1.6rem; object-fit: contain; }
 .life-delta { position: absolute; top: 0; right: 0.5rem; font-size: 1.6rem; font-weight: 800; text-shadow: 0 2px 6px #000; pointer-events: none; }
 .life-delta.damage { color: var(--c-danger-strong); }
 .life-delta.heal { color: var(--c-heal); }
