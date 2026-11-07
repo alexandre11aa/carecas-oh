@@ -8,7 +8,8 @@ import { leaveRoom, sendAction, sendRematch } from "../network/socket.js";
 import { createMatchScene, type MatchScene } from "../scene/scene.js";
 import { getState, loadNickname } from "../state.js";
 import { el, type Screen } from "./dom.js";
-import { trackImage } from "./pageLoading.js";
+import { criticalTextureUrls } from "../scene/texturePaths.js";
+import { pageLoading, trackImage, trackTextures } from "./pageLoading.js";
 import {
   connectionNotice,
   handClick,
@@ -258,6 +259,8 @@ export const createMatchScreen = (): Screen => {
     update();
   };
 
+  // Texturas críticas do estado inicial seguram o loading em tela cheia (main.ts); a cena as reaproveita do cache.
+  trackTextures(criticalTextureUrls(getState().match));
   let scene: MatchScene | null = null;
   let observer: ResizeObserver | null = null;
   try {
@@ -306,7 +309,9 @@ export const createMatchScreen = (): Screen => {
       scene?.setView(match);
     }
     scene?.setHighlights(highlightKeys(match, selection));
-    if (matchEvents && matchEvents.seq !== shownEventSeq) {
+    // Enquanto o loading cobre a tela, avisos e toasts esperam (as animações só começam depois dele).
+    const ready = pageLoading.isReady();
+    if (ready && matchEvents && matchEvents.seq !== shownEventSeq) {
       shownEventSeq = matchEvents.seq;
       receiveEvents(match, matchEvents);
     }
@@ -328,7 +333,7 @@ export const createMatchScreen = (): Screen => {
     turnBanner.hidden = !!match.winner;
     (turnBanner.firstElementChild as HTMLElement).textContent = `${turnBannerText(match.viewer, acting, opponentNickname(room?.players ?? [], loadNickname()))} · ${PHASE_LABELS[match.phase]}`;
     renderCountdown();
-    if (turnNotice && turnNotice.seq !== shownNoticeSeq) {
+    if (ready && turnNotice && turnNotice.seq !== shownNoticeSeq) {
       shownNoticeSeq = turnNotice.seq;
       turnToast.textContent = turnNotice.text;
       turnToast.hidden = false;
@@ -420,10 +425,14 @@ export const createMatchScreen = (): Screen => {
   };
 
   update();
+  const stopWaitingLoading = pageLoading.subscribe(() => {
+    if (pageLoading.isReady()) update();
+  });
   return {
     element,
     update,
     destroy: () => {
+      stopWaitingLoading();
       clearInterval(countdownInterval);
       if (toastTimer) clearTimeout(toastTimer);
       stopNotices();
