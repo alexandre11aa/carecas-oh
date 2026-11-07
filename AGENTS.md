@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Guia para agentes (e devs) que escrevem código neste repositório. Siga a arquitetura e os padrões abaixo em todo código novo. O projeto ainda não tem código: a primeira implementação de cada camada deve seguir este guia e passa a ser a referência para as seguintes.
+Guia para agentes (e devs) que escrevem código neste repositório. Siga a arquitetura e os padrões abaixo em todo código novo. Use as implementações existentes como referência, respeitando este guia.
 
 ## Regras de governança
 
@@ -11,6 +11,16 @@ Guia para agentes (e devs) que escrevem código neste repositório. Siga a arqui
 - Todo evento Socket.IO novo, alterado ou removido deve ser refletido em `docs/events.md` (ver seção Eventos).
 - Toda regra de jogo ou funcionalidade de servidor nova ou alterada entra com testes na mesma tarefa (ver seção Testes).
 - Decisões em aberto (ver última seção) não devem ser assumidas: pergunte ao usuário.
+
+## Fluxo de agentes (Claude e Codex)
+
+- As regras compartilhadas ficam em `docs/agent-loop/`; `config.md` é a única configuração de projeto do loop.
+- Claude: `/cycle <pedido>` e `/sprint [status|nova|encerrar]`, com adaptadores em `.claude/commands/` e `.claude/agents/`.
+- Codex: `$cycle <pedido>` e `$sprint [status|nova|encerrar]`, com skills de invocação explícita em `.agents/skills/` e agentes em `.codex/agents/`. Inicie uma nova sessão após alterar essas definições para que sejam descobertas.
+- A invocação do loop autoriza delegação sequencial a requirements, dev e reviewer e as operações previstas no procedimento, mantendo suas confirmações obrigatórias. Pedidos comuns de desenvolvimento não iniciam o loop automaticamente.
+- GitHub e branches existentes guardam o progresso compartilhado. Consulte issues, PRs e milestones ao retomar, antes de criar novos artefatos.
+- `.claude/settings.json` configura apenas o Claude. O Codex usa as permissões de seu ambiente; não desative sandbox ou proteções para executar o loop.
+- Instruções superiores e restrições do ambiente prevalecem sobre este guia.
 
 ## Visão geral
 
