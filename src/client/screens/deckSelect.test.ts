@@ -1,6 +1,6 @@
 // src/client/screens/deckSelect.test.ts
 import { describe, expect, it } from "vitest";
-import { asDeckId, canMarkReady, deckOptions, readyPayload, selectDeck } from "./deckSelect.js";
+import { asDeckId, canMarkReady, deckOptionFor, deckOptions, readyPayload, selectDeck } from "./deckSelect.js";
 
 describe("deckSelect", () => {
   it("lista_os_6_decks_com_id_nome_e_imagem", () => {
@@ -38,5 +38,14 @@ describe("deckSelect", () => {
     expect(asDeckId("outro")).toBeNull();
     expect(asDeckId(null)).toBeNull();
     expect(asDeckId(undefined)).toBeNull();
+  });
+
+  it("seleciona_nome_e_imagem_do_deck_da_partida", () => {
+    expect(deckOptionFor("magic")).toEqual({ id: "magic", name: "Mágico", image: "/decks/magic.png", label: "Deck Mágico" });
+  });
+
+  it("deck_da_partida_desconhecido_vira_null", () => {
+    expect(deckOptionFor("xyz")).toBeNull();
+    expect(deckOptionFor(undefined)).toBeNull();
   });
 });
