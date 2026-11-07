@@ -207,9 +207,8 @@ src/client/
     socket.ts           conexão, envio e recebimento de eventos
   screens/              telas em HTML: início, sala de espera e interface da partida
     matchActions.ts     lógica pura (testável): PlayerView + seleção => comandos e `match:action` a enviar
-    deckSelect.ts       lógica pura (testável): decks para exibir (id, nome, imagem), seleção, habilitação do "Pronto" e payload de `room:ready`
     matchEnd.ts         lógica pura: textos de resultado, estado do botão de revanche (exige deck escolhido) e payload de `match:rematch`
-    deckSelect.ts       lógica pura: opções de deck, seleção, botão "Pronto" e payload de `room:ready`
+    deckSelect.ts       lógica pura (testável): decks para exibir (id, nome, imagem), deck da partida (`deckOptionFor`), seleção, botão "Pronto" e payload de `room:ready`
     deckPicker.ts       componente HTML dos botões de imagem de deck (sala de espera e revanche)
     cardDetail.ts       lógica pura: textos de nome, tipo, ATK/DEF, efeito e mecânica da carta e carta visível num slot
     hero.ts             componente HTML do título temático com cartas decorativas (home, Guia e Cartas)

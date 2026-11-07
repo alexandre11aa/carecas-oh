@@ -7,6 +7,12 @@ export type DeckOption = { id: DeckId; name: string; image: string; label: strin
 export const deckOptions = (): DeckOption[] =>
   DECKS.map((deck) => ({ id: deck.id, name: deck.name, image: `/decks/${deck.id}.png`, label: `Deck ${deck.name}` }));
 
+/** Deck para exibir durante a partida (`playerView.deckId`); `null` se o id for desconhecido. */
+export const deckOptionFor = (id: unknown): DeckOption | null => {
+  const deckId = asDeckId(id);
+  return deckOptions().find((option) => option.id === deckId) ?? null;
+};
+
 /** Valida um valor desconhecido (por exemplo, vindo do servidor) como `DeckId`. */
 export const asDeckId = (value: unknown): DeckId | null =>
   DECKS.find((deck) => deck.id === value)?.id ?? null;

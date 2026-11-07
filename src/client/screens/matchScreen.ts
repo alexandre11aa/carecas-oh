@@ -28,7 +28,7 @@ import { applyCardArt } from "./cardArtImage.js";
 import { reusableHandSlots } from "./handReconcile.js";
 import { createCardView } from "./cardView.js";
 import { createDeckPicker } from "./deckPicker.js";
-import { asDeckId, selectDeck } from "./deckSelect.js";
+import { asDeckId, deckOptionFor, selectDeck } from "./deckSelect.js";
 import { canSurrender, endSummary, rematchState } from "./matchEnd.js";
 import { actingPlayer, opponentNickname, secondsRemaining, timerLevel, turnBannerText } from "./turnTimer.js";
 
@@ -36,7 +36,7 @@ const NOTICE_MS = 2200;
 const NOTICE_HOLD = 0.9; // segundos de cada aviso de evento
 const END_HOLD = 1.6;
 
-type InfoBox = { box: HTMLElement; life: HTMLElement; fill: HTMLElement; rest: HTMLElement; graveyard: HTMLElement };
+type InfoBox = { box: HTMLElement; life: HTMLElement; fill: HTMLElement; rest: HTMLElement; graveyard: HTMLElement; deck: HTMLElement };
 
 /** Caixa de status de um jogador: vida com barra, contadores e cemitério (realçável). */
 const createInfoBox = (): InfoBox => {
@@ -47,8 +47,24 @@ const createInfoBox = (): InfoBox => {
   bar.append(fill);
   const rest = el("span");
   const graveyard = el("span", "graveyard-count");
-  box.append(life, bar, rest, graveyard);
-  return { box, life, fill, rest, graveyard };
+  const deck = el("span", "deck-badge");
+  box.append(life, bar, rest, graveyard, deck);
+  return { box, life, fill, rest, graveyard, deck };
+};
+
+/** Miniatura e nome do deck em uso; sem a imagem, o nome em texto basta. */
+const renderDeckBadge = (badge: HTMLElement, deckId: unknown) => {
+  const option = deckOptionFor(deckId);
+  if (badge.dataset.deck === (option?.id ?? "")) return; // já mostrando: não recria (evita pisca)
+  badge.dataset.deck = option?.id ?? "";
+  badge.replaceChildren();
+  if (!option) return;
+  badge.title = option.label;
+  const image = el("img", "deck-badge-image");
+  image.alt = "";
+  image.src = option.image;
+  image.addEventListener("error", () => image.remove());
+  badge.append(image, el("span", "deck-badge-name", option.name));
 };
 
 export const PHASE_LABELS: Record<Phase, string> = {
@@ -299,6 +315,8 @@ export const createMatchScreen = (): Screen => {
     infoBoxes.opponent.graveyard.textContent = `Cemitério ${opponent.graveyard.length}`;
     infoBoxes.you.rest.textContent = ` Você · Deck ${you.deckCount} · `;
     infoBoxes.you.graveyard.textContent = `Cemitério ${you.graveyard.length}`;
+    renderDeckBadge(infoBoxes.opponent.deck, opponent.deckId);
+    renderDeckBadge(infoBoxes.you.deck, you.deckId);
     (["you", "opponent"] as const).forEach((side) => {
       if (!heldLife.has(side)) snapLife(lifeShown[side], serverLife(side), (value) => renderLife(side, value));
     });
