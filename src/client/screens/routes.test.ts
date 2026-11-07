@@ -1,6 +1,6 @@
 // src/client/screens/routes.test.ts
 import { describe, expect, it } from "vitest";
-import { pathAfterRoomExit, resolveRoute, routePath } from "./routes.js";
+import { FOOTER_LINKS, isCurrentFooterLink, pathAfterRoomExit, resolveRoute, routePath } from "./routes.js";
 
 describe("resolveRoute", () => {
   it("resolve_a_raiz_para_a_home", () => {
@@ -45,5 +45,22 @@ describe("pathAfterRoomExit", () => {
   it("nao_muda_enquanto_ha_sala_ou_fora_de_rota_de_sala", () => {
     expect(pathAfterRoomExit(true, true, "/sala/ABCD")).toBeNull();
     expect(pathAfterRoomExit(true, false, "/guia")).toBeNull();
+  });
+});
+
+describe("FOOTER_LINKS", () => {
+  it("lista_menu_guia_e_cartas_com_os_caminhos_canonicos", () => {
+    expect(FOOTER_LINKS.map((l) => [l.label, l.path])).toEqual([
+      ["Menu", "/"],
+      ["Guia", "/guia"],
+      ["Cartas", "/cartas"],
+    ]);
+  });
+  it("marca_apenas_a_pagina_atual", () => {
+    const current = (path: string) => FOOTER_LINKS.filter((l) => isCurrentFooterLink(l, resolveRoute(path))).map((l) => l.label);
+    expect(current("/")).toEqual(["Menu"]);
+    expect(current("/guia")).toEqual(["Guia"]);
+    expect(current("/cartas")).toEqual(["Cartas"]);
+    expect(current("/sala/ABCD")).toEqual([]);
   });
 });

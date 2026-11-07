@@ -38,3 +38,22 @@ export const routePath = (route: Route): string => {
  */
 export const pathAfterRoomExit = (hadRoom: boolean, hasRoom: boolean, pathname: string): string | null =>
   hadRoom && !hasRoom && resolveRoute(pathname).page === "room" ? "/" : null;
+
+/** Link do rodapé de navegação. */
+export type FooterLink = { route: Route; label: string; path: string };
+
+const footerRoutes: { route: Route; label: string }[] = [
+  { route: { page: "home" }, label: "Menu" },
+  { route: { page: "guide" }, label: "Guia" },
+  { route: { page: "cards" }, label: "Cartas" },
+];
+
+/** Links do rodapé (Menu, Guia e Cartas), com o caminho canônico de cada rota. */
+export const FOOTER_LINKS: readonly FooterLink[] = footerRoutes.map(({ route, label }) => ({
+  route,
+  label,
+  path: routePath(route),
+}));
+
+/** Indica se o link do rodapé aponta para a página atual. */
+export const isCurrentFooterLink = (link: FooterLink, current: Route): boolean => link.route.page === current.page;
