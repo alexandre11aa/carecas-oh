@@ -154,7 +154,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   box-shadow: inset 0 0 12rem rgba(0, 0, 0, 0.75);
 }
 .home .screen { max-width: 30rem; }
-.hero { position: relative; padding: 1.5rem 0 0.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.6rem; overflow: hidden; }
+.hero { position: relative; padding: 1.5rem 0 0.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.6rem; }
 .game-title {
   margin: 0;
   padding: 0.4rem 1.6rem;
