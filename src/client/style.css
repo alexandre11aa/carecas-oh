@@ -391,3 +391,11 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .site-footer a[aria-current="page"] { color: var(--c-gold-light); border-bottom-color: var(--c-gold-light); }
 .site-footer a:focus-visible { outline: 3px solid var(--c-gold-light); outline-offset: 2px; }
 .tutorial-page .site-footer { margin-top: 1rem; }
+
+.deck-title { margin: 1rem 0 0.5rem; font-size: 1.1rem; }
+.deck-select { display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); gap: 0.6rem; margin-bottom: 1rem; }
+.themed button.deck-option { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; padding: 0.4rem; }
+.deck-image { width: 100%; max-width: 6.5rem; aspect-ratio: 1; object-fit: contain; }
+.themed button.deck-option.selected { border-color: var(--c-gold-light); background: linear-gradient(180deg, var(--c-btn-hover-top), var(--c-btn-hover-bottom)); box-shadow: 0 0 0 3px var(--c-gold-light); }
+.themed button.deck-option:disabled:not(.selected) { opacity: 0.5; }
+.themed button.deck-option.selected:disabled { opacity: 1; }

@@ -202,10 +202,12 @@ src/client/
   style.css
   public/cards/         imagens das cartas (PNG 1030:1500)
   public/textures/      fundo e mesa (PNG, opcionais)
+  public/decks/         imagens dos botões de deck da sala de espera (PNG, <deckId>.png)
   network/
     socket.ts           conexão, envio e recebimento de eventos
   screens/              telas em HTML: início, sala de espera e interface da partida
     matchActions.ts     lógica pura (testável): PlayerView + seleção => comandos e `match:action` a enviar
+    deckSelect.ts       lógica pura (testável): decks para exibir (id, nome, imagem), seleção, habilitação do "Pronto" e payload de `room:ready`
     matchEnd.ts         lógica pura: textos de resultado e estado do botão de revanche
     cardDetail.ts       lógica pura: textos de nome, tipo, ATK/DEF, efeito e mecânica da carta e carta visível num slot
     hero.ts             componente HTML do título temático com cartas decorativas (home, Guia e Cartas)
