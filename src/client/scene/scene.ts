@@ -24,7 +24,7 @@ import { backgroundCover, pickSurface } from "./surfaces.js";
 import { createTable } from "./table.js";
 import { CAMERA_TARGET, cameraDistanceScale, cameraPosition } from "./framing.js";
 import { BACKGROUND_GRADIENT, isValidGradient, zoneOuterSize } from "./tableDesign.js";
-import { BACKGROUND_PATH, TABLE_PATH } from "./texturePaths.js";
+import { BACKGROUND_PATH, TABLE_MAX_TEXTURE_WIDTH, TABLE_PATH } from "./texturePaths.js";
 import { loadTexture } from "./textures.js";
 
 export type MatchScene = {
@@ -92,7 +92,7 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
     fitBackground();
     scene.background = texture;
   });
-  void loadTexture(TABLE_PATH).then((texture) => {
+  void loadTexture(TABLE_PATH, { maxWidth: TABLE_MAX_TEXTURE_WIDTH, anisotropy: 8 }).then((texture) => {
     if (disposed || pickSurface(texture) === "color") return;
     table.setTexture(texture);
   });

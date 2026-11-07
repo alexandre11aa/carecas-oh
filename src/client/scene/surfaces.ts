@@ -28,3 +28,16 @@ export const backgroundCover = (
   const repeatX = viewAspect / imageAspect;
   return { repeatX, repeatY: 1, offsetX: (1 - repeatX) / 2, offsetY: 0 };
 };
+
+/** Proporção (largura/profundidade) do plano da mesa: 16x11. */
+export const TABLE_ASPECT = 16 / 11;
+
+/**
+ * Enquadramento "cover" da textura no plano da mesa (16:11): imagem 16:11 usa mapeamento direto
+ * (repeat 1x1, offset 0); mais larga corta nas laterais, mais alta corta em cima e embaixo, sem distorcer.
+ * Entrada inválida devolve a identidade.
+ */
+export const tableCover = (imageAspect: number): { repeatX: number; repeatY: number; offsetX: number; offsetY: number } =>
+  Math.abs(imageAspect - TABLE_ASPECT) < 1e-6
+    ? { repeatX: 1, repeatY: 1, offsetX: 0, offsetY: 0 }
+    : backgroundCover(imageAspect, TABLE_ASPECT);
