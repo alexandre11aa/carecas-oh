@@ -111,6 +111,13 @@ html:has(.match) { scrollbar-gutter: auto; }
 .tutorial-table th { background: var(--c-panel-2); color: var(--c-gold-light); }
 .tutorial-group-title { margin: 1.5rem 0 0.75rem; font-size: 1.2rem; font-family: var(--font-title); color: var(--c-gold); }
 .tutorial-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 0.75rem; }
+.deck-catalog { margin-bottom: 2rem; }
+.deck-catalog-header { display: flex; align-items: center; gap: 1rem; margin-top: 1.5rem; margin-bottom: 0.75rem; }
+.deck-catalog-image { width: 5rem; height: 5rem; object-fit: contain; flex: none; }
+.deck-catalog-info .tutorial-group-title { margin: 0 0 0.25rem; }
+.deck-catalog-info .tutorial-summary { margin: 0.15rem 0; }
+.deck-signature { margin: 0.35rem 0 0; color: var(--c-gold-light); font-size: 0.9rem; }
+.card-view.signature { outline: 2px solid var(--c-gold-light); box-shadow: 0 0 12px var(--c-gold); }
 .tutorial-section > :last-child { margin-bottom: 0; }
 @media (max-width: 30rem) {
   .tutorial-section { padding: 1.5rem 0.25rem; scroll-margin-top: 6rem; }

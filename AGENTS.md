@@ -180,7 +180,7 @@ src/server/
 - A partida (estado completo) fica em `Room.match` no store; o lado (P1/P2) de cada jogador vem do token, nunca da mensagem.
 - Erros enviados ao cliente têm um `code` estável, e a interface escolhe a mensagem em português.
 - O estado das partidas fica apenas em `store/`.
-- Fim de partida: `Room.match` guarda `outcome` (vencedor e motivo) e `rematchVotes`; a partida encerrada continua na sala até a revanche (`match:rematch`, precisa dos dois votos, troca os lados e sorteia de novo) ou a saída. `room:leave` no meio da partida é desistência (o outro vence com `OPPONENT_LEFT`); perder a conexão não é. Detalhes em `docs/events.md`.
+- Fim de partida: `Room.match` guarda `outcome` (vencedor e motivo) e `rematchVotes`; a partida encerrada continua na sala até a revanche (`match:rematch`, precisa dos dois votos, troca os lados e reembaralha o deck escolhido por cada jogador) ou a saída. `room:leave` no meio da partida é desistência (o outro vence com `OPPONENT_LEFT`); perder a conexão não é. Detalhes em `docs/events.md`.
 
 ### Salas e reconexão
 
@@ -216,8 +216,8 @@ src/client/
     matchNotices.ts     lógica pura: EventView (de `eventView`) => avisos de interface em ordem (carta, invocação, cemitério, dano/cura, fim); fila e animação ficam em `matchScreen.ts`
     routes.ts           lógica pura: pathname => página (`/`, `/guia`, `/cartas`, `/sala/CODIGO`; desconhecida => `/`) e URL após sair da sala; `FOOTER_LINKS` define os links do rodapé
     footer.ts           DOM do rodapé de navegação (menu, guia, cartas), usando `FOOTER_LINKS` de `routes.ts`
-    tutorialSections.ts lógica pura: seções do guia (dados tipados), catálogo agrupado de cartas, visibilidade e seção ativa
-    tutorialScreen.ts   DOM das páginas `/guia` (menu de âncoras, blocos lista/tabela, seção ativa) e `/cartas` (catálogo), e links da home
+    tutorialSections.ts lógica pura: seções do guia (dados tipados), catálogo de cartas agrupado por deck (composição e magia de efeito único), visibilidade e seção ativa
+    tutorialScreen.ts   DOM das páginas `/guia` (menu de âncoras, blocos lista/tabela, seção ativa) e `/cartas` (catálogo por deck), e links da home
   scene/
     scene.ts            renderer, câmera, luzes e loop
     layout.ts           lógica pura (sem WebGL, testável): PlayerView -> posições das cartas na mesa e clique -> slot (`pickSlot`)

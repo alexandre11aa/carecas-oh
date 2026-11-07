@@ -1,10 +1,9 @@
 // src/client/screens/tutorialSections.test.ts
 import { describe, expect, it } from "vitest";
-import { CARDS } from "../../engine/cards.js";
 import { DECKS } from "../../engine/decks.js";
 import {
   GUIDE_SECTIONS,
-  groupCardsByType,
+  groupCardsByDeck,
   isTutorialVisible,
   pickActiveSection,
   sectionElementId,
@@ -72,19 +71,59 @@ describe("GUIDE_SECTIONS", () => {
   });
 });
 
-describe("groupCardsByType", () => {
-  it("agrupa_todas_as_cartas_sem_duplicar_dados", () => {
-    const groups = groupCardsByType();
-    expect(groups.map((g) => g.kind)).toEqual(["monster", "spell", "trap"]);
-    const ids = groups.flatMap((g) => g.cards.map((c) => c.id));
-    const expected = (["MONSTER", "SPELL", "TRAP"] as const).flatMap((type) =>
-      CARDS.filter((c) => c.type === type).map((c) => c.id),
-    );
-    expect(ids).toEqual(expected);
-    expect(ids.length).toBe(CARDS.length);
-    for (const card of groups.flatMap((g) => g.cards)) {
-      expect(card.effect).not.toBe("");
-      expect(card.mechanic).not.toBe("");
+describe("groupCardsByDeck", () => {
+  const groups = groupCardsByDeck();
+
+  it("tem_6_grupos_na_ordem_dos_decks_com_10_cartas_cada", () => {
+    expect(groups.map((g) => g.id)).toEqual(DECKS.map((d) => d.id));
+    expect(groups.length).toBe(6);
+    for (const group of groups) {
+      expect(group.cards.length).toBe(10);
+      expect(group.image).toBe(`/decks/${group.id}.png`);
+    }
+  });
+
+  it("cartas_de_cada_grupo_sao_as_do_deck_com_textos_preenchidos", () => {
+    for (const group of groups) {
+      expect(group.cards.map((c) => c.id)).toEqual(DECKS.find((d) => d.id === group.id)?.cardIds);
+      for (const card of group.cards) {
+        expect(card.effect).not.toBe("");
+        expect(card.mechanic).not.toBe("");
+      }
+    }
+  });
+
+  it("composicao_confere_com_o_guia", () => {
+    expect(groups.map((g) => [g.composition.monsters, g.composition.spells, g.composition.traps])).toEqual([
+      [6, 3, 1],
+      [5, 2, 3],
+      [4, 5, 1],
+      [4, 3, 3],
+      [5, 3, 2],
+      [5, 4, 1],
+    ]);
+  });
+
+  it("nao_inclui_cartas_fora_de_decks", () => {
+    const inDecks = new Set(DECKS.flatMap((d) => d.cardIds));
+    const shown = groups.flatMap((g) => g.cards.map((c) => c.id));
+    expect(new Set(shown).size).toBe(shown.length);
+    expect(shown.every((id) => inDecks.has(id))).toBe(true);
+    expect(shown).not.toContain("abyss_titan");
+  });
+
+  it("destaca_a_magia_de_efeito_unico_de_cada_deck", () => {
+    expect(groups.map((g) => g.signatureSpell?.id)).toEqual([
+      "war_cry",
+      "life_wall",
+      "call_beyond",
+      "silent_rupture",
+      "vital_exchange",
+      "retreat_plan",
+    ]);
+    for (const group of groups) {
+      expect(group.cards.map((c) => c.id)).toContain(group.signatureSpell?.id);
+      expect(group.signatureSpell?.effect).not.toBe("");
     }
   });
 });

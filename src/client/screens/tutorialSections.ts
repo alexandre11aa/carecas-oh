@@ -1,6 +1,6 @@
 // src/client/screens/tutorialSections.ts
-import { CARDS } from "../../engine/cards.js";
-import { DECKS } from "../../engine/decks.js";
+import { CARDS, getCard } from "../../engine/cards.js";
+import { DECKS, type DeckId } from "../../engine/decks.js";
 import { buildCardDetail, type CardDetail, type CardKind } from "./cardDetail.js";
 
 /** Bloco de conteúdo de uma seção: lista ou tabela. */
@@ -187,16 +187,48 @@ export const GUIDE_SECTIONS: readonly TutorialSection[] = [
   },
 ];
 
-export type CardGroup = { kind: CardKind; title: string; cards: readonly CardDetail[] };
+export type DeckComposition = { monsters: number; spells: number; traps: number };
 
-const GROUP_TITLES: Record<CardKind, string> = { monster: "Monstros", spell: "Magias", trap: "Armadilhas" };
+export type DeckCatalogGroup = {
+  id: DeckId;
+  name: string;
+  /** Imagem do deck (`public/decks/<id>.png`). */
+  image: string;
+  composition: DeckComposition;
+  /** Todas as cartas do deck, na ordem de `DECKS`. */
+  cards: readonly CardDetail[];
+  /** Magia de efeito único (nenhuma outra carta do jogo tem o mesmo `kind`), destacada na página; `null` se não houver. */
+  signatureSpell: CardDetail | null;
+};
 
-/** Catálogo agrupado por tipo (monstros, magias, armadilhas), gerado de `CARDS` na ordem em que aparecem. */
-export const groupCardsByType = (): readonly CardGroup[] => {
-  const details = CARDS.map((card) => buildCardDetail(card.id)).filter((d): d is CardDetail => d !== null);
-  return (["monster", "spell", "trap"] as const)
-    .map((kind) => ({ kind, title: GROUP_TITLES[kind], cards: details.filter((d) => d.kind === kind) }))
-    .filter((group) => group.cards.length > 0);
+const effectKindCounts = (): Map<string, number> => {
+  const counts = new Map<string, number>();
+  for (const card of CARDS) {
+    if (card.type !== "SPELL") continue;
+    counts.set(card.effect.kind, (counts.get(card.effect.kind) ?? 0) + 1);
+  }
+  return counts;
+};
+
+/** Catálogo agrupado por deck, gerado de `DECKS`; cartas fora de qualquer deck não aparecem. */
+export const groupCardsByDeck = (): readonly DeckCatalogGroup[] => {
+  const kindCounts = effectKindCounts();
+  return DECKS.map((deck) => {
+    const cards = deck.cardIds.map((id) => buildCardDetail(id)).filter((d): d is CardDetail => d !== null);
+    const count = (kind: CardKind): number => cards.filter((card) => card.kind === kind).length;
+    const signature = deck.cardIds.find((id) => {
+      const card = getCard(id);
+      return card?.type === "SPELL" && kindCounts.get(card.effect.kind) === 1;
+    });
+    return {
+      id: deck.id,
+      name: deck.name,
+      image: `/decks/${deck.id}.png`,
+      composition: { monsters: count("monster"), spells: count("spell"), traps: count("trap") },
+      cards,
+      signatureSpell: signature ? buildCardDetail(signature) : null,
+    };
+  });
 };
 
 /** Id do elemento HTML da seção (alvo da âncora). */
