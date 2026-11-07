@@ -22,8 +22,8 @@ describe("cards", () => {
     });
     expect(byId("call_beyond")).toMatchObject({ effect: { kind: "REVIVE_MONSTER", maxLevel: 4 } });
     expect(byId("runic_seal")).toMatchObject({ trigger: "SPELL_ACTIVATION", effect: { kind: "NEGATE_SPELL" } });
-    expect(byId("blazing_colossus")).toMatchObject({ level: 7, attack: 3300, defense: 1600 });
-    expect(byId("granite_giant")).toMatchObject({ level: 7, attack: 2200, defense: 2700 });
+    expect(byId("blazing_colossus")).toMatchObject({ level: 7, attack: 2800, defense: 1500 });
+    expect(byId("granite_giant")).toMatchObject({ level: 7, attack: 2400, defense: 2500 });
   });
 
   it("cobre_faixas_de_nivel_e_ao_menos_3_magias_e_3_armadilhas", () => {
@@ -67,7 +67,7 @@ describe("cards", () => {
   it("cartas_dos_decks_controle_equilibrado_e_estrategico_tem_valores_definidos", () => {
     const byId = (id: string) => CARDS.find((c) => c.id === id);
     expect(byId("silent_rupture")).toMatchObject({ type: "SPELL", effect: { kind: "DESTROY_SPELL_TRAP" } });
-    expect(byId("vital_exchange")).toMatchObject({ type: "SPELL", effect: { kind: "DRAIN", amount: 600 } });
+    expect(byId("vital_exchange")).toMatchObject({ type: "SPELL", effect: { kind: "DRAIN", amount: 800 } });
     expect(byId("mist_wall")).toMatchObject({ type: "TRAP", trigger: "ATTACK_DECLARED", effect: { kind: "NEGATE_ATTACK" } });
     expect(byId("cunning_scout")).toMatchObject({ level: 2, attack: 800, defense: 500 });
     expect(byId("wall_archer")).toMatchObject({ level: 3, attack: 1300, defense: 1300 });
