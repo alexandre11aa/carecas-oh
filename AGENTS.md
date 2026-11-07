@@ -316,7 +316,7 @@ Navegador ──> Express + Socket.IO (porta definida em PORT)
 - Existe apenas um `docker-compose.yml`, com um único serviço. Não crie arquivos Compose separados por ambiente.
 - O servidor escuta em `0.0.0.0`, na porta definida pela variável `PORT`.
 - Frontend e backend têm a mesma origem, então a produção não precisa de CORS.
-- Rotas como `/sala/CODIGO` devolvem o `index.html`.
+- Rotas como `/sala/CODIGO`, `/guia` e `/cartas` (estas duas com ou sem barra final) devolvem o `index.html`; rotas desconhecidas seguem sem fallback. O Vite em desenvolvimento já atende essas rotas com o fallback SPA padrão.
 - Fora do Docker, o servidor de desenvolvimento do Vite encaminha `/socket.io` para o backend.
 - Mudança na arquitetura de deploy é fuga de padrão: peça permissão.
 

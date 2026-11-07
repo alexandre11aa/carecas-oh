@@ -47,6 +47,12 @@ export const createApp = ({ clientDir, abandonTimeoutMs = 60_000 }: AppOptions):
     res.sendFile(path.join(clientDir, "index.html"));
   });
 
+  // Páginas do site (/guia e /cartas, com ou sem barra final) devolvem o index.html e o cliente
+  // escolhe a tela pela URL. Rotas desconhecidas seguem sem fallback (404 do Express).
+  app.get(/^\/(guia|cartas)\/?$/, (_req, res) => {
+    res.sendFile(path.join(clientDir, "index.html"));
+  });
+
   const httpServer = createServer(app);
   const io = new SocketServer(httpServer);
 
