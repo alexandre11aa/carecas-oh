@@ -63,6 +63,21 @@ describe("describeSpellEffect", () => {
     });
   });
 
+  it("descreve_os_efeitos_de_controle", () => {
+    expect(describeSpellEffect({ kind: "DESTROY_SPELL_TRAP" })).toEqual({
+      effect: "Destrói uma magia ou armadilha do oponente, mesmo virada.",
+      mechanic: "Escolha uma zona de magia/armadilha do oponente. A carta vai ao cemitério dele.",
+    });
+    expect(describeSpellEffect({ kind: "DRAIN", amount: 600 })).toEqual({
+      effect: "O oponente perde 600 pontos de vida e você recupera 600.",
+      mechanic: "Sem alvo.",
+    });
+    expect(describeSpellEffect({ kind: "BOUNCE_MONSTER" })).toEqual({
+      effect: "Devolve um monstro do oponente à mão dele.",
+      mechanic: "Escolha um monstro do oponente. O bônus de ATK dele some.",
+    });
+  });
+
   it("descreve_os_efeitos_existentes", () => {
     expect(describeSpellEffect({ kind: "DRAW", count: 1 }).effect).toBe("Você compra 1 carta.");
     expect(describeSpellEffect({ kind: "DESTROY_MONSTER", maxAttack: 1500 }).effect).toBe(

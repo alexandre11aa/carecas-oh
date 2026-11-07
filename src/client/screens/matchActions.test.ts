@@ -262,6 +262,21 @@ describe("magia com alvo", () => {
     });
   });
 
+  it("selecao_de_alvo_por_zona_de_magia_armadilha_do_oponente", () => {
+    const view = viewOf({
+      theirs: { spellTraps: [null, { cardId: "mirror_wall", faceDown: true, setOnTurn: 1 }, null, null, null] },
+    });
+    const sel = { kind: "spellTarget", cardId: "t", side: "opponent", slotKind: "spellTrap" } as const;
+    expect(highlightKeys(view, sel)).toEqual(["opponent:spellTrap:1"]);
+    expect(slotClick(view, sel, slot("opponent", "spellTrap", 1)).action).toEqual({
+      type: "ACTIVATE_SPELL",
+      cardId: "t",
+      targetZone: 1,
+    });
+    expect(slotClick(view, sel, slot("opponent", "spellTrap", 0))).toEqual({ selection: sel });
+    expect(slotClick(view, sel, slot("opponent", "monster", 0)).action).toBeUndefined();
+  });
+
   it("magia_baixada_no_campo_pode_ser_ativada", () => {
     const view = viewOf({
       mine: { spellTraps: [{ cardId: "healing_spring", faceDown: true, setOnTurn: 1 }, null, null, null, null] },

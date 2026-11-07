@@ -72,6 +72,21 @@ export const describeSpellEffect = (effect: SpellEffect): { effect: string; mech
         effect: `Você recupera ${effect.amountPerMonster} pontos de vida por monstro seu no campo, até ${effect.maxAmount}.`,
         mechanic: "Sem alvo. Sem monstros no campo, não cura nada.",
       };
+    case "DESTROY_SPELL_TRAP":
+      return {
+        effect: "Destrói uma magia ou armadilha do oponente, mesmo virada.",
+        mechanic: "Escolha uma zona de magia/armadilha do oponente. A carta vai ao cemitério dele.",
+      };
+    case "DRAIN":
+      return {
+        effect: `O oponente perde ${effect.amount} pontos de vida e você recupera ${effect.amount}.`,
+        mechanic: "Sem alvo.",
+      };
+    case "BOUNCE_MONSTER":
+      return {
+        effect: "Devolve um monstro do oponente à mão dele.",
+        mechanic: "Escolha um monstro do oponente. O bônus de ATK dele some.",
+      };
     case "REVIVE_MONSTER":
       return {
         effect: `Traz ao campo, em ataque, o monstro de maior ATK do seu cemitério com nível ${effect.maxLevel} ou menos.`,
