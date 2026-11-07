@@ -34,14 +34,6 @@ const renderBlock = (block: TutorialBlock): HTMLElement => {
   return table;
 };
 
-/** Links da home para as páginas do guia e das cartas. */
-export const createTutorialLinks = (): HTMLElement => {
-  const links = el("nav", "tutorial-links");
-  links.setAttribute("aria-label", "Menu");
-  links.append(linkTo("/guia", "Guia do jogo", "tutorial-cta"), linkTo("/cartas", "Cartas", "tutorial-cta"));
-  return links;
-};
-
 const createPage = (title: string, content: HTMLElement[], destroy?: () => void): Screen => {
   const element = el("div", "home tutorial-page");
   const back = linkTo("/", "Voltar ao menu", "tutorial-cta tutorial-back");
