@@ -2,13 +2,12 @@
 import { CARDS } from "../../engine/cards.js";
 import { buildCardDetail, type CardDetail, type CardKind } from "./cardDetail.js";
 
-/** Bloco de conteúdo de uma seção: lista, tabela ou o catálogo de cartas (gerado de `CARDS`). */
+/** Bloco de conteúdo de uma seção: lista ou tabela. */
 export type TutorialBlock =
   | { kind: "list"; items: readonly string[] }
-  | { kind: "table"; headers: readonly string[]; rows: readonly (readonly string[])[] }
-  | { kind: "cards" };
+  | { kind: "table"; headers: readonly string[]; rows: readonly (readonly string[])[] };
 
-/** Seção do tutorial da tela inicial. */
+/** Seção da página do guia (`/guia`). */
 export type TutorialSection = {
   id: string;
   title: string;
@@ -18,7 +17,7 @@ export type TutorialSection = {
   details: readonly TutorialBlock[];
 };
 
-export const TUTORIAL_SECTIONS: readonly TutorialSection[] = [
+export const GUIDE_SECTIONS: readonly TutorialSection[] = [
   {
     id: "objetivo",
     title: "Objetivo e vida",
@@ -171,12 +170,6 @@ export const TUTORIAL_SECTIONS: readonly TutorialSection[] = [
       },
     ],
   },
-  {
-    id: "cartas",
-    title: "Cartas",
-    summary: "Todas as cartas do jogo, com efeito e mecânica.",
-    details: [{ kind: "cards" }],
-  },
 ];
 
 export type CardGroup = { kind: CardKind; title: string; cards: readonly CardDetail[] };
@@ -197,7 +190,7 @@ export const sectionElementId = (id: string): string => `tutorial-${id}`;
 /** Âncora (`#...`) que leva à seção. */
 export const sectionHref = (id: string): string => `#${sectionElementId(id)}`;
 
-/** O tutorial aparece na home geral e fica oculto no convite `/sala/CODIGO`. */
+/** Os links para guia e cartas aparecem na home geral e ficam ocultos no convite `/sala/CODIGO`. */
 export const isTutorialVisible = (presetCode: string | null): boolean => presetCode === null;
 
 /**

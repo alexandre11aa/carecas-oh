@@ -195,7 +195,7 @@ src/server/
 ```text
 src/client/
   index.html
-  main.ts               escolhe a tela inicial pela URL
+  main.ts               escolhe a tela pela URL (rotas via `routes.ts`, navegação com `history.pushState` + `popstate`)
   state.ts              último estado recebido do servidor
   style.css
   public/cards/         imagens das cartas (PNG 1030:1500)
@@ -208,8 +208,9 @@ src/client/
     cardDetail.ts       lógica pura: textos de nome, tipo, ATK/DEF, efeito e mecânica da carta e carta visível num slot
     cardView.ts         componente HTML de carta, reutilizável (partida e tutorial)
     matchNotices.ts     lógica pura: EventView (de `eventView`) => avisos de interface em ordem (carta, invocação, cemitério, dano/cura, fim); fila e animação ficam em `matchScreen.ts`
-    tutorialSections.ts lógica pura: seções do tutorial da home (dados tipados), visibilidade e seção ativa
-    tutorialScreen.ts   DOM do tutorial: menu de âncoras, blocos (lista, tabela, catálogo de cartas) e seção ativa
+    routes.ts           lógica pura: pathname => página (`/`, `/guia`, `/cartas`, `/sala/CODIGO`; desconhecida => `/`) e URL após sair da sala
+    tutorialSections.ts lógica pura: seções do guia (dados tipados), catálogo agrupado de cartas, visibilidade e seção ativa
+    tutorialScreen.ts   DOM das páginas `/guia` (menu de âncoras, blocos lista/tabela, seção ativa) e `/cartas` (catálogo), e links da home
   scene/
     scene.ts            renderer, câmera, luzes e loop
     layout.ts           lógica pura (sem WebGL, testável): PlayerView -> posições das cartas na mesa e clique -> slot (`pickSlot`)
