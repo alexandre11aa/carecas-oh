@@ -217,6 +217,7 @@ src/client/
     matchNotices.ts     lógica pura: EventView (de `eventView`) => avisos de interface em ordem (carta, invocação, cemitério, dano/cura, fim); fila e animação ficam em `matchScreen.ts`
     routes.ts           lógica pura: pathname => página (`/`, `/guia`, `/cartas`, `/sala/CODIGO`; desconhecida => `/`) e URL após sair da sala; `FOOTER_LINKS` define os links do rodapé
     footer.ts           DOM do rodapé de navegação (menu, guia, cartas), usando `FOOTER_LINKS` de `routes.ts`
+    loadingTracker.ts   lógica pura: contador de recursos pendentes do carregamento (`track`/`settle`/`pending`/`isReady`, assinatura, `reset`) com timeout de segurança injetável (`LOADING_TIMEOUT_MS`, 10 s)
     toasts.ts           lógica pura: toasts de erro (fila, dedup do mesmo erro visível, expiração, limite de empilhamento, dispensa) e armazém global; `socket.ts` e as telas só chamam `showErrorCode`/`showErrorMessage`
     toastView.ts        DOM dos toasts (`role="alert"`, botão de dispensar), montado uma vez em `main.ts` e persistente na troca de telas; animação em `hudEffects.ts`
     tutorialSections.ts lógica pura: seções do guia (dados tipados), catálogo de cartas agrupado por deck (composição e magia de efeito único), visibilidade e seção ativa
@@ -288,7 +289,7 @@ O que cobrir:
 
 - **Engine:** cada regra, incluindo jogadas válidas e inválidas, e a garantia de que `playerView` não vaza informação oculta.
 - **Server:** cada evento, incluindo caminho feliz, payload inválido, sala inexistente, jogador sem permissão e reconexão.
-- **Client:** a lógica pura (`scene/layout.ts`, `screens/matchActions.ts`, `screens/matchEnd.ts`, `screens/matchNotices.ts`, `screens/scrollButton.ts`, `state.ts`) tem testes; DOM e WebGL não. Mantenha a decisão de qual ação enviar nos módulos puros. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
+- **Client:** a lógica pura (`scene/layout.ts`, `screens/matchActions.ts`, `screens/matchEnd.ts`, `screens/matchNotices.ts`, `screens/scrollButton.ts`, `screens/loadingTracker.ts`, `state.ts`) tem testes; DOM e WebGL não. Mantenha a decisão de qual ação enviar nos módulos puros. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
 - **Correção de bug:** um teste que falharia antes da correção, quando o bug estiver em `engine` ou `server`.
 
 Como escrever:
