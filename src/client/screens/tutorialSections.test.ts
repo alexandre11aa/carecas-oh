@@ -1,6 +1,7 @@
 // src/client/screens/tutorialSections.test.ts
 import { describe, expect, it } from "vitest";
 import { CARDS } from "../../engine/cards.js";
+import { DECKS } from "../../engine/decks.js";
 import {
   GUIDE_SECTIONS,
   groupCardsByType,
@@ -35,6 +36,35 @@ describe("GUIDE_SECTIONS", () => {
     const monstros = GUIDE_SECTIONS.find((s) => s.id === "monstros");
     const table = monstros?.details.find((b) => b.kind === "table");
     expect(table).toMatchObject({ rows: [["1 a 4", "Nenhum"], ["5 a 6", expect.any(String)], ["7 ou mais", expect.any(String)]] });
+  });
+
+  it("explica_os_decks_fixos_e_nao_menciona_sorteio_de_20_cartas", () => {
+    const decks = GUIDE_SECTIONS.find((s) => s.id === "decks");
+    const text = JSON.stringify(decks);
+    expect(text).toContain("inclusive na revanche");
+    expect(text).toContain("fixos");
+    expect(text).toContain("mesmo deck");
+    expect(text).toContain("secreta");
+    expect(text).toContain("5 cartas aleatórias");
+    const table = decks?.details.find((b) => b.kind === "table");
+    expect(table).toMatchObject({
+      rows: [
+        ["Agressivo", "6", "3", "1"], ["Defensivo", "5", "2", "3"], ["Mágico", "4", "5", "1"],
+        ["Controle", "4", "3", "3"], ["Equilibrado", "5", "3", "2"], ["Estratégico", "5", "4", "1"],
+      ],
+    });
+    expect(table && "rows" in table ? table.rows.length : 0).toBe(DECKS.length);
+    const all = JSON.stringify(GUIDE_SECTIONS);
+    expect(all).not.toContain("20 cartas");
+    expect(all).not.toContain("sorteadas");
+    expect(all).not.toContain("10 delas");
+  });
+
+  it("descreve_os_alvos_das_magias_de_efeito_novo", () => {
+    const magias = JSON.stringify(GUIDE_SECTIONS.find((s) => s.id === "magias")?.details);
+    expect(magias).toContain("magia/armadilha do oponente");
+    expect(magias).toContain("devolução à mão");
+    expect(magias).toContain("cemitério");
   });
 
   it("nao_inclui_secao_de_cartas_no_guia", () => {
