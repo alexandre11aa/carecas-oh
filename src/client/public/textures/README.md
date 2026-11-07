@@ -3,6 +3,7 @@
 Nomes esperados (todos opcionais; sem o arquivo, o jogo usa o visual padrão):
 
 - `background.png`: fundo da cena. Recomendado em proporção 16:9.
+- `fundo.png`: fundo das páginas em HTML (home, guia, cartas, sala de espera e carregamento), 1672x941 (16:9; 3,7 MB). Usado em CSS (`style.css`) com enquadramento "cover" centralizado, camada escura leve e degradê padrão como reserva. Não é usado na partida nem na cena 3D.
 - `table.png`: textura da mesa, presente (1920x1320, 16:11, igual à da mesa; 4,7 MB). Recomendado manter 16:11.
 
 Como são usadas:
