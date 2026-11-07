@@ -107,7 +107,7 @@ src/engine/
   decks.ts              os 6 decks fixos de 10 cartas (`DECKS`, `DeckId`, `getDeck`)
   types.ts              tipos de cartas, ações e estado da partida
   rules/                turnos, invocação e combate, um arquivo por assunto
-  ai/                   IA (decisão pura): types.ts, candidates.ts, easy.ts, choose.ts (`chooseAiAction`, `playAiTurn`), index.ts
+  ai/                   IA (decisão pura): types.ts, candidates.ts, easy.ts, medium.ts, choose.ts (`chooseAiAction`, `playAiTurn`), index.ts
   createMatch.ts        cria o estado inicial a partir dos decks e da semente
   applyAction.ts        (estado, ação) => resultado
   playerView.ts         filtra o estado visível a cada jogador
@@ -120,7 +120,8 @@ src/engine/
 - Pasta aprovada pelo dono (issue #205): a decisão da IA é pura e determinística como o resto da engine; o servidor só orquestra tempo e envio.
 - `chooseAiAction({ state, side, level, seed })` devolve `{ action, seed }`. Lê o estado apenas por `playerView(state, side)` (nunca a mão do oponente, a ordem dos decks nem a semente do estado), gera candidatos a partir da visão, valida cada um com `applyAction` e só devolve ação aceita. `action` é nulo apenas quando o lado não precisa agir. A aleatoriedade usa `rng.ts` com a semente própria da IA.
 - `playAiTurn` joga um turno com limite de ações (`MAX_AI_ACTIONS_PER_TURN`, 40) e sempre o termina; para antes se abrir uma janela de resposta do oponente ou se a partida acabar.
-- `AiLevel = "easy" | "medium" | "hard"`; um arquivo por nível (`easy.ts`, depois `medium.ts` e `hard.ts`).
+- `AiLevel = "easy" | "medium" | "hard"`; um arquivo por nível (`easy.ts`, `medium.ts`, depois `hard.ts`; até lá o Difícil usa o Fácil).
+- Médio (`medium.ts`): heurísticas determinísticas, sem aleatoriedade (devolve a mesma semente). Invoca o monstro de maior ATK (tributando os mais fracos, só se superar os tributados) ou baixa em defesa virada sem vantagem; ataca só quando vence (ATK com bônus > ATK ou DEF do alvo; monstro virado só com ATK > 2000; direto sem monstros do oponente); muda de posição conforme o monstro mais forte visível do oponente; cura abaixo de 50% de vida, reforça ATK só quando isso garante a vitória no ataque, destrói o monstro mais forte alcançável, compra e causa dano; ativa armadilha de ataque se o atacante supera o melhor defensor ou o dano é grande.
 
 ### Padrão de código
 
