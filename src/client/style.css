@@ -316,7 +316,11 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .surrender-button[hidden] { display: none; }
 .end-box { display: flex; flex-direction: column; gap: 0.75rem; min-width: min(18rem, 92vw); max-width: min(24rem, 92vw); padding: 1.5rem; text-align: center; background: linear-gradient(180deg, var(--c-panel-top), var(--c-panel)); color: var(--c-text); border: 3px double var(--c-gold); border-radius: var(--radius-md); box-shadow: var(--shadow-panel); }
 .end-box h2 { margin: 0; font-family: var(--font-title); font-size: 2rem; color: var(--c-gold); text-shadow: var(--shadow-text); }
-.end-box .hint { word-break: normal; min-height: 1.2em; color: var(--c-text-dim); }
+.end-box .hint { word-break: normal; color: var(--c-text-dim); }
+.end-notice { margin: 0; padding: 0.5rem 0.75rem; font-size: 1rem; font-weight: 600; border-radius: var(--radius-sm); border: 1px solid var(--c-line); border-left-width: 5px; background: var(--c-shade); color: var(--c-text); }
+.end-notice.info { border-color: var(--c-sapphire); }
+.end-notice.warning { border-color: var(--c-danger); color: var(--c-danger); }
+.end-notice[hidden] { display: none; }
 
 .turn-banner { margin: 0; display: flex; justify-content: center; align-items: center; gap: 0.75rem; padding: 0.3rem 0.8rem; border-radius: var(--radius-sm); font-family: var(--font-title); font-weight: 700; border: var(--border-gold); box-shadow: var(--shadow-panel); }
 .turn-banner.mine { background: linear-gradient(180deg, #2a8044, #1f5e33); color: #fff; }
