@@ -192,7 +192,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 /* Altura do bloco acompanha a janela entre 17rem (#121: janela baixa rola a página) e 28rem. "Novo duelo" tem altura
    natural, centralizada no bloco; "Salas abertas" ocupa o bloco inteiro e rola a lista por dentro. */
 .lobby-block { height: clamp(17rem, calc(100dvh - 25rem), 28rem); display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr); gap: 0.6rem; }
-.lobby-new { align-self: center; }
+.lobby-new { align-self: stretch; }
 .lobby-block .panel { min-height: 0; }
 .lobby-open .lobby-list { flex: 1; min-height: 0; overflow-y: auto; }
 .lobby-open .hint { margin: 0; }
