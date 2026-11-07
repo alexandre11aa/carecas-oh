@@ -153,4 +153,15 @@ describe("room:createAi", () => {
     expect(view.opponent).not.toHaveProperty("hand");
     expect(view.opponent).not.toHaveProperty("deck");
   });
+
+  it("match_rematch_valida_o_payload_e_recusa_com_a_partida_em_andamento", async () => {
+    const a = await client();
+    await createAi(a);
+    const invalid = once(a, "app:error");
+    a.emit("match:rematch", { accept: true });
+    expect(await invalid).toEqual({ event: "match:rematch", code: "INVALID_PAYLOAD" });
+    const running = once(a, "app:error");
+    a.emit("match:rematch", { deckId: "magic" });
+    expect(await running).toEqual({ event: "match:rematch", code: "MATCH_NOT_ENDED" });
+  });
 });
