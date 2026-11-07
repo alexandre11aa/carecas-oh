@@ -221,6 +221,7 @@ src/client/
     tutorialSections.ts lógica pura: seções do guia (dados tipados), catálogo de cartas agrupado por deck (composição e magia de efeito único), visibilidade e seção ativa
     tutorialScreen.ts   DOM das páginas `/guia` (menu de âncoras, blocos lista/tabela, seção ativa) e `/cartas` (catálogo por deck)
     scrollButton.ts     lógica pura: botão fixo único que alterna entre descer ao fim e subir ao topo (`pickScrollTarget`: `top`, `bottom` ou `null` sem rolagem) e rótulos
+    scrollButtonView.ts DOM do botão fixo de subir/descer (só em `/guia` e `/cartas`, via `createPage`): usa `scrollButton.ts`, `scrollTo` com `auto`/`smooth` conforme `prefers-reduced-motion`, remove listeners no `destroy`
   scene/
     scene.ts            renderer, câmera, luzes e loop
     layout.ts           lógica pura (sem WebGL, testável): PlayerView -> posições das cartas na mesa e clique -> slot (`pickSlot`)
