@@ -203,6 +203,7 @@ src/client/
   public/cards/         imagens das cartas (PNG 1030:1500)
   public/textures/      fundo e mesa (PNG, opcionais)
   public/decks/         imagens dos botões de deck da sala de espera (PNG, <deckId>.png)
+  public/favicon-32.png, icon-192.png, apple-touch-icon.png   ícones da aba (logo reduzido, na raiz de public/; referenciados em index.html com caminho absoluto)
   network/
     socket.ts           conexão, envio e recebimento de eventos
   screens/              telas em HTML: início, sala de espera e interface da partida
