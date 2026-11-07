@@ -129,7 +129,7 @@ src/engine/
 ### Cartas
 
 - Cartas são dados tipados em `cards.ts`. Não crie uma classe nem um arquivo de código para cada carta.
-- Efeitos de magia são dados tipados (`effect` em `SpellCard`, união `SpellEffect` em `types.ts`: `BOOST_ATTACK`, `HEAL`, `DAMAGE`, `DESTROY_MONSTER`, `DRAW`), interpretados por `rules/spells.ts`. Efeito novo = novo `kind` na união e um caso no interpretador, nunca código por carta.
+- Efeitos de magia são dados tipados (`effect` em `SpellCard`, união `SpellEffect` em `types.ts`: `BOOST_ATTACK`, `HEAL`, `DAMAGE`, `DESTROY_MONSTER`, `DRAW`, `BOOST_ALL_ATTACK`, `HEAL_PER_MONSTER`, `REVIVE_MONSTER`), interpretados por `rules/spells.ts`. Efeito novo = novo `kind` na união e um caso no interpretador, nunca código por carta.
 - Balanceamento (Sprint 1): `dealDecks` divide por categoria (monstro nível 1-4, 5-6, 7+, magia, armadilha) para equilibrar os decks. `DESTROY_MONSTER` e `DESTROY_ATTACKER` aceitam `maxAttack` opcional (ATK com bônus). `arcane_draw` continua "compre 1 carta": o risco de deck vazio antes da hora é decisão consciente.
 - Use apenas cartas, artes, nomes e identidade visual próprios. Não copie material oficial de Yu-Gi-Oh.
 

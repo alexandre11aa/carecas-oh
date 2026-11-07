@@ -36,6 +36,7 @@ const MESSAGES: Record<string, string> = {
   NOT_A_SPELL: "Essa carta não é uma magia.",
   SPELL_NOT_AVAILABLE: "Essa magia não está disponível.",
   SPELL_TRAP_ZONES_FULL: "Suas zonas de magia e armadilha estão cheias.",
+  NO_ELIGIBLE_MONSTER: "Não há monstro elegível no seu cemitério.",
   RESPONSE_PENDING: "Aguarde a resposta do oponente.",
   NO_RESPONSE_WINDOW: "Não há nada para responder agora.",
   TRAP_NOT_AVAILABLE: "Essa armadilha não está disponível.",
