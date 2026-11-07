@@ -2,7 +2,8 @@
 import { leaveRoom, sendReady } from "../network/socket.js";
 import { getState } from "../state.js";
 import type { DeckId } from "../../engine/decks.js";
-import { asDeckId, canMarkReady, deckOptions, selectDeck } from "./deckSelect.js";
+import { createDeckPicker } from "./deckPicker.js";
+import { asDeckId, canMarkReady, selectDeck } from "./deckSelect.js";
 import { el, type Screen } from "./dom.js";
 import { errorMessage } from "./errorMessages.js";
 
@@ -20,36 +21,18 @@ export const createWaitingRoomScreen = (): Screen => {
   const players = el("ul", "players");
   const status = el("p", "hint");
   const deckTitle = el("h2", "deck-title", "Escolha seu deck");
-  const deckGroup = el("div", "deck-select");
-  deckGroup.setAttribute("role", "group");
-  deckGroup.setAttribute("aria-label", "Escolha seu deck");
-  const deckButtons = new Map<DeckId, HTMLButtonElement>();
+  const deckPicker = createDeckPicker("Escolha seu deck", (id) => {
+    selected = selectDeck(selected, id, sent);
+    update();
+  });
   const readyButton = el("button", "primary", "Pronto");
   const leaveButton = el("button", undefined, "Sair da sala");
   const error = el("p", "error");
   error.setAttribute("role", "alert");
-  element.append(el("h1", undefined, "Sala de espera"), code, link, copyRow, players, deckTitle, deckGroup, status, readyButton, leaveButton, error);
+  element.append(el("h1", undefined, "Sala de espera"), code, link, copyRow, players, deckTitle, deckPicker.element, status, readyButton, leaveButton, error);
 
   let sent = false;
   let selected: DeckId | null = asDeckId(getState().deckId);
-
-  for (const option of deckOptions()) {
-    const button = el("button", "deck-option");
-    button.type = "button";
-    button.setAttribute("aria-label", option.label);
-    const image = el("img", "deck-image");
-    image.alt = "";
-    image.src = option.image;
-    // Sem a imagem, o nome em texto continua identificando o deck.
-    image.addEventListener("error", () => image.remove());
-    button.append(image, el("span", "deck-name", option.name));
-    button.addEventListener("click", () => {
-      selected = selectDeck(selected, option.id, sent);
-      update();
-    });
-    deckButtons.set(option.id, button);
-    deckGroup.append(button);
-  }
 
   const copy = async (button: HTMLButtonElement, label: string, text: string) => {
     try {
@@ -96,12 +79,7 @@ export const createWaitingRoomScreen = (): Screen => {
           : "Aguardando o segundo jogador. Compartilhe o código ou o link.";
     // Escolha restaurada pelo servidor após reconexão, se o jogador ainda não escolheu nada.
     selected ??= asDeckId(getState().deckId);
-    for (const [id, button] of deckButtons) {
-      const active = id === selected;
-      button.setAttribute("aria-pressed", String(active));
-      button.classList.toggle("selected", active);
-      button.disabled = sent;
-    }
+    deckPicker.update(selected, sent);
     readyButton.textContent = sent ? "Pronto! Aguardando o oponente..." : "Pronto";
     readyButton.disabled = !canMarkReady({ full, online: connection === "online", deckId: selected, ready: sent });
     error.textContent = errorCode ? errorMessage(errorCode) : "";
