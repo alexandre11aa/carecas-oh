@@ -1,7 +1,7 @@
 // src/client/scene/table.ts
 import { Group, Mesh, MeshBasicMaterial, MeshLambertMaterial, PlaneGeometry, Shape, ShapeGeometry, type Texture } from "three";
 import { allSlots } from "./layout.js";
-import { pickSurface, zoneOpacity } from "./surfaces.js";
+import { pickSurface, tableCover, zoneOpacity } from "./surfaces.js";
 import {
   FRAME_COLOR,
   FRAME_TRIM_COLOR,
@@ -83,6 +83,13 @@ export const createTable = (): Table => {
     setTexture: (texture) => {
       const surface = pickSurface(texture);
       tableMaterial.map = surface === "texture" ? texture : null;
+      const image = texture?.image as { width?: number; height?: number } | undefined;
+      if (texture && image?.width && image?.height) {
+        // Só a mesa usa esta textura (cache de loadTexture), então repeat/offset não afetam outro uso.
+        const cover = tableCover(image.width / image.height);
+        texture.repeat.set(cover.repeatX, cover.repeatY);
+        texture.offset.set(cover.offsetX, cover.offsetY);
+      }
       tableMaterial.color.set(surface === "texture" ? 0xffffff : TABLE_COLOR); // sem tingir a imagem
       tableMaterial.needsUpdate = true;
       const opacity = zoneOpacity(surface);

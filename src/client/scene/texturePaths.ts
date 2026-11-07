@@ -32,3 +32,9 @@ export const fitTextureSize = (
   const scale = maxWidth / width;
   return { width: Math.max(1, Math.round(maxWidth)), height: Math.max(1, Math.round(height * scale)) };
 };
+
+/**
+ * Largura máxima (px) da textura da mesa: ocupa a tela inteira, então não pode ser reduzida a 512 px.
+ * O PNG de 1920x1320 passa inteiro (a redução nunca amplia); 2048 é seguro para MAX_TEXTURE_SIZE >= 4096.
+ */
+export const TABLE_MAX_TEXTURE_WIDTH = 2048;
