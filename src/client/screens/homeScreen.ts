@@ -1,30 +1,12 @@
 // src/client/screens/homeScreen.ts
-import { CARD_BACK_PATH } from "../scene/texturePaths.js";
 import { createRoom, joinRoom, subscribeLobby, unsubscribeLobby } from "../network/socket.js";
 import { getState, loadNickname, saveNickname } from "../state.js";
 import { el, type Screen } from "./dom.js";
 import { createFooter } from "./footer.js";
+import { createHero } from "./hero.js";
 import { errorMessage } from "./errorMessages.js";
 import { NICKNAME_HINT, canSubmitNickname } from "./nickname.js";
 import { createTutorialLinks } from "./tutorialScreen.js";
-
-const DECO_FRONT_PATH = "/cards/esquiva_da_gloria_divina.png";
-
-/** Carta decorativa inclinada. O fundo em CSS é o fallback: a imagem carrega sem bloquear e some se falhar. */
-const createDecoCard = (className: string, src: string): HTMLElement => {
-  const card = el("div", `deco-card ${className}`);
-  card.setAttribute("aria-hidden", "true");
-  const image = el("img");
-  image.alt = "";
-  image.setAttribute("aria-hidden", "true");
-  image.loading = "lazy";
-  image.decoding = "async";
-  image.draggable = false;
-  image.addEventListener("error", () => image.remove());
-  image.src = src;
-  card.append(image);
-  return card;
-};
 
 /** Painel temático com título opcional. */
 const createPanel = (title: string | null, ...children: HTMLElement[]): HTMLElement => {
@@ -39,13 +21,7 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
   const home = el("div", presetCode ? "home home--invite" : "home home--lobby");
   const element = el("main", "screen");
   home.append(element);
-  const hero = el("header", "hero");
-  hero.append(
-    createDecoCard("deco-left", CARD_BACK_PATH),
-    createDecoCard("deco-right", DECO_FRONT_PATH),
-    el("h1", "game-title", "Carecas Oh"),
-    ...(presetCode ? [el("p", "hero-subtitle", `Você foi convidado para a sala ${presetCode}.`)] : []),
-  );
+  const hero = createHero("Carecas Oh", presetCode ? `Você foi convidado para a sala ${presetCode}.` : undefined);
   element.append(hero);
 
   const nicknameInput = el("input");

@@ -2,6 +2,7 @@
 import { el, linkTo } from "./dom.js";
 import type { Screen } from "./dom.js";
 import { createFooter } from "./footer.js";
+import { createHero } from "./hero.js";
 import { createCardView } from "./cardView.js";
 import {
   GUIDE_SECTIONS,
@@ -44,7 +45,7 @@ export const createTutorialLinks = (): HTMLElement => {
 const createPage = (title: string, content: HTMLElement[], destroy?: () => void): Screen => {
   const element = el("div", "home tutorial-page");
   const back = linkTo("/", "Voltar ao menu", "tutorial-cta tutorial-back");
-  element.append(back, el("h1", undefined, title), ...content, createFooter());
+  element.append(back, createHero(title), ...content, createFooter());
   return { element, update: () => undefined, destroy };
 };
 
