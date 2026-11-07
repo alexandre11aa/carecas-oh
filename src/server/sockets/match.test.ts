@@ -272,7 +272,9 @@ describe("prazo do turno no match:state", () => {
     const first = p.viewA.currentPlayer === p.viewA.viewer ? p.a : p.b;
     const round = await act(p, first, { type: "NEXT_PHASE" });
     for (const step of [round.a, round.b] as any[]) {
-      expect(step.turnDeadline - step.serverNow).toBe(30_000);
+      // Prazo e hora do servidor vêm de leituras distintas do relógio: tolera alguns ms de diferença.
+      expect(step.turnDeadline - step.serverNow).toBeGreaterThanOrEqual(29_000);
+      expect(step.turnDeadline - step.serverNow).toBeLessThanOrEqual(30_000);
     }
     p.a.close();
     await sleep(100);

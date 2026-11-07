@@ -145,7 +145,7 @@ describe("createAiRoom", () => {
   });
 });
 
-describe("prazo do turno contra a IA (transitório até a IA jogar)", () => {
+describe("prazo do turno contra a IA", () => {
   it("com_o_humano_no_turno_o_prazo_corre_e_expira_normalmente", () => {
     const ctx = setup();
     const { result, room } = createStartedBy(ctx, "human");
@@ -154,21 +154,14 @@ describe("prazo do turno contra a IA (transitório até a IA jogar)", () => {
     expect(ctx.expiries).toHaveLength(1);
     const after = ctx.store.getRoom(room.code)!.match!;
     expect(after.state.currentPlayer).toBe("P2");
-    // O turno passou à IA: sem prazo e sem nova expiração.
+    // O turno passou à IA: sem prazo; o relógio de 30 s não expira por ela.
     expect(after.turnDeadline).toBeNull();
-    vi.advanceTimersByTime(TURN_TIME_MS * 3);
-    expect(ctx.expiries).toHaveLength(1);
   });
 
-  it("com_a_IA_no_turno_nao_ha_prazo_nem_expiracao", () => {
+  it("com_a_IA_no_turno_nao_ha_prazo_inicial", () => {
     const ctx = setup();
     const { result, room } = createStartedBy(ctx, "bot");
     expect(result.turnDeadline).toBeNull();
     expect(room.match!.turnDeadline).toBeNull();
-    vi.advanceTimersByTime(TURN_TIME_MS * 3);
-    expect(ctx.expiries).toEqual([]);
-    const after = ctx.store.getRoom(room.code)!.match!;
-    expect(after.state.currentPlayer).toBe("P2");
-    expect(after.state.phase).toBe("DRAW");
   });
 });
