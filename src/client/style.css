@@ -82,7 +82,8 @@ html:has(.match) { scrollbar-gutter: auto; }
 
 /* Home: lobby; guia e cartas são páginas próprias (/guia e /cartas) */
 .home { display: flex; flex-direction: column; align-items: center; gap: 3rem; width: 100%; }
-.tutorial { width: 100%; max-width: 44rem; }
+.tutorial { box-sizing: border-box; width: 100%; max-width: 44rem; padding: 0 1rem 0.5rem; background: var(--c-panel-alpha); border: var(--border-gold-thin); border-radius: var(--radius-md); box-shadow: var(--shadow-panel); }
+.tutorial-catalog { padding-top: 1rem; }
 .tutorial-nav {
   position: sticky;
   top: 0;
