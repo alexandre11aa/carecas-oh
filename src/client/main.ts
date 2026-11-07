@@ -5,6 +5,7 @@ import { createMatchScreen } from "./screens/matchScreen.js";
 import { createLoadingScreen } from "./screens/loadingScreen.js";
 import { createCardsPage, createGuidePage } from "./screens/tutorialScreen.js";
 import { pathAfterRoomExit, resolveRoute, routePath, shouldAutoJoin } from "./screens/routes.js";
+import { mountToasts } from "./screens/toastView.js";
 import { createWaitingRoomScreen } from "./screens/waitingRoomScreen.js";
 import type { Screen } from "./screens/dom.js";
 import { getState, loadNickname, subscribe } from "./state.js";
@@ -73,6 +74,7 @@ const render = () => {
   }
 };
 
+mountToasts(document.body);
 subscribe(render);
 // Voltar/avançar do navegador (e os links internos) redesenham a página sem recarregar.
 window.addEventListener("popstate", render);
