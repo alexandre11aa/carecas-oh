@@ -1,30 +1,12 @@
 // src/client/screens/homeScreen.ts
-import { CARD_BACK_PATH } from "../scene/texturePaths.js";
 import { createRoom, joinRoom, subscribeLobby, unsubscribeLobby } from "../network/socket.js";
 import { getState, loadNickname, saveNickname } from "../state.js";
 import { el, type Screen } from "./dom.js";
+import { createFooter } from "./footer.js";
+import { createHero } from "./hero.js";
 import { errorMessage } from "./errorMessages.js";
 import { NICKNAME_HINT, canSubmitNickname } from "./nickname.js";
-import { createTutorial } from "./tutorialScreen.js";
-import { isTutorialVisible } from "./tutorialSections.js";
-
-const DECO_FRONT_PATH = "/cards/esquiva_da_gloria_divina.png";
-
-/** Carta decorativa inclinada. O fundo em CSS é o fallback: a imagem carrega sem bloquear e some se falhar. */
-const createDecoCard = (className: string, src: string): HTMLElement => {
-  const card = el("div", `deco-card ${className}`);
-  card.setAttribute("aria-hidden", "true");
-  const image = el("img");
-  image.alt = "";
-  image.setAttribute("aria-hidden", "true");
-  image.loading = "lazy";
-  image.decoding = "async";
-  image.draggable = false;
-  image.addEventListener("error", () => image.remove());
-  image.src = src;
-  card.append(image);
-  return card;
-};
+import { createTutorialLinks } from "./tutorialScreen.js";
 
 /** Painel temático com título opcional. */
 const createPanel = (title: string | null, ...children: HTMLElement[]): HTMLElement => {
@@ -36,16 +18,10 @@ const createPanel = (title: string | null, ...children: HTMLElement[]): HTMLElem
 
 /** Tela inicial. Com `presetCode` (rota /sala/CODIGO) mostra só a entrada na sala indicada. */
 export const createHomeScreen = (presetCode: string | null): Screen => {
-  const home = el("div", presetCode ? "home home--invite" : "home");
+  const home = el("div", presetCode ? "home home--invite" : "home home--lobby");
   const element = el("main", "screen");
   home.append(element);
-  const hero = el("header", "hero");
-  hero.append(
-    createDecoCard("deco-left", CARD_BACK_PATH),
-    createDecoCard("deco-right", DECO_FRONT_PATH),
-    el("h1", "game-title", "Carecas Oh"),
-    el("p", "hero-subtitle", presetCode ? `Você foi convidado para a sala ${presetCode}.` : "Duelo de cartas 1x1. Sem cadastro."),
-  );
+  const hero = createHero("Carecas-Oh", presetCode ? `Você foi convidado para a sala ${presetCode}.` : undefined);
   element.append(hero);
 
   const nicknameInput = el("input");
@@ -104,25 +80,28 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
   });
 
   element.append(createPanel("Duelista", nicknameInput, nicknameHint));
+  // Lista de salas abertas: só na home geral, não no convite /sala/CODIGO.
+  const lobbyList = el("ul", "lobby-list");
+  const lobbyEmpty = el("p", "hint lobby-empty");
+  const lobbyEmptyIcon = el("span", "lobby-empty-icon");
+  lobbyEmptyIcon.setAttribute("aria-hidden", "true");
+  // Ícone decorativo estático (sem entrada do usuário): losango dourado sobre círculo roxo tracejado.
+  lobbyEmptyIcon.innerHTML =
+    '<svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="10" fill="var(--c-panel-2)" stroke="var(--c-gold)" stroke-width="1.5" stroke-dasharray="3 2.5"/><path d="M12 6.5 17 12 12 17.5 7 12Z" fill="none" stroke="var(--c-gold-light)" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+  lobbyEmpty.append(el("span", undefined, "Nenhuma sala aberta no momento..."), lobbyEmptyIcon);
   if (presetCode) {
     element.append(createPanel(null, joinButton, error));
   } else {
-    element.append(
-      createPanel(
-        "Novo duelo",
-        createButton,
-        el("p", "hint divider", "ou entre com um código"),
-        el("div", "join-row"),
-        error,
-      ),
-    );
-    element.querySelector(".join-row")?.append(codeInput, joinButton);
+    const joinRow = el("div", "join-row");
+    joinRow.append(codeInput, joinButton);
+    const newDuel = createPanel("Novo duelo", createButton, el("p", "hint divider", "ou entre com um código"), joinRow, error);
+    newDuel.classList.add("lobby-new");
+    const openRooms = createPanel("Salas abertas", lobbyEmpty, lobbyList);
+    openRooms.classList.add("lobby-open");
+    const block = el("div", "lobby-block");
+    block.append(newDuel, openRooms);
+    element.append(block);
   }
-
-  // Lista de salas abertas: só na home geral, não no convite /sala/CODIGO.
-  const lobbyList = el("ul", "lobby-list");
-  const lobbyEmpty = el("p", "hint", "Nenhuma sala aberta no momento");
-  if (!presetCode) element.append(createPanel("Salas abertas", lobbyEmpty, lobbyList));
 
   let renderedRooms: unknown = null;
   const renderLobby = () => {
@@ -162,18 +141,12 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
   update();
   if (presetCode) return { element: home, update };
   subscribeLobby();
-  // Tutorial abaixo do lobby: só na home geral.
-  const tutorial = isTutorialVisible(presetCode) ? createTutorial() : null;
-  if (tutorial) {
-    element.append(tutorial.cta);
-    home.append(tutorial.element);
-  }
+  // Menu para guia e cartas: abaixo do bloco, só na home geral.
+  element.append(createTutorialLinks());
+  home.append(createFooter());
   return {
     element: home,
     update,
-    destroy: () => {
-      unsubscribeLobby();
-      tutorial?.destroy();
-    },
+    destroy: unsubscribeLobby,
   };
 };

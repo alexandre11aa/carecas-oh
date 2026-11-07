@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { CARDS } from "../../engine/cards.js";
 import {
-  TUTORIAL_SECTIONS,
+  GUIDE_SECTIONS,
   groupCardsByType,
   isTutorialVisible,
   pickActiveSection,
@@ -10,12 +10,12 @@ import {
   sectionHref,
 } from "./tutorialSections.js";
 
-describe("TUTORIAL_SECTIONS", () => {
+describe("GUIDE_SECTIONS", () => {
   it("tem_ids_unicos_e_titulos_preenchidos", () => {
-    const ids = TUTORIAL_SECTIONS.map((section) => section.id);
+    const ids = GUIDE_SECTIONS.map((section) => section.id);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(TUTORIAL_SECTIONS.length).toBeGreaterThan(0);
-    for (const section of TUTORIAL_SECTIONS) {
+    expect(GUIDE_SECTIONS.length).toBeGreaterThan(0);
+    for (const section of GUIDE_SECTIONS) {
       expect(section.title).not.toBe("");
       expect(section.summary).not.toBe("");
       expect(section.details.length).toBeGreaterThan(0);
@@ -23,23 +23,22 @@ describe("TUTORIAL_SECTIONS", () => {
   });
 
   it("tem_as_secoes_obrigatorias_na_ordem", () => {
-    expect(TUTORIAL_SECTIONS.map((section) => section.id)).toEqual([
-      "objetivo", "decks", "turno", "monstros", "combate", "magias", "armadilhas", "fim", "cartas",
+    expect(GUIDE_SECTIONS.map((section) => section.id)).toEqual([
+      "objetivo", "decks", "turno", "monstros", "combate", "magias", "armadilhas", "fim",
     ]);
   });
 
   it("documenta_o_limite_de_30_segundos_e_a_tabela_de_tributo", () => {
-    const turno = TUTORIAL_SECTIONS.find((s) => s.id === "turno");
+    const turno = GUIDE_SECTIONS.find((s) => s.id === "turno");
     const text = JSON.stringify(turno?.details);
     expect(text).toContain("30 segundos");
-    const monstros = TUTORIAL_SECTIONS.find((s) => s.id === "monstros");
+    const monstros = GUIDE_SECTIONS.find((s) => s.id === "monstros");
     const table = monstros?.details.find((b) => b.kind === "table");
     expect(table).toMatchObject({ rows: [["1 a 4", "Nenhum"], ["5 a 6", expect.any(String)], ["7 ou mais", expect.any(String)]] });
   });
 
-  it("secao_cartas_usa_o_catalogo_gerado", () => {
-    const cartas = TUTORIAL_SECTIONS.find((s) => s.id === "cartas");
-    expect(cartas?.details).toEqual([{ kind: "cards" }]);
+  it("nao_inclui_secao_de_cartas_no_guia", () => {
+    expect(GUIDE_SECTIONS.some((s) => s.id === "cartas")).toBe(false);
   });
 });
 
@@ -78,15 +77,15 @@ describe("isTutorialVisible", () => {
 
 describe("pickActiveSection", () => {
   it("escolhe_a_primeira_visivel_na_ordem_do_tutorial", () => {
-    expect(pickActiveSection(TUTORIAL_SECTIONS, new Set(["combate", "turno"]), null)).toBe("turno");
+    expect(pickActiveSection(GUIDE_SECTIONS, new Set(["combate", "turno"]), null)).toBe("turno");
   });
   it("mantem_a_atual_quando_nenhuma_esta_visivel", () => {
-    expect(pickActiveSection(TUTORIAL_SECTIONS, new Set(), "monstros")).toBe("monstros");
+    expect(pickActiveSection(GUIDE_SECTIONS, new Set(), "monstros")).toBe("monstros");
   });
   it("retorna_null_sem_visiveis_e_sem_atual", () => {
-    expect(pickActiveSection(TUTORIAL_SECTIONS, new Set(), null)).toBeNull();
+    expect(pickActiveSection(GUIDE_SECTIONS, new Set(), null)).toBeNull();
   });
   it("ignora_ids_desconhecidos", () => {
-    expect(pickActiveSection(TUTORIAL_SECTIONS, new Set(["x"]), "objetivo")).toBe("objetivo");
+    expect(pickActiveSection(GUIDE_SECTIONS, new Set(["x"]), "objetivo")).toBe("objetivo");
   });
 });

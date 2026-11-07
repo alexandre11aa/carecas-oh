@@ -4,12 +4,15 @@ import { io as connect, type Socket } from "socket.io-client";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { createApp, type App } from "../app.js";
 
+// Folga grande: sob carga a reconexão do cliente pode demorar mais que dezenas de ms.
+const ABANDON_MS = 300;
+
 let app: App;
 let url: string;
 const open: Socket[] = [];
 
 beforeAll(async () => {
-  app = createApp({ clientDir: ".", abandonTimeoutMs: 50 });
+  app = createApp({ clientDir: ".", abandonTimeoutMs: ABANDON_MS });
   await new Promise<void>((resolve) => app.httpServer.listen(0, "127.0.0.1", resolve));
   url = `http://127.0.0.1:${(app.httpServer.address() as AddressInfo).port}`;
 });
@@ -39,6 +42,14 @@ const createRoom = async (socket: Socket, nickname = "Ana") => {
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Eventos de um mesmo socket chegam ao servidor em ordem: a resposta do lobby garante que o
+// evento enviado antes (ex.: room:leave) já foi processado, sem sleep fixo.
+const flush = async (socket: Socket) => {
+  const reply = once(socket, "lobby:rooms");
+  socket.emit("lobby:subscribe");
+  await reply;
+};
 
 describe("room:create", () => {
   it("cria_sala_com_codigo_curto_e_token", async () => {
@@ -183,7 +194,7 @@ describe("limpeza de salas", () => {
     const a = await client();
     const created = await createRoom(a);
     a.close();
-    await sleep(200);
+    await sleep(ABANDON_MS + 150);
     const b = await client();
     const error = once(b, "app:error");
     b.emit("room:rejoin", { token: created.token });
@@ -194,12 +205,11 @@ describe("limpeza de salas", () => {
     const a = await client();
     const created = await createRoom(a);
     a.close();
-    await sleep(10);
     const a2 = await client();
     const rejoined = once(a2, "room:rejoined");
     a2.emit("room:rejoin", { token: created.token });
     await rejoined;
-    await sleep(200);
+    await sleep(ABANDON_MS + 100); // passa do limite: o timer cancelado não pode remover a sala
     const b = await client();
     const joined = once(b, "room:joined");
     b.emit("room:join", { code: created.room.code, nickname: "Bia" });
@@ -211,7 +221,7 @@ describe("limpeza de salas", () => {
     const b = await client();
     const { room } = await createRoom(a);
     a.emit("room:leave");
-    await sleep(50);
+    await flush(a);
     const error = once(b, "app:error");
     b.emit("room:join", { code: room.code, nickname: "Bia" });
     expect(await error).toEqual({ event: "room:join", code: "ROOM_NOT_FOUND" });
@@ -227,9 +237,10 @@ describe("limpeza de salas", () => {
     const offline = once(a, "room:updated");
     b.close();
     await offline;
-    await sleep(150); // timer dispara, mas A ainda está conectado
+    await sleep(ABANDON_MS + 100); // timer dispara, mas A ainda está conectado
     a.emit("room:leave");
-    await sleep(150);
+    await flush(a);
+    await sleep(ABANDON_MS + 100); // a remoção da sala só desconectada é agendada pelo limite
     const b2 = await client();
     const error = once(b2, "app:error");
     b2.emit("room:rejoin", { token });

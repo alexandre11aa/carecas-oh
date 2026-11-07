@@ -60,6 +60,21 @@ describe("servidor base", () => {
     }
   });
 
+  it("devolve_index_html_para_guia_e_cartas_com_ou_sem_barra_final", async () => {
+    for (const url of ["/guia", "/guia/", "/cartas", "/cartas/"]) {
+      const res = await fetch(`${baseUrl}${url}`, { redirect: "manual" });
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe(html);
+    }
+  });
+
+  it("mantem_404_para_rotas_desconhecidas", async () => {
+    for (const url of ["/guiax", "/guia/outra", "/cartas/1", "/qualquer"]) {
+      const res = await fetch(`${baseUrl}${url}`, { redirect: "manual" });
+      expect(res.status).toBe(404);
+    }
+  });
+
   it("serve_index_html_na_raiz", async () => {
     const res = await fetch(`${baseUrl}/`);
     expect(res.status).toBe(200);
