@@ -71,7 +71,9 @@ Erros: `INVALID_PAYLOAD`, `INVALID_TOKEN` (token desconhecido ou sala já removi
 Direção: servidor → cliente
 
 Payload:
-{ "room": { "code": "X7K2", "hasMatch": false, "players": [...] }, "token": "3b0c...-uuid" }
+{ "room": { "code": "X7K2", "hasMatch": false, "players": [...] }, "token": "3b0c...-uuid", "deckId": "magic" }
+
+`deckId` (só neste evento) é a escolha de deck do próprio jogador (feita em `room:ready` ou no voto de `match:rematch`), ou `null` se não há escolha pendente, para a interface refletir a seleção após reconectar. Nunca traz o deck do oponente. Perder a conexão antes do início desmarca "pronto" e descarta a escolha.
 
 ### room:leave
 
@@ -95,6 +97,8 @@ Direção: servidor → cliente
 
 Payload:
 { "room": { "code": "X7K2", "hasMatch": false, "players": [{ "nickname": "Bia", "connected": false, "ready": false }] } }
+
+Nunca traz o deck escolhido por nenhum jogador (a escolha é secreta até a partida começar; o mesmo vale para `room:created`, `room:joined` e `lobby:rooms`).
 
 Enviado aos demais jogadores quando alguém entra, reconecta, sai ou perde a conexão (`connected: false`). Ao perder a conexão o jogador mantém a vaga para `room:rejoin`; a sala é removida se todos ficarem desconectados por mais de 60 segundos.
 
@@ -139,10 +143,13 @@ Lista completa de salas abertas (vazia quando não há nenhuma). Enviada em resp
 
 Direção: cliente → servidor
 
-Payload (opcional):
+Payload:
+{ "deckId": "magic" }
+
+ou, para desmarcar (o `deckId` pode ser omitido):
 { "ready": false }
 
-Sem payload, marca o jogador como pronto. `{ "ready": false }` desmarca. Quando a sala tem 2 jogadores e ambos estão prontos e conectados, o servidor sorteia a semente (nunca enviada), cria a partida e envia `match:state` a cada jogador. Se o jogador desconecta antes de a partida começar, o "pronto" é desmarcado.
+`deckId` é obrigatório ao marcar pronto e deve ser um dos 6 decks fixos: `aggressive`, `defensive`, `magic`, `control`, `balanced`, `strategic`. Sem payload, sem `deckId` ou com valor desconhecido a mensagem é recusada com `INVALID_PAYLOAD`. O deck é sempre do jogador identificado pelo servidor (token); nenhum campo indica de quem é. A escolha fica no servidor, secreta para o oponente (`room:updated` e demais eventos da sala não a trazem), e é descartada ao desmarcar, ao perder a conexão antes do início, ao sair e ao iniciar a partida. Os dois jogadores podem escolher o mesmo deck. Depois do início, ambos os decks aparecem em `match:state` (`you.deckId` e `opponent.deckId`). Quando a sala tem 2 jogadores e ambos estão prontos e conectados, o servidor sorteia a semente (nunca enviada), cria a partida e envia `match:state` a cada jogador. Se o jogador desconecta antes de a partida começar, o "pronto" é desmarcado.
 
 Respostas: `room:updated` (para toda a sala, inclusive quem enviou) e, ao iniciar, `match:state` (um por jogador, `events: []`)
 Erros: `INVALID_PAYLOAD`, `NOT_IN_ROOM`, `MATCH_ALREADY_STARTED`
@@ -179,10 +186,13 @@ Payload:
 
 Direção: cliente → servidor
 
-Payload (opcional):
+Payload:
+{ "deckId": "control" }
+
+ou, para retirar o voto (o `deckId` pode ser omitido):
 { "accept": false }
 
-Só vale com a partida encerrada. Sem payload, vota por revanche; `{ "accept": false }` retira o voto. Com os votos dos dois jogadores (ambos conectados), o servidor cria uma nova partida: novo embaralhamento dos decks com nova semente (nunca enviada), vida em 8000, e os lados P1/P2 são trocados. Um só voto não inicia nada. Não é preciso passar por `room:ready`. Se o oponente já saiu da sala, não há revanche.
+Só vale com a partida encerrada. `{ "deckId": "..." }` vota por revanche com o deck escolhido (obrigatório ao aceitar, mesmos 6 ids de `room:ready`; sem ele ou inválido: `INVALID_PAYLOAD`); `{ "accept": false }` retira o voto e descarta a escolha. A escolha é do jogador do token, secreta para o oponente (o `match:ended` de revanche só mostra quem votou) e usada na nova partida: cada deck acompanha o seu jogador mesmo com os lados trocados. Com os votos dos dois jogadores (ambos conectados), o servidor cria uma nova partida: novo embaralhamento dos decks com nova semente (nunca enviada), vida em 8000, e os lados P1/P2 são trocados. Um só voto não inicia nada. Não é preciso passar por `room:ready`. Se o oponente já saiu da sala, não há revanche.
 
 Respostas: `match:ended` para os dois (votos atualizados) ou, quando a partida recomeça, `match:state` para cada jogador (`events: []`, `winner: null`)
 Erros: `INVALID_PAYLOAD`, `NOT_IN_ROOM`, `MATCH_NOT_STARTED`, `MATCH_NOT_ENDED`, `REMATCH_UNAVAILABLE`

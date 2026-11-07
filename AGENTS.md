@@ -93,7 +93,7 @@ Seguem as regras do Yu-Gi-Oh, com monstros, magias, armadilhas e tributo.
 
 1. **Lobby:** o jogador informa um apelido e cria uma sala ou entra por código/link.
 2. **Sala:** os dois jogadores ficam na sala de espera.
-3. **Pronto:** cada jogador marca "pronto"; a partida começa quando ambos estiverem prontos.
+3. **Pronto:** cada jogador escolhe um dos 6 decks fixos e marca "pronto"; a partida começa quando ambos estiverem prontos. A escolha é secreta até o início (ver Backend).
 4. **Partida 3D:** jogada conforme as regras acima, na cena 3D com interface em HTML.
 5. **Fim:** exibe o resultado e oferece **revanche** (reembaralha: reembaralha o deck de cada jogador com nova semente, e reinicia a vida em 8000) ou **voltar ao lobby**.
 
@@ -175,6 +175,7 @@ src/server/
 - Funções de service recebem um único objeto como argumento: `joinRoom({ code, nickname })`.
 - O cliente nunca é confiável: toda mensagem passa pelo Zod, e o jogador é identificado pelo servidor, nunca por um campo enviado pelo cliente.
 - Após cada jogada válida, cada jogador recebe `match:state` com o próprio `playerView` e os eventos filtrados por `eventView`. A semente é gerada no servidor e nunca sai dele.
+- Escolha secreta de deck: `room:ready` e `match:rematch` (ao aceitar) levam `deckId` (Zod: enum dos 6 ids, obrigatório ao marcar pronto/aceitar). O deck é do jogador identificado pelo token e fica em `Room.players[i].deckId` (a revanche reaproveita o campo); é limpo ao iniciar partida/revanche, ao desmarcar/retirar o voto, ao perder a conexão sem partida e ao sair. `room:updated`, `room:created`, `room:joined` e `lobby:rooms` nunca o incluem; só `room:rejoined` devolve ao próprio jogador a sua escolha. Depois do início, ambos os decks saem via `playerView`.
 - A partida (estado completo) fica em `Room.match` no store; o lado (P1/P2) de cada jogador vem do token, nunca da mensagem.
 - Erros enviados ao cliente têm um `code` estável, e a interface escolhe a mensagem em português.
 - O estado das partidas fica apenas em `store/`.

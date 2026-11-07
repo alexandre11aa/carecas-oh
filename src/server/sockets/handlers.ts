@@ -67,11 +67,12 @@ export const registerHandlers = (io: Server, service: RoomService, { abandonTime
     };
 
     const succeed = (reply: string, result: Extract<RoomResult, { ok: true }>) => {
-      const { room, token, view, ended, turnDeadline = null, serverNow = Date.now() } = result;
+      const { room, token, deckId, view, ended, turnDeadline = null, serverNow = Date.now() } = result;
       cancelTimer(room.code);
       void socket.leave(LOBBY);
       void socket.join(channel(room.code));
-      socket.emit(reply, { room, token });
+      // `deckId` (a escolha do próprio jogador) só vai na reconexão; o do oponente nunca sai.
+      socket.emit(reply, deckId === undefined ? { room, token } : { room, token, deckId });
       // Reconexão no meio da partida: restaura o estado atual (sem eventos para animar).
       if (view) socket.emit("match:state", { view, events: [], turnDeadline, serverNow });
       if (ended) socket.emit("match:ended", ended);
@@ -119,7 +120,11 @@ export const registerHandlers = (io: Server, service: RoomService, { abandonTime
     socket.on("room:ready", (payload: unknown) => {
       const parsed = readySchema.safeParse(payload);
       if (!parsed.success) return fail("room:ready", "INVALID_PAYLOAD");
-      const result = service.setReady({ connectionId: socket.id, ready: parsed.data.ready });
+      const { ready, deckId } = parsed.data;
+      const result =
+        ready && deckId
+          ? service.setReady({ connectionId: socket.id, ready: true, deckId })
+          : service.setReady({ connectionId: socket.id, ready: false });
       if (!result.ok) return fail("room:ready", result.code);
       io.to(channel(result.room.code)).emit("room:updated", { room: result.room });
       deliver(result);
@@ -137,7 +142,11 @@ export const registerHandlers = (io: Server, service: RoomService, { abandonTime
     socket.on("match:rematch", (payload: unknown) => {
       const parsed = rematchSchema.safeParse(payload);
       if (!parsed.success) return fail("match:rematch", "INVALID_PAYLOAD");
-      const result = service.requestRematch({ connectionId: socket.id, accept: parsed.data.accept });
+      const { accept, deckId } = parsed.data;
+      const result =
+        accept && deckId
+          ? service.requestRematch({ connectionId: socket.id, accept: true, deckId })
+          : service.requestRematch({ connectionId: socket.id, accept: false });
       if (!result.ok) return fail("match:rematch", result.code);
       deliver(result);
       broadcastLobby();

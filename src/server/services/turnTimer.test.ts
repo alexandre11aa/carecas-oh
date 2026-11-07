@@ -22,8 +22,8 @@ const setup = () => {
   const created = service.createRoom({ nickname: "Ana", connectionId: "a" });
   if (!created.ok) throw new Error("falha ao criar sala");
   service.joinRoom({ code: created.room.code, nickname: "Bia", connectionId: "b" });
-  service.setReady({ connectionId: "a", ready: true });
-  const started = service.setReady({ connectionId: "b", ready: true });
+  service.setReady({ connectionId: "a", ready: true, deckId: "balanced" });
+  const started = service.setReady({ connectionId: "b", ready: true, deckId: "balanced" });
   if (!started.ok) throw new Error("falha ao iniciar");
   const match = () => store.getRoom(created.room.code)!.match!;
   /** conexão do jogador do turno */
@@ -198,8 +198,8 @@ describe("prazo do turno", () => {
     const room = store.getRoom(code)!;
     store.saveRoom({ ...room, match: { ...room.match!, outcome: { winner: "P1", reason: "LIFE_ZERO" }, state: { ...room.match!.state, winner: "P1" } } });
     // Uma ação após o fim é recusada e não mexe em prazos; a revanche precisa dos dois votos.
-    expect(service.requestRematch({ connectionId: "a", accept: true }).ok).toBe(true);
-    const rematch = service.requestRematch({ connectionId: "b", accept: true });
+    expect(service.requestRematch({ connectionId: "a", accept: true, deckId: "balanced" }).ok).toBe(true);
+    const rematch = service.requestRematch({ connectionId: "b", accept: true, deckId: "balanced" });
     expect(rematch.ok).toBe(true);
     if (!rematch.ok) return;
     expect(vi.getTimerCount()).toBe(1);
