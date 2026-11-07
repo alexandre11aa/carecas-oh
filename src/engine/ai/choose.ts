@@ -5,14 +5,15 @@ import { playerView } from "../playerView.js";
 import type { Action, GameEvent, MatchState, PlayerId } from "../types.js";
 import { generateCandidates } from "./candidates.js";
 import { chooseEasy, type AiContext } from "./easy.js";
+import { chooseMedium } from "./medium.js";
 import { MAX_AI_ACTIONS_PER_TURN, type AiDecision, type AiInput, type AiLevel } from "./types.js";
 
 type Strategy = (context: AiContext, seed: number) => AiDecision;
 
-// Até as issues seguintes, Médio e Difícil usam o comportamento do Fácil.
+// Até a issue seguinte, o Difícil usa o comportamento do Fácil.
 const STRATEGIES: Record<AiLevel, Strategy> = {
   easy: chooseEasy,
-  medium: chooseEasy,
+  medium: chooseMedium,
   hard: chooseEasy,
 };
 
