@@ -359,7 +359,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .card-view.has-art { padding: 0; border-width: 0; background: transparent; box-shadow: none; }
 
 /* Páginas do guia e das cartas */
-.tutorial-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; }
+.tutorial-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; width: 100%; max-width: 24rem; margin-inline: auto; }
+.tutorial-links .tutorial-cta { box-sizing: border-box; width: 100%; padding-inline: 0.5rem; text-align: center; overflow-wrap: anywhere; }
 .tutorial-page { gap: 1rem; padding-bottom: 2rem; }
 .tutorial-back { align-self: flex-start; color: var(--c-text-dim); text-decoration: none; }
 .tutorial-back:hover { color: var(--c-gold-light); text-decoration: underline; }
