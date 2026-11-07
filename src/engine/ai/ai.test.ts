@@ -203,12 +203,10 @@ describe("IA nivel facil: decisoes", () => {
     expect(mustAct(state, side)).toBe(true);
   });
 
-  it("ia_medio_e_dificil_usam_o_comportamento_facil_por_enquanto", () => {
+  it("ia_dificil_usa_o_comportamento_facil_por_enquanto", () => {
     const { state, side } = setup({ hand: ["dune_scout", "fire_bolt"] });
     const easy = chooseAiAction({ state, side, level: "easy", seed: 9 });
-    for (const level of ["medium", "hard"] as AiLevel[]) {
-      expect(chooseAiAction({ state, side, level, seed: 9 })).toEqual(easy);
-    }
+    expect(chooseAiAction({ state, side, level: "hard", seed: 9 })).toEqual(easy);
   });
 });
 
