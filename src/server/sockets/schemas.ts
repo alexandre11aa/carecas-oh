@@ -1,5 +1,6 @@
 // src/server/sockets/schemas.ts
 import { z } from "zod";
+import type { DeckId } from "../../engine/index.js";
 
 const nickname = z.string().trim().min(1).max(20);
 
@@ -19,11 +20,20 @@ export const lobbySchema = z.undefined();
 
 export const rejoinRoomSchema = z.object({ token: z.string().min(1).max(100) });
 
-/** `room:ready` sem payload marca pronto; `{ ready: false }` desmarca. */
-export const readySchema = z.union([z.undefined().transform(() => ({ ready: true })), z.object({ ready: z.boolean() })]);
+/** Ids dos 6 decks fixos da engine (um teste confere que acompanha `DECKS`). */
+export const DECK_IDS = ["aggressive", "defensive", "magic", "control", "balanced", "strategic"] as const satisfies readonly DeckId[];
+const deckId = z.enum(DECK_IDS);
 
-/** `match:rematch` sem payload vota por revanche; `{ accept: false }` retira o voto. */
-export const rematchSchema = z.union([z.undefined().transform(() => ({ accept: true })), z.object({ accept: z.boolean() }).strict()]);
+/** `room:ready`: `{ deckId }` marca pronto com o deck escolhido; `{ ready: false }` desmarca (deck dispensável). */
+export const readySchema = z
+  .object({ ready: z.boolean().default(true), deckId: deckId.optional() })
+  .refine((data) => !data.ready || data.deckId !== undefined);
+
+/** `match:rematch`: `{ deckId }` vota por revanche com o deck escolhido; `{ accept: false }` retira o voto. */
+export const rematchSchema = z
+  .object({ accept: z.boolean().default(true), deckId: deckId.optional() })
+  .strict()
+  .refine((data) => !data.accept || data.deckId !== undefined);
 
 const cardId = z.string().min(1).max(100);
 const cardIds = z.array(cardId).max(10);
