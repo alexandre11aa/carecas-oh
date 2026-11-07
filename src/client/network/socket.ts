@@ -105,7 +105,7 @@ export const leaveRoom = (): void => {
 
 /** Marca o jogador como pronto com o deck escolhido (`room:ready`). */
 export const sendReady = (deckId: DeckId): void => {
-  setState({ deckId });
+  setState({ deckId, errorCode: null });
   socket.emit("room:ready", { deckId });
 };
 
