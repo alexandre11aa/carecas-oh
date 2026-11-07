@@ -179,7 +179,9 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .deco-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .deco-left { left: 0.2rem; transform: rotate(-14deg); }
 .deco-right { right: 0.2rem; transform: rotate(12deg); }
-@media (min-width: 30rem) { .hero .deco-card { width: 5.5rem; } .deco-left { left: 1rem; } .deco-right { right: 1rem; } }
+@media (min-width: 30rem) { .hero .deco-card { width: 4.5rem; } .deco-left { left: 0.3rem; } .deco-right { right: 0.3rem; } }
+.home .hero .game-title { padding-inline: 3rem; }
+@media (min-width: 30rem) { .home .hero .game-title { padding-inline: 1.6rem; } }
 @media (prefers-reduced-motion: no-preference) {
   .deco-left { animation: deco-float 5s ease-in-out infinite alternate; }
   .deco-right { animation: deco-float 6s ease-in-out infinite alternate-reverse; }
