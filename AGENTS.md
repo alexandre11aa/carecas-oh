@@ -220,6 +220,7 @@ src/client/
     toastView.ts        DOM dos toasts (`role="alert"`, botão de dispensar), montado uma vez em `main.ts` e persistente na troca de telas; animação em `hudEffects.ts`
     tutorialSections.ts lógica pura: seções do guia (dados tipados), catálogo de cartas agrupado por deck (composição e magia de efeito único), visibilidade e seção ativa
     tutorialScreen.ts   DOM das páginas `/guia` (menu de âncoras, blocos lista/tabela, seção ativa) e `/cartas` (catálogo por deck)
+    scrollButton.ts     lógica pura: botão fixo único que alterna entre descer ao fim e subir ao topo (`pickScrollTarget`: `top`, `bottom` ou `null` sem rolagem) e rótulos
   scene/
     scene.ts            renderer, câmera, luzes e loop
     layout.ts           lógica pura (sem WebGL, testável): PlayerView -> posições das cartas na mesa e clique -> slot (`pickSlot`)
@@ -285,7 +286,7 @@ O que cobrir:
 
 - **Engine:** cada regra, incluindo jogadas válidas e inválidas, e a garantia de que `playerView` não vaza informação oculta.
 - **Server:** cada evento, incluindo caminho feliz, payload inválido, sala inexistente, jogador sem permissão e reconexão.
-- **Client:** a lógica pura (`scene/layout.ts`, `screens/matchActions.ts`, `screens/matchEnd.ts`, `screens/matchNotices.ts`, `state.ts`) tem testes; DOM e WebGL não. Mantenha a decisão de qual ação enviar nos módulos puros. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
+- **Client:** a lógica pura (`scene/layout.ts`, `screens/matchActions.ts`, `screens/matchEnd.ts`, `screens/matchNotices.ts`, `screens/scrollButton.ts`, `state.ts`) tem testes; DOM e WebGL não. Mantenha a decisão de qual ação enviar nos módulos puros. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
 - **Correção de bug:** um teste que falharia antes da correção, quando o bug estiver em `engine` ou `server`.
 
 Como escrever:
