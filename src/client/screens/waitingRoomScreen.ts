@@ -5,7 +5,7 @@ import type { DeckId } from "../../engine/decks.js";
 import { createDeckPicker } from "./deckPicker.js";
 import { asDeckId, canMarkReady, selectDeck } from "./deckSelect.js";
 import { el, type Screen } from "./dom.js";
-import { errorMessage } from "./errorMessages.js";
+import { showErrorMessage } from "./toasts.js";
 
 export const roomLink = (code: string): string => `${location.origin}/sala/${code}`;
 
@@ -27,9 +27,7 @@ export const createWaitingRoomScreen = (): Screen => {
   });
   const readyButton = el("button", "primary", "Pronto");
   const leaveButton = el("button", undefined, "Sair da sala");
-  const error = el("p", "error");
-  error.setAttribute("role", "alert");
-  element.append(el("h1", undefined, "Sala de espera"), code, link, copyRow, players, deckTitle, deckPicker.element, status, readyButton, leaveButton, error);
+  element.append(el("h1", undefined, "Sala de espera"), code, link, copyRow, players, deckTitle, deckPicker.element, status, readyButton, leaveButton);
 
   let sent = false;
   let selected: DeckId | null = asDeckId(getState().deckId);
@@ -40,6 +38,7 @@ export const createWaitingRoomScreen = (): Screen => {
       button.textContent = "Copiado!";
     } catch {
       button.textContent = "Não foi possível copiar";
+      showErrorMessage("Não foi possível copiar. Copie manualmente.");
     }
     setTimeout(() => (button.textContent = label), 1500);
   };
@@ -60,7 +59,7 @@ export const createWaitingRoomScreen = (): Screen => {
   leaveButton.addEventListener("click", leaveRoom);
 
   const update = () => {
-    const { room, errorCode, connection } = getState();
+    const { room, connection } = getState();
     if (!room) return;
     code.textContent = room.code;
     link.textContent = roomLink(room.code);
@@ -82,7 +81,6 @@ export const createWaitingRoomScreen = (): Screen => {
     deckPicker.update(selected, sent);
     readyButton.textContent = sent ? "Pronto! Aguardando o oponente..." : "Pronto";
     readyButton.disabled = !canMarkReady({ full, online: connection === "online", deckId: selected, ready: sent });
-    error.textContent = errorCode ? errorMessage(errorCode) : "";
   };
   update();
   return { element, update };
