@@ -59,6 +59,11 @@ body {
 
 html { scroll-behavior: smooth; }
 
+/* Reserva a faixa da barra de rolagem da página: o menu não rola e o guia/cartas rolam, e sem isso a barra
+   aparecia/sumia e o fundo fixo (::before, inset 0) mudava de largura. A partida (.match, fixa) não rola. */
+html { scrollbar-gutter: stable; }
+html:has(.match) { scrollbar-gutter: auto; }
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }
