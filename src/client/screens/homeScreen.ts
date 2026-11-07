@@ -1,6 +1,11 @@
 // src/client/screens/homeScreen.ts
-import { createRoom, joinRoom, subscribeLobby, unsubscribeLobby } from "../network/socket.js";
+import { createAiRoom, createRoom, joinRoom, subscribeLobby, unsubscribeLobby } from "../network/socket.js";
+import type { AiLevel } from "../../engine/index.js";
+import type { DeckId } from "../../engine/decks.js";
 import { getState, loadNickname, saveNickname } from "../state.js";
+import { DEFAULT_AI_LEVEL, aiLevelOptions, canStartAiDuel } from "./aiDuel.js";
+import { createDeckPicker } from "./deckPicker.js";
+import { asDeckId, selectDeck } from "./deckSelect.js";
 import { el, type Screen } from "./dom.js";
 import { createFooter } from "./footer.js";
 import { createHero } from "./hero.js";
@@ -37,6 +42,7 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
   const nicknameHint = el("p", "hint", NICKNAME_HINT);
 
   const createButton = el("button", "primary", "Criar duelo");
+  const aiButton = el("button", undefined, "Duelar com IA");
   const joinButton = el("button", presetCode ? "primary" : undefined, presetCode ? `Entrar na sala ${presetCode}` : "Entrar");
 
   const readNickname = (): string | null => {
@@ -67,6 +73,61 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
     joinRoom(code, nickname);
   };
 
+  // Etapa "Duelar com IA": painel na própria home (sem rota), no lugar do bloco Novo duelo / Salas abertas.
+  let aiLevel: AiLevel = DEFAULT_AI_LEVEL;
+  let aiDeck: DeckId | null = asDeckId(getState().deckId);
+  const aiPanel = createPanel("Duelar com IA");
+  aiPanel.classList.add("ai-duel");
+  aiPanel.hidden = true;
+  const levelGroup = el("div", "ai-levels");
+  levelGroup.setAttribute("role", "group");
+  levelGroup.setAttribute("aria-label", "Nível da IA");
+  const levelButtons = new Map<AiLevel, HTMLButtonElement>();
+  for (const option of aiLevelOptions()) {
+    const button = el("button", "ai-level");
+    button.type = "button";
+    button.append(el("span", "ai-level-name", option.name), el("span", "ai-level-desc", option.description));
+    button.addEventListener("click", () => {
+      aiLevel = option.id;
+      update();
+    });
+    levelButtons.set(option.id, button);
+    levelGroup.append(button);
+  }
+  const aiDeckPicker = createDeckPicker("Escolha seu deck", (id) => {
+    aiDeck = selectDeck(aiDeck, id, false);
+    update();
+  });
+  const aiStart = el("button", "primary", "Iniciar duelo");
+  const aiBack = el("button", undefined, "Voltar");
+  const aiActions = el("div", "ai-actions");
+  aiActions.append(aiStart, aiBack);
+  aiPanel.append(
+    el("h3", "ai-subtitle", "Nível da IA"),
+    levelGroup,
+    el("h3", "ai-subtitle", "Seu deck"),
+    aiDeckPicker.element,
+    el("p", "hint", "A IA joga com um deck sorteado."),
+    aiActions,
+  );
+  let lobbyBlock: HTMLElement | null = null;
+  const showAiStep = (open: boolean) => {
+    aiPanel.hidden = !open;
+    if (lobbyBlock) lobbyBlock.hidden = open;
+    if (open) levelButtons.get(aiLevel)?.focus();
+    else aiButton.focus();
+    update();
+  };
+  aiButton.addEventListener("click", () => showAiStep(true));
+  aiBack.addEventListener("click", () => showAiStep(false));
+  aiPanel.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") showAiStep(false);
+  });
+  aiStart.addEventListener("click", () => {
+    const nickname = readNickname();
+    if (nickname && aiDeck && canStartAiDuel({ nickname, level: aiLevel, deckId: aiDeck })) createAiRoom(nickname, aiLevel, aiDeck);
+  });
+
   createButton.addEventListener("click", submitCreate);
   joinButton.addEventListener("click", submitJoin);
   nicknameInput.addEventListener("keydown", (event) => {
@@ -91,13 +152,14 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
   } else {
     const joinRow = el("div", "join-row");
     joinRow.append(codeInput, joinButton);
-    const newDuel = createPanel("Novo duelo", createButton, el("p", "hint divider", "ou entre com um código"), joinRow);
+    const newDuel = createPanel("Novo duelo", createButton, aiButton, el("p", "hint divider", "ou entre com um código"), joinRow);
     newDuel.classList.add("lobby-new");
     const openRooms = createPanel("Salas abertas", lobbyEmpty, lobbyList);
     openRooms.classList.add("lobby-open");
     const block = el("div", "lobby-block");
     block.append(newDuel, openRooms);
-    element.append(block);
+    lobbyBlock = block;
+    element.append(block, aiPanel);
   }
 
   let renderedRooms: unknown = null;
@@ -128,6 +190,14 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
     const { busy } = getState();
     const nicknameOk = canSubmitNickname(nicknameInput.value);
     createButton.disabled = busy || !nicknameOk;
+    aiButton.disabled = busy || !nicknameOk;
+    for (const [id, button] of levelButtons) {
+      button.setAttribute("aria-pressed", String(id === aiLevel));
+      button.classList.toggle("selected", id === aiLevel);
+      button.disabled = busy;
+    }
+    aiDeckPicker.update(aiDeck, busy);
+    aiStart.disabled = busy || !canStartAiDuel({ nickname: nicknameInput.value, level: aiLevel, deckId: aiDeck });
     joinButton.disabled = busy || !nicknameOk;
     nicknameHint.hidden = nicknameOk;
     if (!presetCode) renderLobby();

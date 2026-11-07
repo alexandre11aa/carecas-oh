@@ -1,12 +1,14 @@
 // src/client/state.ts
 import type { EventView } from "../engine/eventView.js";
 import type { DeckId } from "../engine/decks.js";
+import type { AiLevel } from "../engine/index.js";
 import type { PlayerView } from "../engine/playerView.js";
 import type { PlayerId } from "../engine/types.js";
 import type { TurnClock } from "./screens/turnTimer.js";
 
 export type PublicPlayer = { nickname: string; connected: boolean; ready?: boolean };
-export type PublicRoom = { code: string; hasMatch: boolean; players: PublicPlayer[] };
+/** `vsAi` e `aiLevel` só existem nas salas contra a IA (`room:createAi`). */
+export type PublicRoom = { code: string; hasMatch: boolean; players: PublicPlayer[]; vsAi?: boolean; aiLevel?: AiLevel };
 
 /** Sala aberta listada no lobby (`lobby:rooms`). */
 export type LobbyRoom = { code: string; hostNickname: string };
@@ -69,6 +71,14 @@ export const lobbyRoomsFromPayload = (payload: unknown): LobbyRoom[] => {
 /** Partida a manter depois de uma atualização da sala: descartada só quando o servidor diz que não há partida. */
 export const matchForRoom = (room: PublicRoom, match: PlayerView | null): PlayerView | null =>
   room.hasMatch ? match : null;
+
+/**
+ * Tela de uma sala: mesa quando há partida; sala de espera sem partida. Na sala contra a IA a partida já
+ * existe no servidor, mas o `match:state` chega logo depois de `room:created`: nesse intervalo ("starting")
+ * não se mostra a sala de espera.
+ */
+export const roomPage = (room: PublicRoom, match: PlayerView | null): "match" | "waiting" | "starting" =>
+  match ? "match" : room.vsAi && room.hasMatch ? "starting" : "waiting";
 
 const listeners = new Set<(state: ClientState) => void>();
 

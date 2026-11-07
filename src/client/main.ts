@@ -10,7 +10,7 @@ import { pathAfterRoomExit, resolveRoute, routePath, shouldAutoJoin } from "./sc
 import { mountToasts } from "./screens/toastView.js";
 import { createWaitingRoomScreen } from "./screens/waitingRoomScreen.js";
 import type { Screen } from "./screens/dom.js";
-import { getState, loadNickname, subscribe } from "./state.js";
+import { getState, loadNickname, roomPage, subscribe } from "./state.js";
 
 const root = document.getElementById("app") as HTMLElement;
 
@@ -28,6 +28,18 @@ loadingOverlay.className = "loading-overlay";
 loadingOverlay.append(loadingScreen.element);
 document.body.append(loadingOverlay);
 let initialLoadDone = false;
+
+/** Sala contra a IA entre `room:created` e o primeiro `match:state`: só um aviso, sem sala de espera. */
+const createStartingScreen = (): Screen => {
+  const element = document.createElement("main");
+  element.className = "screen themed";
+  const text = document.createElement("p");
+  text.className = "hint";
+  text.setAttribute("role", "status");
+  text.textContent = "Iniciando o duelo...";
+  element.append(text);
+  return { element, update: () => {} };
+};
 
 let rendering = false;
 
@@ -79,8 +91,9 @@ const renderPage = () => {
     return;
   } else if (state.room) {
     // O primeiro match:state (ou o de uma reconexão) abre a mesa; sem partida, sala de espera.
-    key = state.match ? "match" : "waiting";
-    create = state.match ? createMatchScreen : createWaitingRoomScreen;
+    const page = roomPage(state.room, state.match);
+    key = page;
+    create = page === "match" ? createMatchScreen : page === "starting" ? createStartingScreen : createWaitingRoomScreen;
     if (urlCode !== state.room.code) history.replaceState(null, "", `/sala/${state.room.code}`);
   } else {
     // Rota desconhecida (ou fora da forma canônica) volta ao caminho canônico.

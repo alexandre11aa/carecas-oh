@@ -2,8 +2,10 @@
 import { io } from "socket.io-client";
 import type { EventView } from "../../engine/eventView.js";
 import type { DeckId } from "../../engine/decks.js";
+import type { AiLevel } from "../../engine/index.js";
 import type { PlayerView } from "../../engine/playerView.js";
 import type { Action } from "../../engine/types.js";
+import { aiRoomPayload } from "../screens/aiDuel.js";
 import { asDeckId } from "../screens/deckSelect.js";
 import { rematchPayload } from "../screens/matchEnd.js";
 import { showErrorCode, showErrorMessage } from "../screens/toasts.js";
@@ -20,7 +22,7 @@ let lobbyWanted = false;
 const applyReply = ({ room, token, deckId }: RoomReply): void => {
   saveToken(token);
   const match = matchForRoom(room, getState().match);
-  setState({ room, match, ended: match ? getState().ended : null, busy: false, booting: false, deckId: asDeckId(deckId) });
+  setState({ room, match, ended: match ? getState().ended : null, busy: false, booting: false, deckId: deckId === undefined && room.vsAi ? getState().deckId : asDeckId(deckId) });
 };
 
 /** Liga os eventos do servidor ao estado e abre a conexão. Chamar uma única vez. */
@@ -96,6 +98,14 @@ export const unsubscribeLobby = (): void => {
 export const createRoom = (nickname: string): void => {
   setState({ busy: true });
   socket.emit("room:create", { nickname });
+};
+
+/** Cria uma sala contra a IA (`room:createAi`); a partida abre com o `match:state` seguinte. Combinação inválida não envia. */
+export const createAiRoom = (nickname: string, level: AiLevel, deckId: DeckId): void => {
+  const payload = aiRoomPayload({ nickname, level, deckId });
+  if (!payload) return;
+  setState({ busy: true, deckId });
+  socket.emit("room:createAi", payload);
 };
 
 export const joinRoom = (code: string, nickname: string): void => {
