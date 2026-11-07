@@ -168,6 +168,19 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   animation: spin 1s linear infinite;
 }
 
+/* Loading em tela cheia por cima da página (primeiro carregamento) */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: radial-gradient(ellipse at 50% 20%, var(--c-glow) 0%, var(--c-bg) 55%, var(--c-vignette) 100%);
+}
+.loading-overlay[hidden] { display: none; }
+
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* Tema de jogo da home, do carregamento e da sala de espera (escopado: não afeta a partida) */

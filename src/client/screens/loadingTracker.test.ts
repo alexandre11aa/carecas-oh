@@ -1,6 +1,6 @@
 // src/client/screens/loadingTracker.test.ts
 import { describe, expect, it, vi } from "vitest";
-import { createLoadingTracker, LOADING_TIMEOUT_MS } from "./loadingTracker.js";
+import { createLoadingTracker, LOADING_TIMEOUT_MS, shouldShowLoading } from "./loadingTracker.js";
 
 const setup = () => {
   let next = 0;
@@ -158,5 +158,32 @@ describe("loadingTracker", () => {
     tracker.reset();
     expect(timers.size).toBe(0);
     expect(tracker.pending()).toEqual([]);
+  });
+});
+
+describe("shouldShowLoading", () => {
+  const base = { booting: false, pending: 0, timedOut: false, initialDone: false };
+
+  it("mostra_enquanto_o_servidor_nao_respondeu", () => {
+    expect(shouldShowLoading({ ...base, booting: true })).toBe(true);
+    expect(shouldShowLoading({ ...base, booting: true, pending: 3 })).toBe(true);
+    expect(shouldShowLoading({ ...base, booting: true, timedOut: true })).toBe(true);
+  });
+
+  it("mostra_com_recursos_pendentes_sem_timeout", () => {
+    expect(shouldShowLoading({ ...base, pending: 2 })).toBe(true);
+  });
+
+  it("libera_com_timeout_estourado_mesmo_com_pendentes", () => {
+    expect(shouldShowLoading({ ...base, pending: 2, timedOut: true })).toBe(false);
+  });
+
+  it("libera_sem_pendentes_e_sem_boot", () => {
+    expect(shouldShowLoading(base)).toBe(false);
+  });
+
+  it("nao_reabre_depois_do_primeiro_carregamento", () => {
+    expect(shouldShowLoading({ ...base, initialDone: true, pending: 5 })).toBe(false);
+    expect(shouldShowLoading({ ...base, initialDone: true, booting: true })).toBe(false);
   });
 });

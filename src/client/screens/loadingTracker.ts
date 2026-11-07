@@ -92,3 +92,23 @@ export const createLoadingTracker = (options: LoadingTrackerOptions = {}): Loadi
     },
   };
 };
+
+export type LoadingDecisionInput = {
+  /** Servidor ainda não respondeu à primeira conexão. */
+  booting: boolean;
+  /** Quantidade de recursos ainda pendentes. */
+  pending: number;
+  /** O timeout de segurança já estourou. */
+  timedOut: boolean;
+  /** O primeiro carregamento da sessão já terminou (depois dele o loading em tela cheia não reabre). */
+  initialDone: boolean;
+};
+
+/**
+ * Decide se o loading em tela cheia aparece: só no primeiro carregamento, enquanto o servidor não
+ * respondeu ou há recursos pendentes sem timeout estourado. Navegar depois entre telas não o reabre.
+ */
+export const shouldShowLoading = ({ booting, pending, timedOut, initialDone }: LoadingDecisionInput): boolean => {
+  if (initialDone) return false;
+  return booting || (pending > 0 && !timedOut);
+};

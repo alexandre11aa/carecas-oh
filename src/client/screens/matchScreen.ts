@@ -8,6 +8,7 @@ import { leaveRoom, sendAction, sendRematch } from "../network/socket.js";
 import { createMatchScene, type MatchScene } from "../scene/scene.js";
 import { getState, loadNickname } from "../state.js";
 import { el, type Screen } from "./dom.js";
+import { trackImage } from "./pageLoading.js";
 import {
   connectionNotice,
   handClick,
@@ -62,6 +63,7 @@ const renderDeckBadge = (badge: HTMLElement, deckId: unknown) => {
   const image = el("img", "deck-badge-image");
   image.alt = "";
   image.src = option.image;
+  trackImage(image);
   image.addEventListener("error", () => image.remove());
   badge.append(image, el("span", "deck-badge-name", option.name));
 };

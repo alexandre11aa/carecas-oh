@@ -217,7 +217,8 @@ src/client/
     matchNotices.ts     lógica pura: EventView (de `eventView`) => avisos de interface em ordem (carta, invocação, cemitério, dano/cura, fim); fila e animação ficam em `matchScreen.ts`
     routes.ts           lógica pura: pathname => página (`/`, `/guia`, `/cartas`, `/sala/CODIGO`; desconhecida => `/`) e URL após sair da sala; `FOOTER_LINKS` define os links do rodapé
     footer.ts           DOM do rodapé de navegação (menu, guia, cartas), usando `FOOTER_LINKS` de `routes.ts`
-    loadingTracker.ts   lógica pura: contador de recursos pendentes do carregamento (`track`/`settle`/`pending`/`isReady`, assinatura, `reset`) com timeout de segurança injetável (`LOADING_TIMEOUT_MS`, 10 s)
+    loadingTracker.ts   lógica pura: contador de recursos pendentes do carregamento (`track`/`settle`/`pending`/`isReady`, assinatura, `reset`) com timeout de segurança injetável (`LOADING_TIMEOUT_MS`, 10 s), e `shouldShowLoading` (decide o loading em tela cheia: só no primeiro carregamento, nunca depois)
+    pageLoading.ts      rastreador único dos recursos HTML da tela aberta e `trackImage(img)`: toda `<img>` de tela se registra (chave única por imagem; `load`/`error` resolvem; `complete` resolve na hora); `main.ts` chama `reset()` a cada tela nova
     toasts.ts           lógica pura: toasts de erro (fila, dedup do mesmo erro visível, expiração, limite de empilhamento, dispensa) e armazém global; `socket.ts` e as telas só chamam `showErrorCode`/`showErrorMessage`
     toastView.ts        DOM dos toasts (`role="alert"`, botão de dispensar), montado uma vez em `main.ts` e persistente na troca de telas; animação em `hudEffects.ts`
     tutorialSections.ts lógica pura: seções do guia (dados tipados), catálogo de cartas agrupado por deck (composição e magia de efeito único), visibilidade e seção ativa

@@ -1,6 +1,7 @@
 // src/client/screens/tutorialScreen.ts
 import { el } from "./dom.js";
 import type { Screen } from "./dom.js";
+import { trackImage } from "./pageLoading.js";
 import { createFooter } from "./footer.js";
 import { createHero } from "./hero.js";
 import { createScrollButton } from "./scrollButtonView.js";
@@ -142,6 +143,7 @@ export const createCardsPage = (): Screen => {
     const image = el("img", "deck-catalog-image");
     image.alt = "";
     image.src = group.image;
+    trackImage(image);
     // Sem a imagem, o nome do deck continua identificando o grupo.
     image.addEventListener("error", () => image.remove());
     const info = el("div", "deck-catalog-info");
