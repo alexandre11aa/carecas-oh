@@ -196,6 +196,10 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .lobby-block .panel { min-height: 0; }
 .lobby-open .lobby-list { flex: 1; min-height: 0; overflow-y: auto; }
 .lobby-open .hint { margin: 0; }
+.lobby-empty { display: flex; align-items: center; gap: 0.5rem; }
+.lobby-empty[hidden] { display: none; }
+.lobby-empty-icon { flex: none; width: 1.25rem; height: 1.25rem; display: inline-flex; }
+.lobby-empty-icon svg { width: 100%; height: 100%; }
 .lobby-new .hint.divider { margin: 0; }
 .home--lobby .tutorial-links { padding-bottom: 0.25rem; }
 @media (max-width: 40rem) { .lobby-block { height: auto; grid-template-columns: 1fr; grid-template-rows: auto; } .lobby-open { height: 10rem; } }
