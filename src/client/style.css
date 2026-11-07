@@ -143,7 +143,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Tema de jogo da home, do carregamento e da sala de espera (escopado: não afeta a partida) */
 .home, .themed { font-family: var(--font-body); color: var(--c-text); }
-.home { position: relative; isolation: isolate; overflow-x: clip; }
+.home { position: relative; isolation: isolate; overflow-x: clip; margin-inline: -1rem; padding-inline: 1rem; }
 .home::before {
   content: "";
   position: fixed;
@@ -154,7 +154,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   box-shadow: inset 0 0 12rem rgba(0, 0, 0, 0.75);
 }
 .home .screen { max-width: 30rem; }
-.hero { position: relative; padding: 1.5rem 0 0.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.6rem; overflow: hidden; }
+.hero { position: relative; padding: 1.5rem 0 0.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.6rem; }
 .game-title {
   margin: 0;
   padding: 0.4rem 1.6rem;
