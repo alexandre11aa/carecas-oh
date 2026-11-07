@@ -106,7 +106,13 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
   element.append(createPanel("Duelista", nicknameInput, nicknameHint));
   // Lista de salas abertas: só na home geral, não no convite /sala/CODIGO.
   const lobbyList = el("ul", "lobby-list");
-  const lobbyEmpty = el("p", "hint", "Nenhuma sala aberta no momento");
+  const lobbyEmpty = el("p", "hint lobby-empty");
+  const lobbyEmptyIcon = el("span", "lobby-empty-icon");
+  lobbyEmptyIcon.setAttribute("aria-hidden", "true");
+  // Ícone decorativo estático (sem entrada do usuário): losango dourado sobre círculo roxo tracejado.
+  lobbyEmptyIcon.innerHTML =
+    '<svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="10" fill="var(--c-panel-2)" stroke="var(--c-gold)" stroke-width="1.5" stroke-dasharray="3 2.5"/><path d="M12 6.5 17 12 12 17.5 7 12Z" fill="none" stroke="var(--c-gold-light)" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+  lobbyEmpty.append(lobbyEmptyIcon, el("span", undefined, "Nenhuma sala aberta no momento"));
   if (presetCode) {
     element.append(createPanel(null, joinButton, error));
   } else {
