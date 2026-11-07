@@ -4,7 +4,6 @@ import { DECKS } from "../../engine/decks.js";
 import {
   GUIDE_SECTIONS,
   groupCardsByDeck,
-  isTutorialVisible,
   pickActiveSection,
   sectionElementId,
   sectionHref,
@@ -132,15 +131,6 @@ describe("ancoras", () => {
   it("href_aponta_para_o_id_do_elemento", () => {
     expect(sectionElementId("turno")).toBe("tutorial-turno");
     expect(sectionHref("turno")).toBe("#tutorial-turno");
-  });
-});
-
-describe("isTutorialVisible", () => {
-  it("mostra_na_home_geral", () => {
-    expect(isTutorialVisible(null)).toBe(true);
-  });
-  it("oculta_no_convite_de_sala", () => {
-    expect(isTutorialVisible("AB12")).toBe(false);
   });
 });
 

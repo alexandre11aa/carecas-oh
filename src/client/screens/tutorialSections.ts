@@ -237,9 +237,6 @@ export const sectionElementId = (id: string): string => `tutorial-${id}`;
 /** Âncora (`#...`) que leva à seção. */
 export const sectionHref = (id: string): string => `#${sectionElementId(id)}`;
 
-/** Os links para guia e cartas aparecem na home geral e ficam ocultos no convite `/sala/CODIGO`. */
-export const isTutorialVisible = (presetCode: string | null): boolean => presetCode === null;
-
 /**
  * Seção ativa: a primeira, na ordem do tutorial, entre as que estão na faixa de leitura.
  * Sem nenhuma visível, mantém a atual (`null` se nunca houve).

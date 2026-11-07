@@ -6,7 +6,6 @@ import { createFooter } from "./footer.js";
 import { createHero } from "./hero.js";
 import { showErrorMessage } from "./toasts.js";
 import { NICKNAME_HINT, canSubmitNickname } from "./nickname.js";
-import { createTutorialLinks } from "./tutorialScreen.js";
 
 /** Painel temático com título opcional. */
 const createPanel = (title: string | null, ...children: HTMLElement[]): HTMLElement => {
@@ -137,8 +136,7 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
   update();
   if (presetCode) return { element: home, update };
   subscribeLobby();
-  // Menu para guia e cartas: abaixo do bloco, só na home geral.
-  element.append(createTutorialLinks());
+  // Rodapé de navegação (guia e cartas): só na home geral.
   home.append(createFooter());
   return {
     element: home,
