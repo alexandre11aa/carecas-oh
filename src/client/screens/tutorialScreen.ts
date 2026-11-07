@@ -6,7 +6,7 @@ import { createHero } from "./hero.js";
 import { createCardView } from "./cardView.js";
 import {
   GUIDE_SECTIONS,
-  groupCardsByType,
+  groupCardsByDeck,
   pickActiveSection,
   sectionElementId,
   sectionHref,
@@ -103,13 +103,35 @@ export const createGuidePage = (): Screen => {
   return createPage("Guia", [element], () => observer?.disconnect());
 };
 
-/** Página `/cartas`: catálogo de todas as cartas, gerado de `CARDS`. */
+/** Página `/cartas`: catálogo agrupado por deck, gerado de `DECKS`; destaca a magia de efeito único de cada deck. */
 export const createCardsPage = (): Screen => {
   const catalog = el("div", "tutorial tutorial-catalog");
-  for (const group of groupCardsByType()) {
+  for (const group of groupCardsByDeck()) {
+    const { monsters, spells, traps } = group.composition;
+    const header = el("div", "deck-catalog-header");
+    const image = el("img", "deck-catalog-image");
+    image.alt = "";
+    image.src = group.image;
+    // Sem a imagem, o nome do deck continua identificando o grupo.
+    image.addEventListener("error", () => image.remove());
+    const info = el("div", "deck-catalog-info");
+    info.append(
+      el("h3", "tutorial-group-title", `Deck ${group.name}`),
+      el("p", "tutorial-summary", `${monsters} monstros · ${spells} magias · ${traps} armadilhas`),
+    );
+    if (group.signatureSpell) {
+      info.append(el("p", "deck-signature", `Magia exclusiva: ${group.signatureSpell.name} — ${group.signatureSpell.effect}`));
+    }
+    header.append(image, info);
     const grid = el("div", "tutorial-card-grid");
-    for (const card of group.cards) grid.append(createCardView(card));
-    catalog.append(el("h3", "tutorial-group-title", group.title), grid);
+    for (const card of group.cards) {
+      const view = createCardView(card);
+      if (card.id === group.signatureSpell?.id) view.classList.add("signature");
+      grid.append(view);
+    }
+    const section = el("section", "deck-catalog");
+    section.append(header, grid);
+    catalog.append(section);
   }
   return createPage("Cartas", [catalog]);
 };
