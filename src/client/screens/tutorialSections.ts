@@ -237,12 +237,31 @@ export const sectionElementId = (id: string): string => `tutorial-${id}`;
 /** Âncora (`#...`) que leva à seção. */
 export const sectionHref = (id: string): string => `#${sectionElementId(id)}`;
 
+/** Id da seção a partir de um hash (`#tutorial-<id>`); `null` se não for âncora de seção. */
+export const sectionIdFromHash = (hash: string): string | null =>
+  GUIDE_SECTIONS.find((section) => hash === sectionHref(section.id))?.id ?? null;
+
+/** Rolagem no fim da página (com tolerância de 2px); página que não rola também conta. */
+export const isScrolledToBottom = (metrics: {
+  scrollTop: number;
+  viewportHeight: number;
+  scrollHeight: number;
+}): boolean => metrics.scrollTop + metrics.viewportHeight >= metrics.scrollHeight - 2;
+
 /**
  * Seção ativa: a primeira, na ordem do tutorial, entre as que estão na faixa de leitura.
+ * No fim da página, as últimas seções (curtas) não alcançam a faixa: vale a do hash (se houver) ou a última.
  * Sem nenhuma visível, mantém a atual (`null` se nunca houve).
  */
 export const pickActiveSection = (
   sections: readonly TutorialSection[],
   visibleIds: ReadonlySet<string>,
   current: string | null,
-): string | null => sections.find((section) => visibleIds.has(section.id))?.id ?? current;
+  options: { atBottom?: boolean; hashId?: string | null } = {},
+): string | null => {
+  if (options.atBottom) {
+    const hashed = sections.find((section) => section.id === options.hashId);
+    return hashed?.id ?? sections[sections.length - 1]?.id ?? current;
+  }
+  return sections.find((section) => visibleIds.has(section.id))?.id ?? current;
+};

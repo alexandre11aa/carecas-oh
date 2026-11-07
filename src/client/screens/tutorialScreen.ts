@@ -7,9 +7,11 @@ import { createCardView } from "./cardView.js";
 import {
   GUIDE_SECTIONS,
   groupCardsByDeck,
+  isScrolledToBottom,
   pickActiveSection,
   sectionElementId,
   sectionHref,
+  sectionIdFromHash,
   type TutorialBlock,
 } from "./tutorialSections.js";
 
@@ -41,7 +43,7 @@ const createPage = (title: string, content: HTMLElement[], destroy?: () => void)
   return { element, update: () => undefined, destroy };
 };
 
-/** Página `/guia`: menu de âncoras e seções do guia; a seção ativa vem de um IntersectionObserver. */
+/** Página `/guia`: menu de âncoras e seções do guia; a seção ativa vem de um IntersectionObserver, da rolagem (fim da página) e do hash. */
 export const createGuidePage = (): Screen => {
   const element = el("div", "tutorial");
   const nav = el("nav", "tutorial-nav");
@@ -66,8 +68,16 @@ export const createGuidePage = (): Screen => {
 
   let active: string | null = null;
   const visible = new Set<string>();
+  // Hash de âncora: vale enquanto a página fica no fim; ao subir, a leitura volta a mandar.
+  let hashId: string | null = sectionIdFromHash(window.location.hash);
+  const atBottom = () =>
+    isScrolledToBottom({
+      scrollTop: window.scrollY,
+      viewportHeight: window.innerHeight,
+      scrollHeight: document.documentElement.scrollHeight,
+    });
   const markActive = () => {
-    active = pickActiveSection(GUIDE_SECTIONS, visible, active);
+    active = pickActiveSection(GUIDE_SECTIONS, visible, active, { atBottom: atBottom(), hashId });
     for (const [id, link] of links) {
       if (id === active) link.setAttribute("aria-current", "true");
       else link.removeAttribute("aria-current");
@@ -92,7 +102,27 @@ export const createGuidePage = (): Screen => {
     for (const node of sectionElements) observer.observe(node);
   }
 
-  return createPage("Guia", [element], () => observer?.disconnect());
+  const onScroll = () => {
+    if (!atBottom()) hashId = null;
+    markActive();
+  };
+  const onHashChange = () => {
+    hashId = sectionIdFromHash(window.location.hash);
+    markActive();
+  };
+  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("hashchange", onHashChange);
+  // A página é montada depois da carga (SPA), então o navegador não rola até o hash sozinho.
+  requestAnimationFrame(() => {
+    if (hashId) document.getElementById(sectionElementId(hashId))?.scrollIntoView({ behavior: "instant" });
+    markActive();
+  });
+
+  return createPage("Guia", [element], () => {
+    observer?.disconnect();
+    window.removeEventListener("scroll", onScroll);
+    window.removeEventListener("hashchange", onHashChange);
+  });
 };
 
 /** Página `/cartas`: catálogo agrupado por deck, gerado de `DECKS`; destaca a magia de efeito único de cada deck. */
