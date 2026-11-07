@@ -1,6 +1,6 @@
 // src/client/scene/tableDesign.test.ts
 import { describe, expect, it } from "vitest";
-import { ZONE_COUNT, ZONE_SPACING, allSlots, CARD_HEIGHT, CARD_WIDTH } from "./layout.js";
+import { ROW_Z, ZONE_COUNT, ZONE_SPACING, allSlots, CARD_HEIGHT, CARD_WIDTH } from "./layout.js";
 import {
   BACKGROUND_GRADIENT,
   FRAME_BORDER,
@@ -34,6 +34,28 @@ describe("zonas", () => {
     expect(outer.height).toBeGreaterThan(CARD_HEIGHT);
     expect(outer.width).toBeLessThan(ZONE_SPACING);
     expect(ZONE_COUNT).toBe(5);
+  });
+  it("largura_externa_cabe_no_espacamento_horizontal", () => {
+    expect(zoneOuterSize().width).toBeLessThanOrEqual(ZONE_SPACING);
+  });
+  it("altura_externa_cabe_no_espacamento_entre_fileiras", () => {
+    const h = zoneOuterSize().height;
+    expect(h).toBeLessThanOrEqual(ROW_Z.spellTrap - ROW_Z.monster);
+    expect(h).toBeLessThanOrEqual(2 * ROW_Z.monster);
+  });
+  it("nenhum_par_de_slots_tem_retangulos_externos_com_area_em_comum", () => {
+    const { width, height } = zoneOuterSize();
+    const slots = allSlots();
+    for (let i = 0; i < slots.length; i++) {
+      for (let j = i + 1; j < slots.length; j++) {
+        const a = slots[i]!;
+        const b = slots[j]!;
+        const overlapX = width - Math.abs(a.x - b.x);
+        const overlapZ = height - Math.abs(a.z - b.z);
+        const area = Math.max(0, overlapX - 1e-9) * Math.max(0, overlapZ - 1e-9);
+        expect(area, `${a.key} x ${b.key}`).toBe(0);
+      }
+    }
   });
   it("todas_as_zonas_ficam_dentro_da_mesa", () => {
     const outer = zoneOuterSize();
