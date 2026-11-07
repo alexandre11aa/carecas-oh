@@ -3,9 +3,27 @@ import { describe, expect, it } from "vitest";
 import { CARDS } from "./cards.js";
 
 describe("cards", () => {
-  it("tem_20_cartas_com_ids_unicos", () => {
-    expect(CARDS).toHaveLength(20);
-    expect(new Set(CARDS.map((c) => c.id)).size).toBe(20);
+  it("tem_ids_nomes_e_descricoes_unicos", () => {
+    expect(CARDS).toHaveLength(48);
+    expect(new Set(CARDS.map((c) => c.id)).size).toBe(48);
+    expect(new Set(CARDS.map((c) => c.name)).size).toBe(48);
+    expect(new Set(CARDS.map((c) => c.description)).size).toBe(48);
+  });
+
+  it("ids_sao_snake_case", () => {
+    for (const card of CARDS) expect(card.id).toMatch(/^[a-z]+(_[a-z]+)*$/);
+  });
+
+  it("cartas_novas_tem_efeitos_e_valores_definidos", () => {
+    const byId = (id: string) => CARDS.find((c) => c.id === id);
+    expect(byId("war_cry")).toMatchObject({ type: "SPELL", effect: { kind: "BOOST_ALL_ATTACK", amount: 400 } });
+    expect(byId("life_wall")).toMatchObject({
+      effect: { kind: "HEAL_PER_MONSTER", amountPerMonster: 500, maxAmount: 2000 },
+    });
+    expect(byId("call_beyond")).toMatchObject({ effect: { kind: "REVIVE_MONSTER", maxLevel: 4 } });
+    expect(byId("runic_seal")).toMatchObject({ trigger: "SPELL_ACTIVATION", effect: { kind: "NEGATE_SPELL" } });
+    expect(byId("blazing_colossus")).toMatchObject({ level: 7, attack: 3300, defense: 1600 });
+    expect(byId("granite_giant")).toMatchObject({ level: 7, attack: 2200, defense: 2700 });
   });
 
   it("cobre_faixas_de_nivel_e_ao_menos_3_magias_e_3_armadilhas", () => {

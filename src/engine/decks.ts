@@ -9,6 +9,17 @@ export type DealtDecks = {
   seed: number;
 };
 
+/**
+ * Pool legado: as 20 cartas originais. Enquanto não houver decks fixos, `dealDecks` sorteia só sobre ele.
+ * Remover quando a issue de decks fixos entrar.
+ */
+const LEGACY_POOL = new Set([
+  "ash_sprite", "moss_golem", "dune_scout", "tide_imp", "bone_knight", "crystal_bat",
+  "storm_hawk", "iron_minotaur", "frost_witch", "ash_dragon", "abyss_titan",
+  "healing_spring", "power_surge", "wind_gust", "fire_bolt", "arcane_draw",
+  "spike_pit", "divine_glory_evasion", "hidden_snare", "dark_veil",
+]);
+
 const CATEGORIES = ["LOW_MONSTER", "MID_MONSTER", "HIGH_MONSTER", "SPELL", "TRAP"] as const;
 type Category = (typeof CATEGORIES)[number];
 
@@ -30,7 +41,7 @@ export const dealDecks = (seed: number): DealtDecks => {
   let extraTo: "P1" | "P2" = "P1";
   for (const category of CATEGORIES) {
     const shuffled = shuffle(
-      CARDS.filter((card) => categoryOf(card) === category).map((card) => card.id),
+      CARDS.filter((card) => LEGACY_POOL.has(card.id) && categoryOf(card) === category).map((card) => card.id),
       current,
     );
     current = shuffled.seed;
