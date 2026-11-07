@@ -114,13 +114,24 @@ describe("pickSlot", () => {
       const pos = slotPosition(slot.side, slot.kind, slot.zone);
       expect(pos).toEqual({ x: slot.x, z: slot.z });
     }
+    // A varredura roda ~71 mil pontos; expect por ponto custava ~2s (estourava o timeout sob carga).
+    // Acumulamos as divergências e afirmamos uma única vez (lista vazia = nenhuma divergência).
+    const divergencias: string[] = [];
     for (let x = -8; x <= 8; x += 0.05) {
       for (let z = -5.5; z <= 5.5; z += 0.05) {
-        const hits = slots.filter((s) => Math.abs(x - s.x) <= width / 2 && Math.abs(z - s.z) <= height / 2);
-        expect(hits.length).toBeLessThanOrEqual(1);
-        expect(pickSlot(x, z)?.key).toBe(hits[0]?.key);
+        let count = 0;
+        let first: string | undefined;
+        for (const s of slots) {
+          if (Math.abs(x - s.x) <= width / 2 && Math.abs(z - s.z) <= height / 2) {
+            if (count === 0) first = s.key;
+            count += 1;
+          }
+        }
+        const picked = pickSlot(x, z)?.key;
+        if (count > 1 || picked !== first) divergencias.push(`(${x}, ${z}): ${count} slots, esperado ${first}, obtido ${picked}`);
       }
     }
+    expect(divergencias).toEqual([]);
   });
 
   it("devolve_null_fora_de_qualquer_slot", () => {
