@@ -13,7 +13,7 @@ export type Selection =
   | { kind: "monster"; zone: number }
   | { kind: "summon"; cardId: string; set: boolean; tributes: readonly string[] }
   | { kind: "attack"; attackerCardId: string }
-  | { kind: "spellTarget"; cardId: string; side: "you" | "opponent" };
+  | { kind: "spellTarget"; cardId: string; side: "you" | "opponent"; slotKind?: "spellTrap" };
 
 /** Botão da interface: ou envia uma ação, ou muda a seleção (`null` limpa). */
 export type Command = { label: string; action?: Action; select?: Selection | null };
@@ -53,6 +53,10 @@ const activateSpell = (cardId: string): Command => {
   const effect = card?.type === "SPELL" ? card.effect.kind : null;
   if (effect === "BOOST_ATTACK") return { label: "Ativar magia", select: { kind: "spellTarget", cardId, side: "you" } };
   if (effect === "DESTROY_MONSTER") return { label: "Ativar magia", select: { kind: "spellTarget", cardId, side: "opponent" } };
+  if (effect === "BOUNCE_MONSTER") return { label: "Ativar magia", select: { kind: "spellTarget", cardId, side: "opponent" } };
+  if (effect === "DESTROY_SPELL_TRAP") {
+    return { label: "Ativar magia", select: { kind: "spellTarget", cardId, side: "opponent", slotKind: "spellTrap" } };
+  }
   return { label: "Ativar magia", action: { type: "ACTIVATE_SPELL", cardId } };
 };
 
@@ -186,9 +190,10 @@ export const slotClick = (view: PlayerView, selection: Selection | null, slot: S
     return { selection: null, action: { type: "ATTACK", attackerCardId: selection.attackerCardId, targetZone: slot.zone } };
   }
 
-  if (selection?.kind === "spellTarget" && slot.side === selection.side && slot.kind === "monster") {
-    const monsters = slot.side === "you" ? view.you.monsters : view.opponent.monsters;
-    if (!monsters[slot.zone]) return { selection };
+  if (selection?.kind === "spellTarget" && slot.side === selection.side && slot.kind === (selection.slotKind ?? "monster")) {
+    const side = slot.side === "you" ? view.you : view.opponent;
+    const zones = slot.kind === "monster" ? side.monsters : side.spellTraps;
+    if (!zones[slot.zone]) return { selection };
     return { selection: null, action: { type: "ACTIVATE_SPELL", cardId: selection.cardId, targetZone: slot.zone } };
   }
 
@@ -207,6 +212,10 @@ export const highlightKeys = (view: PlayerView, selection: Selection | null): st
     (side === "you" ? view.you.monsters : view.opponent.monsters).flatMap((m, zone) =>
       m ? [slotKey(side, "monster", zone)] : [],
     );
+  const spellTrapKeys = (side: "you" | "opponent"): string[] =>
+    (side === "you" ? view.you.spellTraps : view.opponent.spellTraps).flatMap((s, zone) =>
+      s ? [slotKey(side, "spellTrap", zone)] : [],
+    );
   switch (selection.kind) {
     case "monster":
       return [slotKey("you", "monster", selection.zone)];
@@ -217,7 +226,7 @@ export const highlightKeys = (view: PlayerView, selection: Selection | null): st
     case "attack":
       return monsterKeys("opponent");
     case "spellTarget":
-      return monsterKeys(selection.side);
+      return selection.slotKind === "spellTrap" ? spellTrapKeys(selection.side) : monsterKeys(selection.side);
     case "summon":
       return selection.tributes.length < summonNeeded(selection.cardId)
         ? monsterKeys("you")
@@ -246,6 +255,7 @@ export const selectionHint = (view: PlayerView, selection: Selection | null): st
         ? "Clique no monstro do oponente que será atacado."
         : "O oponente não tem monstros: faça um ataque direto.";
     case "spellTarget":
+      if (selection.slotKind === "spellTrap") return "Clique na magia ou armadilha do oponente alvo da magia.";
       return selection.side === "you" ? "Clique no seu monstro alvo da magia." : "Clique no monstro do oponente alvo da magia.";
     case "summon": {
       const left = summonNeeded(selection.cardId) - selection.tributes.length;
