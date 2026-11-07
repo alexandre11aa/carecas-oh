@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { createMatch } from "../engine/createMatch.js";
 import { playerView } from "../engine/playerView.js";
-import { lobbyRoomsFromPayload, matchForRoom, type PublicRoom } from "./state.js";
+import { lobbyRoomsFromPayload, matchForRoom, roomPage, type PublicRoom } from "./state.js";
 
 const room = (hasMatch: boolean, ready: boolean[] = []): PublicRoom => ({
   code: "ABCD",
@@ -48,5 +48,20 @@ describe("lobbyRoomsFromPayload", () => {
   it("devolve_lista_vazia_para_payload_invalido", () => {
     expect(lobbyRoomsFromPayload(null)).toEqual([]);
     expect(lobbyRoomsFromPayload({ rooms: "x" })).toEqual([]);
+  });
+});
+
+describe("roomPage", () => {
+  it("abre_a_mesa_quando_ha_partida", () => {
+    expect(roomPage(room(true), view)).toBe("match");
+    expect(roomPage({ ...room(true), vsAi: true, aiLevel: "easy" }, view)).toBe("match");
+  });
+
+  it("mostra_a_sala_de_espera_numa_sala_comum_sem_partida", () => {
+    expect(roomPage(room(false, [false]), null)).toBe("waiting");
+  });
+
+  it("sala_contra_a_ia_sem_partida_ainda_nao_mostra_a_sala_de_espera", () => {
+    expect(roomPage({ ...room(true), vsAi: true, aiLevel: "hard" }, null)).toBe("starting");
   });
 });
