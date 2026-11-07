@@ -1,10 +1,24 @@
 // src/server/services/aiPlay.test.ts
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AiLevel, MatchState, PlayerState } from "../../engine/index.js";
+import type { AiDecision, AiLevel, MatchState, PlayerState } from "../../engine/index.js";
 import { createRoomStore, type Room } from "../store/roomStore.js";
 import { AI_DELAY_MS, createRoomService, TURN_TIME_MS, type AiMove, type Clock, type TurnExpiry } from "./roomService.js";
 
 const START = 1_000_000;
+
+// `chooseAiAction` passa direto para a engine real; os testes de fallback sobrescrevem a próxima decisão.
+const ai = vi.hoisted(() => ({ override: null as null | ((input: unknown) => unknown) }));
+vi.mock("../../engine/index.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../engine/index.js")>();
+  return {
+    ...actual,
+    chooseAiAction: (input: Parameters<typeof actual.chooseAiAction>[0]) => {
+      const fn = ai.override;
+      ai.override = null;
+      return fn ? (fn(input) as AiDecision) : actual.chooseAiAction(input);
+    },
+  };
+});
 
 /** Relógio falso manual: só avança quando o teste manda, sem timers reais. */
 const createFakeClock = () => {
@@ -39,16 +53,17 @@ const createFakeClock = () => {
 };
 
 beforeEach(() => {
+  ai.override = null;
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const setup = (level: AiLevel = "medium") => {
+const setup = (level: AiLevel = "medium", aiMaxActionsPerTurn?: number) => {
   const fake = createFakeClock();
   const store = createRoomStore();
-  const service = createRoomService(store, { clock: fake.clock });
+  const service = createRoomService(store, { clock: fake.clock, ...(aiMaxActionsPerTurn ? { aiMaxActionsPerTurn } : {}) });
   const moves: AiMove[] = [];
   const expiries: TurnExpiry[] = [];
   service.onAiMove((move) => moves.push(move));
@@ -319,5 +334,146 @@ describe("sigilo da IA", () => {
         expect(d.view?.opponent).not.toHaveProperty("deck");
       }
     }
+  });
+});
+
+describe("limite de ações e fallback da IA", () => {
+  it("perto_do_limite_por_turno_so_fecha_o_turno_e_devolve_a_vez_ao_humano_com_prazo", () => {
+    const ctx = setup("hard", 4);
+    const created = createStartedBy(ctx, "bot");
+    const code = created.room.code;
+    // A IA "quer" jogar sempre uma ação inócua; o limite (4, reserva de 2) força o fechamento.
+    const consulted = vi.fn();
+    for (let i = 0; i < 2; i++) {
+      ai.override = () => {
+        consulted();
+        return { action: { type: "NEXT_PHASE" }, seed: 1 };
+      };
+      ctx.fake.advance(AI_DELAY_MS);
+    }
+    // 1ª ação: compra (NEXT_PHASE); 2ª: MAIN_1 -> BATTLE. Com 2 ações feitas, o fechamento é forçado.
+    expect(consulted).toHaveBeenCalledTimes(2);
+    ai.override = () => {
+      throw new Error("a estratégia não deveria ser consultada no fechamento forçado");
+    };
+    ctx.fake.advance(AI_DELAY_MS);
+    ai.override = null;
+    const match = ctx.room(code).match!;
+    expect(ctx.moves).toHaveLength(3);
+    expect(ctx.moves.at(-1)!.deliveries[0]!.events.some((e) => e.type === "TURN_STARTED")).toBe(true);
+    expect(match.state.currentPlayer).toBe("P1");
+    expect(match.turnDeadline).toBe(ctx.fake.clock.now() + TURN_TIME_MS);
+  });
+
+  it("acao_recusada_pela_engine_na_compra_vira_NEXT_PHASE_e_registra_o_erro", () => {
+    const ctx = setup("easy");
+    const created = createStartedBy(ctx, "bot");
+    const code = created.room.code;
+    ai.override = () => ({ action: { type: "ATTACK", attackerCardId: "nao_existe", targetZone: null }, seed: 5 });
+    ctx.fake.advance(AI_DELAY_MS);
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining("IA recusada pela engine"));
+    expect(ctx.moves).toHaveLength(1);
+    expect(ctx.room(code).match!.state.phase).toBe("MAIN_1");
+    // A partida segue: a IA joga normalmente depois.
+    ctx.fake.advance(AI_DELAY_MS);
+    expect(ctx.moves).toHaveLength(2);
+  });
+
+  it("acao_recusada_fora_da_compra_vira_END_TURN_e_a_vez_volta_ao_humano", () => {
+    const ctx = setup("easy");
+    const created = createStartedBy(ctx, "bot");
+    const code = created.room.code;
+    ctx.forceState(code, (s) => ({ ...s, phase: "MAIN_1", turn: 4 }));
+    ai.override = () => ({ action: { type: "ACTIVATE_TRAP", cardId: "nao_existe" }, seed: 5 });
+    ctx.fake.advance(AI_DELAY_MS);
+    expect(console.error).toHaveBeenCalledTimes(1);
+    const match = ctx.room(code).match!;
+    expect(match.state.currentPlayer).toBe("P1");
+    expect(match.turnDeadline).toBe(ctx.fake.clock.now() + TURN_TIME_MS);
+  });
+
+  it("acao_recusada_com_janela_aberta_vira_PASS_RESPONSE", () => {
+    const ctx = setup("easy");
+    const created = createStartedBy(ctx, "human");
+    const code = created.room.code;
+    ctx.forceState(code, (s) => {
+      let next: MatchState = { ...s, turn: 5, phase: "MAIN_1", currentPlayer: "P1" };
+      next = patchPlayer(next, "P1", { hand: ["dune_scout"], monsters: pad([]), normalSummonUsed: false });
+      return patchPlayer(next, "P2", { spellTraps: pad([{ cardId: "hidden_snare", faceDown: true, setOnTurn: 1 }]) });
+    });
+    ctx.service.submitAction({
+      connectionId: "a",
+      action: { type: "SUMMON_CARD", cardId: "dune_scout", tributeCardIds: [], zone: 0 },
+    });
+    expect(ctx.room(code).match!.state.pendingResponse?.responder).toBe("P2");
+    ai.override = () => ({ action: { type: "ACTIVATE_TRAP", cardId: "nao_existe" }, seed: 5 });
+    ctx.fake.advance(AI_DELAY_MS);
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining("IA recusada pela engine"));
+    expect(ctx.moves[0]!.deliveries[0]!.events.some((e) => e.type === "RESPONSE_PASSED")).toBe(true);
+    const match = ctx.room(code).match!;
+    expect(match.state.pendingResponse).toBeNull();
+    expect(match.state.players.P1.monsters[0]?.cardId).toBe("dune_scout");
+    expect(match.turnDeadline).not.toBeNull();
+  });
+});
+
+describe("reconexão do humano no turno da IA", () => {
+  it("rejoin_tem_turnDeadline_null_e_as_proximas_acoes_vao_a_nova_conexao_sem_timer_duplicado", () => {
+    const ctx = setup("medium");
+    const created = createStartedBy(ctx, "bot");
+    ctx.fake.advance(AI_DELAY_MS);
+    expect(ctx.moves).toHaveLength(1);
+    ctx.service.disconnectPlayer({ connectionId: "a" });
+    const rejoined = ctx.service.rejoinRoom({ token: created.token, connectionId: "a2" });
+    if (!rejoined.ok) throw new Error("rejoin falhou");
+    expect(rejoined.turnDeadline).toBeNull();
+    expect(rejoined.view?.currentPlayer).toBe("P2");
+    // Reconectar não cria agendamento extra: ainda há exatamente um timer da IA.
+    expect(ctx.fake.pendingCount()).toBe(1);
+    ctx.fake.advance(AI_DELAY_MS);
+    expect(ctx.moves).toHaveLength(2);
+    expect(ctx.moves[1]!.deliveries.map((d) => d.connectionId)).toEqual(["a2"]);
+  });
+});
+
+describe("estado interno da IA", () => {
+  it("e_esquecido_quando_a_IA_vence_quando_o_humano_vence_e_quando_a_sala_sai", () => {
+    const ctx = setup("hard");
+    const bot = createStartedBy(ctx, "bot");
+    ctx.fake.advance(AI_DELAY_MS);
+    expect(ctx.service.aiRunCount()).toBe(1);
+    ctx.forceState(bot.room.code, (s) => {
+      let next: MatchState = { ...s, turn: 6, phase: "BATTLE", currentPlayer: "P2" };
+      next = patchPlayer(next, "P1", { lifePoints: 100, monsters: pad([]), spellTraps: pad([]) });
+      return patchPlayer(next, "P2", { monsters: pad([monster("dune_scout")]) });
+    });
+    for (let i = 0; i < 10 && !ctx.room(bot.room.code).match!.outcome; i++) ctx.fake.advance(AI_DELAY_MS);
+    expect(ctx.room(bot.room.code).match!.outcome?.winner).toBe("P2");
+    expect(ctx.service.aiRunCount()).toBe(0);
+
+    ctx.service.leaveRoom({ connectionId: "a" });
+    const human = createStartedBy(ctx, "human");
+    ctx.service.submitAction({ connectionId: "a", action: { type: "NEXT_PHASE" } });
+    ctx.service.submitAction({ connectionId: "a", action: { type: "END_TURN" } });
+    ctx.fake.advance(AI_DELAY_MS);
+    expect(ctx.service.aiRunCount()).toBe(1);
+    ctx.forceState(human.room.code, (s) => {
+      let next: MatchState = { ...s, turn: 7, phase: "BATTLE", currentPlayer: "P1" };
+      next = patchPlayer(next, "P1", { monsters: pad([monster("dune_scout")]) });
+      return patchPlayer(next, "P2", { lifePoints: 100, monsters: pad([]), spellTraps: pad([]) });
+    });
+    ctx.service.submitAction({
+      connectionId: "a",
+      action: { type: "ATTACK", attackerCardId: "dune_scout", targetZone: null },
+    });
+    expect(ctx.room(human.room.code).match!.outcome?.winner).toBe("P1");
+    expect(ctx.service.aiRunCount()).toBe(0);
+    ctx.service.leaveRoom({ connectionId: "a" });
+
+    createStartedBy(ctx, "bot");
+    ctx.fake.advance(AI_DELAY_MS);
+    expect(ctx.service.aiRunCount()).toBe(1);
+    ctx.service.leaveRoom({ connectionId: "a" });
+    expect(ctx.service.aiRunCount()).toBe(0);
   });
 });
