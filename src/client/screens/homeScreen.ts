@@ -5,7 +5,7 @@ import { getState, loadNickname, saveNickname } from "../state.js";
 import { el, type Screen } from "./dom.js";
 import { errorMessage } from "./errorMessages.js";
 import { NICKNAME_HINT, canSubmitNickname } from "./nickname.js";
-import { createTutorial } from "./tutorialScreen.js";
+import { createTutorialLinks } from "./tutorialScreen.js";
 import { isTutorialVisible } from "./tutorialSections.js";
 
 const DECO_FRONT_PATH = "/cards/esquiva_da_gloria_divina.png";
@@ -162,18 +162,11 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
   update();
   if (presetCode) return { element: home, update };
   subscribeLobby();
-  // Tutorial abaixo do lobby: só na home geral.
-  const tutorial = isTutorialVisible(presetCode) ? createTutorial() : null;
-  if (tutorial) {
-    element.append(tutorial.cta);
-    home.append(tutorial.element);
-  }
+  // Links para guia e cartas: só na home geral.
+  if (isTutorialVisible(presetCode)) element.append(createTutorialLinks());
   return {
     element: home,
     update,
-    destroy: () => {
-      unsubscribeLobby();
-      tutorial?.destroy();
-    },
+    destroy: unsubscribeLobby,
   };
 };
