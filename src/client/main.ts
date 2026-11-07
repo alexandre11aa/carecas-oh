@@ -4,7 +4,7 @@ import { createHomeScreen } from "./screens/homeScreen.js";
 import { createMatchScreen } from "./screens/matchScreen.js";
 import { createLoadingScreen } from "./screens/loadingScreen.js";
 import { createCardsPage, createGuidePage } from "./screens/tutorialScreen.js";
-import { resolveRoute, routePath } from "./screens/routes.js";
+import { pathAfterRoomExit, resolveRoute, routePath } from "./screens/routes.js";
 import { createWaitingRoomScreen } from "./screens/waitingRoomScreen.js";
 import type { Screen } from "./screens/dom.js";
 import { getState, loadNickname, subscribe } from "./state.js";
@@ -20,9 +20,14 @@ const codeFromUrl = (): string | null => {
 let currentKey = "";
 let current: Screen | null = null;
 let autoJoinTried = false;
+let hadRoom = false;
 
 const render = () => {
   const state = getState();
+  // Sair da sala devolve a URL a `/`, para a home aparecer normal (não como convite).
+  const exitPath = pathAfterRoomExit(hadRoom, !!state.room, location.pathname);
+  if (exitPath) history.replaceState(null, "", exitPath);
+  if (!state.booting) hadRoom = !!state.room;
   const route = resolveRoute(location.pathname);
   const urlCode = codeFromUrl();
 

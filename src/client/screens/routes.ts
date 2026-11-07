@@ -30,3 +30,11 @@ export const routePath = (route: Route): string => {
       return "/";
   }
 };
+
+/**
+ * Ao sair da sala (havia sala e deixou de haver), a URL `/sala/CODIGO` volta a `/`
+ * e a home aparece normal. Devolve o novo caminho, ou null se nada deve mudar
+ * (quem abre `/sala/CODIGO` direto continua vendo o convite).
+ */
+export const pathAfterRoomExit = (hadRoom: boolean, hasRoom: boolean, pathname: string): string | null =>
+  hadRoom && !hasRoom && resolveRoute(pathname).page === "room" ? "/" : null;

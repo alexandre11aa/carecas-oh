@@ -1,6 +1,6 @@
 // src/client/screens/routes.test.ts
 import { describe, expect, it } from "vitest";
-import { resolveRoute, routePath } from "./routes.js";
+import { pathAfterRoomExit, resolveRoute, routePath } from "./routes.js";
 
 describe("resolveRoute", () => {
   it("resolve_a_raiz_para_a_home", () => {
@@ -32,5 +32,18 @@ describe("routePath", () => {
     expect(routePath({ page: "guide" })).toBe("/guia");
     expect(routePath({ page: "cards" })).toBe("/cartas");
     expect(routePath({ page: "room", code: "ABCD" })).toBe("/sala/ABCD");
+  });
+});
+
+describe("pathAfterRoomExit", () => {
+  it("volta_para_a_raiz_ao_sair_da_sala", () => {
+    expect(pathAfterRoomExit(true, false, "/sala/ABCD")).toBe("/");
+  });
+  it("mantem_o_convite_de_quem_abriu_a_url_direto", () => {
+    expect(pathAfterRoomExit(false, false, "/sala/ABCD")).toBeNull();
+  });
+  it("nao_muda_enquanto_ha_sala_ou_fora_de_rota_de_sala", () => {
+    expect(pathAfterRoomExit(true, true, "/sala/ABCD")).toBeNull();
+    expect(pathAfterRoomExit(true, false, "/guia")).toBeNull();
   });
 });
