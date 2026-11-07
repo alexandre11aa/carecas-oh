@@ -111,9 +111,9 @@ describe("SUMMON_CARD", () => {
     expect(r.state.players[p].monsters.map((m) => m?.cardId ?? null)).toEqual(["ash_dragon", null, null, null, null]);
   });
 
-  it("nivel_8_exige_2_tributos", () => {
-    const { state, p } = setup({ hand: ["abyss_titan"], monsters: [field("tide_imp"), null, null, null, null] });
-    expect(run(state, p, summon("abyss_titan", 1, ["tide_imp"]))).toEqual({ ok: false, code: "NOT_ENOUGH_TRIBUTES" });
+  it("nivel_7_exige_2_tributos", () => {
+    const { state, p } = setup({ hand: ["ash_dragon"], monsters: [field("tide_imp"), null, null, null, null] });
+    expect(run(state, p, summon("ash_dragon", 1, ["tide_imp"]))).toEqual({ ok: false, code: "NOT_ENOUGH_TRIBUTES" });
   });
 
   it("rejeita_tributos_a_mais_repetidos_ou_fora_do_campo", () => {
