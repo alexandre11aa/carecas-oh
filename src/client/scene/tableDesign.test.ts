@@ -1,6 +1,6 @@
 // src/client/scene/tableDesign.test.ts
 import { describe, expect, it } from "vitest";
-import { ROW_Z, ZONE_COUNT, ZONE_SPACING, allSlots, CARD_HEIGHT, CARD_WIDTH } from "./layout.js";
+import { ROW_Z, ZONE_COUNT, ZONE_SPACING, allSlots, slotPosition, CARD_HEIGHT, CARD_WIDTH } from "./layout.js";
 import {
   BACKGROUND_GRADIENT,
   FRAME_BORDER,
@@ -55,6 +55,40 @@ describe("zonas", () => {
         const area = Math.max(0, overlapX - 1e-9) * Math.max(0, overlapZ - 1e-9);
         expect(area, `${a.key} x ${b.key}`).toBe(0);
       }
+    }
+  });
+  it("carta_em_defesa_girada_cabe_no_espacamento_e_nao_toca_a_vizinha", () => {
+    // Girada 90 graus, a largura no eixo x passa a ser CARD_HEIGHT.
+    expect(CARD_HEIGHT).toBeLessThanOrEqual(ZONE_SPACING);
+    expect(ZONE_SPACING - CARD_HEIGHT).toBeGreaterThanOrEqual(0.05);
+    for (const side of ["you", "opponent"] as const) {
+      for (const kind of ["monster", "spellTrap"] as const) {
+        for (let zone = 0; zone + 1 < ZONE_COUNT; zone++) {
+          const a = slotPosition(side, kind, zone);
+          const b = slotPosition(side, kind, zone + 1);
+          expect(Math.abs(a.x - b.x) - CARD_HEIGHT).toBeGreaterThanOrEqual(0.05);
+        }
+      }
+    }
+  });
+  it("carta_em_defesa_girada_nao_alcanca_a_pilha_e_cabe_na_altura_da_zona", () => {
+    const outer = zoneOuterSize();
+    const lastZone = slotPosition("you", "monster", ZONE_COUNT - 1);
+    const pile = slotPosition("you", "graveyard");
+    expect(lastZone.x + CARD_HEIGHT / 2).toBeLessThan(pile.x - outer.width / 2);
+    expect(CARD_WIDTH).toBeLessThanOrEqual(outer.height);
+  });
+  it("extremos_simetricos_e_pilhas_dentro_da_mesa_e_da_moldura", () => {
+    const outer = zoneOuterSize();
+    const frame = frameSize();
+    const xs = allSlots().map((s) => s.x);
+    expect(Math.max(...xs)).toBeCloseTo(-Math.min(...xs), 10);
+    expect(Math.max(...xs) + outer.width / 2).toBeLessThanOrEqual(TABLE_WIDTH / 2);
+    expect(Math.max(...xs) + outer.width / 2).toBeLessThan(frame.width / 2);
+    for (const kind of ["monster", "spellTrap", "deck", "graveyard"] as const) {
+      const y = slotPosition("you", kind, 0);
+      const o = slotPosition("opponent", kind, 0);
+      expect(o).toEqual({ x: -y.x, z: -y.z });
     }
   });
   it("todas_as_zonas_ficam_dentro_da_mesa", () => {

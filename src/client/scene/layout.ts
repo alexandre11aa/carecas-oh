@@ -6,7 +6,8 @@ import { zoneOuterSize } from "./tableDesign.js";
 export const CARD_HEIGHT = 2;
 /** Proporção das artes: 1030:1500. */
 export const CARD_WIDTH = (CARD_HEIGHT * 1030) / 1500;
-export const ZONE_SPACING = 1.8;
+/** Espaçamento entre zonas: comporta a carta em defesa girada (largura = CARD_HEIGHT = 2,0) com folga de 0,1. */
+export const ZONE_SPACING = 2.1;
 export const ZONE_COUNT = 5;
 
 /** Lado da mesa: "you" fica perto da câmera, "opponent" do lado oposto. */
@@ -28,7 +29,8 @@ export type CardPlacement = {
 
 /** Z de cada fileira (lado "you"); a altura externa da zona deve caber na distância entre fileiras. */
 export const ROW_Z: Record<SlotKind, number> = { monster: 1.4, spellTrap: 3.6, graveyard: 1.4, deck: 3.6 };
-export const PILE_X = 5.6;
+/** Centro das pilhas: borda interna (6,1 - 0,765) fica além da carta de defesa da zona da ponta (4,2 + 1,0). */
+export const PILE_X = 6.1;
 
 /** Posição de um slot; o lado do oponente é a mesa girada 180 graus. */
 export const slotPosition = (side: Side, kind: SlotKind, zone = 0): { x: number; z: number } => {
