@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { ROW_Z, ZONE_COUNT, ZONE_SPACING, allSlots, slotPosition, CARD_HEIGHT, CARD_WIDTH } from "./layout.js";
 import {
+  ZONE_STYLES,
   BACKGROUND_GRADIENT,
   FRAME_BORDER,
   TABLE_DEPTH,
@@ -126,5 +127,24 @@ describe("degradê do fundo", () => {
     expect(isValidGradient([{ offset: 0, color: "#000" }])).toBe(false);
     expect(isValidGradient([{ offset: 0, color: "#000" }, { offset: 1.2, color: "#fff" }])).toBe(false);
     expect(isValidGradient([{ offset: 0.6, color: "#000" }, { offset: 0.3, color: "#fff" }])).toBe(false);
+  });
+});
+
+describe("contraste_dos_contornos_sobre_a_textura", () => {
+  // Cor representativa dos tijolos roxos da textura da mesa (estimada da imagem; o reviewer mediu ~3,5 a 6:1).
+  const BRICK = 0x3a2a45;
+  const channel = (v: number) => {
+    const s = v / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  const luminance = (c: number) => 0.2126 * channel((c >> 16) & 255) + 0.7152 * channel((c >> 8) & 255) + 0.0722 * channel(c & 255);
+  const ratio = (a: number, b: number) => {
+    const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (hi + 0.05) / (lo + 0.05);
+  };
+  it("todos_os_contornos_tem_contraste_minimo_3_para_1", () => {
+    for (const group of Object.keys(ZONE_STYLES) as (keyof typeof ZONE_STYLES)[]) {
+      expect(ratio(ZONE_STYLES[group].outline, BRICK), String(group)).toBeGreaterThanOrEqual(3);
+    }
   });
 });

@@ -18,12 +18,12 @@ export const FRAME_TRIM_COLOR = 0xc8a23a;
 export type ZoneStyle = { fill: number; outline: number };
 export type ZoneGroup = "monster" | "spellTrap" | "deck" | "graveyard";
 
-/** Cores por tipo de zona (alinhadas aos tokens --c-monster, --c-spell, --c-gold e --c-trap do HUD). */
+/** Cores por tipo de zona. Os contornos são mais claros que os tokens do HUD (--c-spell, --c-trap) para manterem contraste >= 3:1 sobre a textura da mesa. */
 export const ZONE_STYLES: Record<ZoneGroup, ZoneStyle> = {
   monster: { fill: 0x3a2c1c, outline: 0xb5803a },
-  spellTrap: { fill: 0x16322e, outline: 0x2f8a78 },
+  spellTrap: { fill: 0x16322e, outline: 0x3fb59e },
   deck: { fill: 0x2a2440, outline: 0xc8a23a },
-  graveyard: { fill: 0x2c1c30, outline: 0x8a3a6a },
+  graveyard: { fill: 0x2c1c30, outline: 0xc2639a },
 };
 
 export const zoneStyle = (kind: SlotKind): ZoneStyle => ZONE_STYLES[kind];
