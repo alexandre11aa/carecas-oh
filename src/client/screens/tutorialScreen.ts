@@ -1,8 +1,9 @@
 // src/client/screens/tutorialScreen.ts
-import { el, linkTo } from "./dom.js";
+import { el } from "./dom.js";
 import type { Screen } from "./dom.js";
 import { createFooter } from "./footer.js";
 import { createHero } from "./hero.js";
+import { createScrollButton } from "./scrollButtonView.js";
 import { createCardView } from "./cardView.js";
 import {
   GUIDE_SECTIONS,
@@ -38,9 +39,16 @@ const renderBlock = (block: TutorialBlock): HTMLElement => {
 
 const createPage = (title: string, content: HTMLElement[], destroy?: () => void): Screen => {
   const element = el("div", "home tutorial-page");
-  const back = linkTo("/", "Voltar ao menu", "tutorial-cta tutorial-back");
-  element.append(back, createHero(title), ...content, createFooter());
-  return { element, update: () => undefined, destroy };
+  const scrollButton = createScrollButton();
+  element.append(createHero(title), ...content, createFooter(), scrollButton.element);
+  return {
+    element,
+    update: () => undefined,
+    destroy: () => {
+      scrollButton.destroy();
+      destroy?.();
+    },
+  };
 };
 
 /** Página `/guia`: menu de âncoras e seções do guia; a seção ativa vem de um IntersectionObserver, da rolagem (fim da página) e do hash. */

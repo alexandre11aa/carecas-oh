@@ -259,14 +259,12 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .home input:focus-visible, .themed input:focus-visible { outline: 3px solid var(--c-gold-light); outline-offset: 1px; }
 .home .panel button, .themed button { font-family: var(--font-title); letter-spacing: 0.03em; color: var(--c-text); background: linear-gradient(180deg, var(--c-btn-top), var(--c-btn-bottom)); border: var(--border-gold); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5); transition: transform 0.12s, border-color 0.12s; }
 .home .panel button:hover:not(:disabled), .themed button:hover:not(:disabled) { background: linear-gradient(180deg, var(--c-btn-hover-top), var(--c-btn-hover-bottom)); border-color: var(--c-gold-light); transform: translateY(-1px); }
-.home .panel button:focus-visible, .themed button:focus-visible, .home .tutorial-cta:focus-visible { outline: 3px solid var(--c-gold-light); outline-offset: 2px; }
+.home .panel button:focus-visible, .themed button:focus-visible { outline: 3px solid var(--c-gold-light); outline-offset: 2px; }
 .home .panel button.primary, .themed button.primary { background: linear-gradient(180deg, var(--c-gold-light), var(--c-gold)); color: var(--c-ink); border-color: var(--c-gold-dark); font-weight: 700; }
 .home .panel button.primary:hover:not(:disabled), .themed button.primary:hover:not(:disabled) { background: linear-gradient(180deg, var(--c-gold-hover), var(--c-gold-light)); }
 .home .panel button:disabled, .themed button:disabled { opacity: 0.55; transform: none; }
 .home .lobby-item { padding: 0.4rem 0.6rem; background: var(--c-input); border: var(--border-gold-thin); border-radius: var(--radius-sm); }
 .home .lobby-code { color: var(--c-gold-light); }
-.home .tutorial-cta { display: inline-block; align-self: center; padding: 0.7rem 1.4rem; font-family: var(--font-title); font-weight: 700; color: var(--c-ink); text-decoration: none; background: linear-gradient(180deg, var(--c-gold-light), var(--c-gold)); border: 2px solid var(--c-gold-dark); border-radius: var(--radius-md); box-shadow: 0 0 14px rgba(255, 211, 77, 0.35), 0 3px 8px rgba(0, 0, 0, 0.6); }
-.home .tutorial-cta:hover { background: linear-gradient(180deg, var(--c-gold-hover), var(--c-gold-light)); text-decoration: none; }
 .themed .players li { background: var(--c-input); border: var(--border-gold-thin); }
 .themed .room-code { font-family: var(--font-title); color: var(--c-gold-light); text-shadow: var(--shadow-text); }
 .themed .spinner { border-color: var(--c-gold-dark); border-top-color: var(--c-gold-light); }
@@ -384,9 +382,14 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .card-view.has-art { padding: 0; border-width: 0; background: transparent; box-shadow: none; }
 
 /* Páginas do guia e das cartas */
-.tutorial-page { gap: 1rem; padding-bottom: 2rem; }
+.tutorial-page { gap: 1rem; padding-bottom: 5rem; }
 .tutorial-page > .hero { box-sizing: border-box; width: 100%; max-width: 44rem; }
-.tutorial-page .tutorial-back { align-self: flex-start; }
+.scroll-button { position: fixed; right: max(0.75rem, env(safe-area-inset-right)); bottom: max(0.75rem, env(safe-area-inset-bottom)); z-index: 4; display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 2.75rem; height: 2.75rem; padding: 0; font-size: 1.2rem; line-height: 1; color: var(--c-text); background: var(--c-panel-alpha); border: var(--border-gold-thin); border-radius: 50%; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5); opacity: 0.6; cursor: pointer; }
+.scroll-button[hidden] { display: none; }
+.scroll-button::before { content: "\2193"; }
+.scroll-button[data-target="top"]::before { content: "\2191"; }
+.scroll-button:hover, .scroll-button:focus-visible { opacity: 1; }
+.scroll-button:focus-visible { outline: 3px solid var(--c-gold-light); outline-offset: 2px; }
 .tutorial-page .tutorial-catalog { max-width: 70rem; }
 
 /* Rodapé de navegação: discreto, fora do fluxo de altura da home (ela segue em 100dvh sem scroll de página) */
