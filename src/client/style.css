@@ -234,7 +234,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 @media (min-width: 37rem) { .hero .game-title { padding-inline: 1.6rem; } }
 /* "Carecas-Oh" numa linha só: em telas estreitas a fonte acompanha a largura para não ser cortada pelas cartas (#153). */
 .home--invite .game-title { font-size: clamp(1.8rem, 5vw, 2.6rem); }
-@media (max-width: 29.99rem) { .home .game-title { font-size: 6.5vw; } }
+@media (max-width: 36.99rem) { .home .game-title { font-size: min(6.5vw, 3.6rem); } }
+@media (max-width: 23.99rem) { .home .game-title { font-size: 6vw; } }
 @media (prefers-reduced-motion: no-preference) {
   .deco-left { animation: deco-float 5s ease-in-out infinite alternate; }
   .deco-right { animation: deco-float 6s ease-in-out infinite alternate-reverse; }
