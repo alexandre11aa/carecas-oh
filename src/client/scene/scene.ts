@@ -22,8 +22,9 @@ import { createCardMesh, updateCardMesh } from "./cardMesh.js";
 import { allSlots, layoutBoard, pickSlot, type Slot } from "./layout.js";
 import { backgroundCover, pickSurface } from "./surfaces.js";
 import { createTable } from "./table.js";
+import { CAMERA_TARGET, cameraDistanceScale, cameraPosition } from "./framing.js";
 import { BACKGROUND_GRADIENT, isValidGradient, zoneOuterSize } from "./tableDesign.js";
-import { BACKGROUND_PATH, TABLE_PATH } from "./texturePaths.js";
+import { BACKGROUND_PATH, TABLE_MAX_TEXTURE_WIDTH, TABLE_PATH } from "./texturePaths.js";
 import { loadTexture } from "./textures.js";
 
 export type MatchScene = {
@@ -91,14 +92,20 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
     fitBackground();
     scene.background = texture;
   });
-  void loadTexture(TABLE_PATH).then((texture) => {
+  void loadTexture(TABLE_PATH, { maxWidth: TABLE_MAX_TEXTURE_WIDTH, anisotropy: 8 }).then((texture) => {
     if (disposed || pickSurface(texture) === "color") return;
     table.setTexture(texture);
   });
 
   const camera = new PerspectiveCamera(45, 1, 0.1, 100);
-  camera.position.set(0, 11, 9);
-  camera.lookAt(0, 0, 0.8);
+  // Enquadramento: recua a câmera a partir do alvo quando o aspecto é estreito (função pura em framing.ts).
+  const frameCamera = (aspect: number) => {
+    const p = cameraPosition(cameraDistanceScale(aspect));
+    camera.position.set(p.x, p.y, p.z);
+    camera.lookAt(CAMERA_TARGET.x, CAMERA_TARGET.y, CAMERA_TARGET.z);
+    camera.updateMatrixWorld(); // o raycaster do clique usa a mesma câmera já atualizada
+  };
+  frameCamera(1);
 
   const meshes = new Map<string, Mesh>();
 
@@ -180,6 +187,7 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
       fitBackground();
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
+      frameCamera(width / height);
     },
     dispose: () => {
       disposed = true;

@@ -4,6 +4,7 @@ import { createMatch } from "../../engine/createMatch.js";
 import { playerView } from "../../engine/playerView.js";
 import type { MatchState } from "../../engine/types.js";
 import { allSlots, CARD_HEIGHT, CARD_WIDTH, layoutBoard, pickSlot, slotPosition } from "./layout.js";
+import { zoneOuterSize } from "./tableDesign.js";
 
 const baseState = (): MatchState => createMatch(123);
 
@@ -78,6 +79,48 @@ describe("pickSlot", () => {
   it("devolve_o_slot_para_pontos_dentro_da_zona_fora_do_centro", () => {
     const { x, z } = slotPosition("opponent", "monster", 2);
     expect(pickSlot(x + 0.5, z - 0.8)?.key).toBe("opponent:monster:2");
+  });
+
+  it("devolve_o_slot_certo_no_centro_e_nas_bordas_e_null_logo_fora", () => {
+    const { width, height } = zoneOuterSize();
+    const eps = 1e-6;
+    for (const slot of allSlots()) {
+      // Bordas testadas com 1e-9 de folga para dentro (evita ruído de ponto flutuante).
+      const hw = width / 2 - 1e-9;
+      const hh = height / 2 - 1e-9;
+      const inside = [
+        [slot.x, slot.z],
+        [slot.x - hw, slot.z - hh],
+        [slot.x + hw, slot.z + hh],
+        [slot.x - hw, slot.z + hh],
+        [slot.x + hw, slot.z - hh],
+        [slot.x + hw, slot.z],
+        [slot.x - hw, slot.z],
+        [slot.x, slot.z + hh],
+        [slot.x, slot.z - hh],
+      ] as const;
+      for (const [x, z] of inside) expect(pickSlot(x, z)?.key).toBe(slot.key);
+      expect(pickSlot(slot.x + hw + eps, slot.z)).toBeNull();
+      expect(pickSlot(slot.x - hw - eps, slot.z)).toBeNull();
+      expect(pickSlot(slot.x, slot.z + hh + eps)).toBeNull();
+      expect(pickSlot(slot.x, slot.z - hh - eps)).toBeNull();
+    }
+  });
+
+  it("area_de_clique_coincide_com_a_zona_desenhada_e_um_ponto_pertence_a_no_maximo_um_slot", () => {
+    const { width, height } = zoneOuterSize();
+    const slots = allSlots();
+    for (const slot of slots) {
+      const pos = slotPosition(slot.side, slot.kind, slot.zone);
+      expect(pos).toEqual({ x: slot.x, z: slot.z });
+    }
+    for (let x = -8; x <= 8; x += 0.05) {
+      for (let z = -5.5; z <= 5.5; z += 0.05) {
+        const hits = slots.filter((s) => Math.abs(x - s.x) <= width / 2 && Math.abs(z - s.z) <= height / 2);
+        expect(hits.length).toBeLessThanOrEqual(1);
+        expect(pickSlot(x, z)?.key).toBe(hits[0]?.key);
+      }
+    }
   });
 
   it("devolve_null_fora_de_qualquer_slot", () => {

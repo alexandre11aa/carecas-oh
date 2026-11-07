@@ -36,7 +36,7 @@ const createPanel = (title: string | null, ...children: HTMLElement[]): HTMLElem
 
 /** Tela inicial. Com `presetCode` (rota /sala/CODIGO) mostra só a entrada na sala indicada. */
 export const createHomeScreen = (presetCode: string | null): Screen => {
-  const home = el("div", "home");
+  const home = el("div", presetCode ? "home home--invite" : "home");
   const element = el("main", "screen");
   home.append(element);
   const hero = el("header", "hero");

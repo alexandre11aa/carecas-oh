@@ -24,6 +24,7 @@ import {
 import { buildNotices, deltaText, lifePercent, lifeSides, MAX_LIFE, type Notice, type NoticeSide } from "./matchNotices.js";
 import { buildCardDetail, slotCardId } from "./cardDetail.js";
 import { applyCardArt } from "./cardArtImage.js";
+import { reusableHandSlots } from "./handReconcile.js";
 import { createCardView } from "./cardView.js";
 import { canSurrender, endSummary, rematchState } from "./matchEnd.js";
 import { actingPlayer, opponentNickname, secondsRemaining, timerLevel, turnBannerText } from "./turnTimer.js";
@@ -88,6 +89,8 @@ export const createMatchScreen = (): Screen => {
   const errorLine = el("p", "error");
   const commandsBox = el("div", "hud-commands");
   const hand = el("div", "hand");
+  let handButtons: HTMLButtonElement[] = [];
+  let handCardIds: string[] = [];
   const bottom = el("div");
   bottom.append(hintLine, errorLine, commandsBox, hand, youInfo);
   youInfo.style.marginTop = "0.5rem";
@@ -123,11 +126,15 @@ export const createMatchScreen = (): Screen => {
   eventNotice.hidden = true;
   const detailPanel = el("aside", "card-detail");
   detailPanel.hidden = true;
-  element.append(canvasBox, hud, detailPanel, turnToast, eventNotice, endOverlay, surrenderOverlay);
+  // Contêiner flex central: empilha toast (acima) e evento (abaixo) sem depender de transform (o GSAP anima scale/y do aviso).
+  const toasts = el("div", "match-toasts");
+  toasts.append(turnToast, eventNotice);
+  element.append(canvasBox, hud, detailPanel, toasts, endOverlay, surrenderOverlay);
 
   // Detalhe da carta sob o ponteiro (mão ou mesa). Guarda só o id; cartas ocultas (null) não mostram nada.
   let detailCardId: string | null = null;
   const showDetail = (cardId: string | null) => {
+    if (cardId !== null && cardId === detailCardId && !detailPanel.hidden) return; // já mostrando: não recria (evita pisca da arte)
     detailCardId = cardId;
     const detail = buildCardDetail(cardId);
     detailPanel.hidden = !detail;
@@ -323,27 +330,39 @@ export const createMatchScreen = (): Screen => {
       }),
     );
 
-    hand.replaceChildren(
-      ...you.hand.map((cardId) => {
-        const { kind, title, detail } = handCardLabel(cardId);
-        const selected = selection?.kind === "hand" && selection.cardId === cardId;
-        const card = el("button", `hand-card ${kind}${selected ? " selected" : ""}`);
-        card.type = "button";
-        card.append(el("b", undefined, title), el("span", undefined, detail));
-        card.setAttribute("aria-label", `${title}. ${detail}`);
-        applyCardArt(card, cardId, title);
-        card.addEventListener("mouseenter", () => showDetail(cardId));
-        card.addEventListener("focus", () => showDetail(cardId));
-        card.addEventListener("mouseleave", () => showDetail(null));
-        card.addEventListener("blur", () => showDetail(null));
-        card.addEventListener("click", () => {
-          showDetail(cardId);
-          selection = handClick(match, selection, cardId);
-          update();
-        });
-        return card;
-      }),
-    );
+    // Reconcilia a mão: botões já existentes para a mesma carta na mesma posição são mantidos (a arte PNG
+    // não é recriada nem recarregada, e o foco do teclado não se perde); só a seleção é atualizada.
+    const reuse = reusableHandSlots(handCardIds, you.hand);
+    const buttons = you.hand.map((cardId, index) => {
+      const selected = selection?.kind === "hand" && selection.cardId === cardId;
+      const existing = reuse[index] ? handButtons[index] : undefined;
+      if (existing) {
+        existing.classList.toggle("selected", selected);
+        return existing;
+      }
+      const { kind, title, detail } = handCardLabel(cardId);
+      const card = el("button", `hand-card ${kind}${selected ? " selected" : ""}`);
+      card.type = "button";
+      card.append(el("b", undefined, title), el("span", undefined, detail));
+      card.setAttribute("aria-label", `${title}. ${detail}`);
+      applyCardArt(card, cardId, title);
+      card.addEventListener("mouseenter", () => showDetail(cardId));
+      card.addEventListener("focus", () => showDetail(cardId));
+      card.addEventListener("mouseleave", () => showDetail(null));
+      card.addEventListener("blur", () => showDetail(null));
+      card.addEventListener("click", () => {
+        if (!lastMatch) return;
+        showDetail(cardId);
+        selection = handClick(lastMatch, selection, cardId); // sempre o estado mais recente, nunca o de quando o botão foi criado
+        update();
+      });
+      return card;
+    });
+    if (buttons.some((button, index) => button !== handButtons[index]) || buttons.length !== handButtons.length) {
+      hand.replaceChildren(...buttons);
+    }
+    handButtons = buttons;
+    handCardIds = [...you.hand];
 
     const surrenderAllowed = canSurrender(match.winner, ended);
     surrenderButton.hidden = !surrenderAllowed;

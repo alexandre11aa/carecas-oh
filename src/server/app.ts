@@ -7,6 +7,9 @@ import { createRoomService } from "./services/roomService.js";
 import { registerHandlers } from "./sockets/handlers.js";
 import { createRoomStore } from "./store/roomStore.js";
 
+const HOME_PATH = "/";
+const ROOM_CODE_PATTERN = /^[A-Za-z0-9]{4}$/;
+
 export type AppOptions = {
   /** Pasta com o frontend compilado (contém index.html). */
   clientDir: string;
@@ -29,8 +32,18 @@ export const createApp = ({ clientDir, abandonTimeoutMs = 60_000 }: AppOptions):
 
   app.use(express.static(clientDir));
 
-  // Rotas de sala (/sala/CODIGO) são resolvidas pelo cliente.
-  app.get("/sala/:code", (_req, res) => {
+  // Rotas de sala: /sala/CODIGO (4 alfanuméricos, como em joinRoomSchema) devolve o index.html e o
+  // cliente resolve a sala. Qualquer outra forma (/sala, /sala/, /sala/ab, /sala/ABCDE) redireciona
+  // para o menu principal. O destino é sempre a constante "/", nunca derivado da requisição.
+  app.get(/^\/sala\/?$/, (_req, res) => {
+    res.redirect(302, HOME_PATH);
+  });
+
+  app.get("/sala/:code", (req, res) => {
+    if (!ROOM_CODE_PATTERN.test(req.params.code)) {
+      res.redirect(302, HOME_PATH);
+      return;
+    }
     res.sendFile(path.join(clientDir, "index.html"));
   });
 

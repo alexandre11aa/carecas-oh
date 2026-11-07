@@ -36,6 +36,30 @@ describe("servidor base", () => {
     expect(await res.text()).toBe(html);
   });
 
+  it("redireciona_sala_sem_codigo_para_o_menu", async () => {
+    for (const url of ["/sala", "/sala/"]) {
+      const res = await fetch(`${baseUrl}${url}`, { redirect: "manual" });
+      expect(res.status).toBe(302);
+      expect(res.headers.get("location")).toBe("/");
+    }
+  });
+
+  it("redireciona_codigo_malformado_para_o_menu", async () => {
+    for (const url of ["/sala/ab", "/sala/ABCDE", "/sala/AB-C"]) {
+      const res = await fetch(`${baseUrl}${url}`, { redirect: "manual" });
+      expect(res.status).toBe(302);
+      expect(res.headers.get("location")).toBe("/");
+    }
+  });
+
+  it("mantem_index_html_para_codigo_valido_minusculo_ou_maiusculo", async () => {
+    for (const url of ["/sala/ABCD", "/sala/ab12"]) {
+      const res = await fetch(`${baseUrl}${url}`, { redirect: "manual" });
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe(html);
+    }
+  });
+
   it("serve_index_html_na_raiz", async () => {
     const res = await fetch(`${baseUrl}/`);
     expect(res.status).toBe(200);

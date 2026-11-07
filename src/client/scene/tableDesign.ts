@@ -7,9 +7,9 @@ export const TABLE_DEPTH = 11;
 /** Largura da moldura em volta da mesa. */
 export const FRAME_BORDER = 0.4;
 /** Folga entre a carta e o interior da zona, em fração do tamanho da carta (mantém 1030:1500). */
-export const ZONE_MARGIN_RATIO = 0.08;
+export const ZONE_MARGIN_RATIO = 0.04;
 /** Espessura do contorno da zona, em fração da altura da carta. */
-export const ZONE_OUTLINE_RATIO = 0.035;
+export const ZONE_OUTLINE_RATIO = 0.025;
 
 export const TABLE_COLOR = 0x1a2a24;
 export const FRAME_COLOR = 0x3a2a12;
@@ -18,12 +18,12 @@ export const FRAME_TRIM_COLOR = 0xc8a23a;
 export type ZoneStyle = { fill: number; outline: number };
 export type ZoneGroup = "monster" | "spellTrap" | "deck" | "graveyard";
 
-/** Cores por tipo de zona (alinhadas aos tokens --c-monster, --c-spell, --c-gold e --c-trap do HUD). */
+/** Cores por tipo de zona. Os contornos são mais claros que os tokens do HUD (--c-spell, --c-trap) para manterem contraste >= 3:1 sobre a textura da mesa. */
 export const ZONE_STYLES: Record<ZoneGroup, ZoneStyle> = {
   monster: { fill: 0x3a2c1c, outline: 0xb5803a },
-  spellTrap: { fill: 0x16322e, outline: 0x2f8a78 },
+  spellTrap: { fill: 0x16322e, outline: 0x3fb59e },
   deck: { fill: 0x2a2440, outline: 0xc8a23a },
-  graveyard: { fill: 0x2c1c30, outline: 0x8a3a6a },
+  graveyard: { fill: 0x2c1c30, outline: 0xc2639a },
 };
 
 export const zoneStyle = (kind: SlotKind): ZoneStyle => ZONE_STYLES[kind];

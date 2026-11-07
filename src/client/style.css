@@ -54,6 +54,12 @@ html { scroll-behavior: smooth; }
   padding: 2rem 1rem;
 }
 
+/* Sala de espera, carregamento e convite (/sala/CODIGO): centralizadas na vertical.
+   margin-block:auto no filho centraliza sem cortar o topo quando o conteúdo é mais alto que a janela
+   (a página rola). A home geral e a partida (.match, fixa) ficam de fora. */
+#app:has(> .themed, > .home--invite) { min-height: 100dvh; }
+#app > .themed, #app > .home--invite { margin-block: auto; }
+
 /* Home: lobby no topo e tutorial em página infinita abaixo (a página rola) */
 .home { display: flex; flex-direction: column; align-items: center; gap: 3rem; width: 100%; }
 .tutorial { width: 100%; max-width: 44rem; }
@@ -169,11 +175,13 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .themed .game-title { font-size: clamp(1.8rem, 8vw, 2.6rem); align-self: center; }
 .hero-subtitle { margin: 0; z-index: 1; color: var(--c-text-dim); text-shadow: var(--shadow-text); }
-.deco-card { position: absolute; top: 1.2rem; width: 4.2rem; aspect-ratio: 1030 / 1500; border-radius: var(--radius-sm); border: 2px solid var(--c-gold); background: linear-gradient(135deg, #3a3560, #1d1a33 60%, var(--c-trap)); box-shadow: var(--shadow-panel); overflow: hidden; pointer-events: none; }
+.hero .deco-card { position: absolute; top: 1.2rem; width: 2.8rem; aspect-ratio: 1030 / 1500; border-radius: var(--radius-sm); border: 2px solid var(--c-gold); background: linear-gradient(135deg, #3a3560, #1d1a33 60%, var(--c-trap)); box-shadow: var(--shadow-panel); overflow: hidden; pointer-events: none; z-index: 2; }
 .deco-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .deco-left { left: 0.2rem; transform: rotate(-14deg); }
 .deco-right { right: 0.2rem; transform: rotate(12deg); }
-@media (min-width: 30rem) { .deco-card { width: 5.5rem; } .deco-left { left: 1rem; } .deco-right { right: 1rem; } }
+@media (min-width: 30rem) { .hero .deco-card { width: 4.5rem; } .deco-left { left: 0.3rem; } .deco-right { right: 0.3rem; } }
+.home .hero .game-title { padding-inline: 3rem; }
+@media (min-width: 37rem) { .home .hero .game-title { padding-inline: 1.6rem; } }
 @media (prefers-reduced-motion: no-preference) {
   .deco-left { animation: deco-float 5s ease-in-out infinite alternate; }
   .deco-right { animation: deco-float 6s ease-in-out infinite alternate-reverse; }
@@ -206,8 +214,16 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .match { position: fixed; inset: 0; overflow: hidden; font-family: var(--font-body); color: var(--c-text); }
 .match-canvas { position: absolute; inset: 0; }
 .match-canvas canvas { display: block; }
-.hud { position: absolute; inset: 0; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 0.75rem; }
-.hud-bar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.hud { position: absolute; inset: 0; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 0.25rem 0.75rem 0.75rem; }
+.hud-bar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 1rem; }
+.hud-bar > :first-child { grid-column: 1; justify-self: start; }
+.hud-bar > .hud-center { grid-column: 2; }
+.hud-bar > .surrender-button { grid-column: 3; grid-row: 1; justify-self: end; align-self: start; }
+@media (max-width: 40rem) {
+  .hud-bar { grid-template-columns: 1fr auto; gap: 0.5rem; }
+  .hud-bar > .hud-center { grid-column: 1 / -1; grid-row: 2; justify-self: center; }
+  .hud-bar > .surrender-button { grid-column: 2; }
+}
 .hud-box { background: linear-gradient(180deg, #24203a, var(--c-panel)); border: var(--border-gold); border-radius: var(--radius-sm); padding: 0.4rem 0.8rem; box-shadow: var(--shadow-panel); color: var(--c-text); }
 .hud-lp { font-family: var(--font-title); font-size: 1.4rem; font-weight: 700; color: var(--c-gold-light); text-shadow: var(--shadow-text); }
 .hud-center { text-align: center; }
@@ -217,7 +233,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .hand-card.spell { border-color: var(--c-spell); }
 .hand-card.trap { border-color: var(--c-trap); }
 .hand-card b { display: block; font-family: var(--font-title); padding-bottom: 0.2rem; margin-bottom: 0.2rem; border-bottom: 1px solid rgba(35, 28, 16, 0.4); }
-.match-notice { position: absolute; top: 40%; width: 100%; text-align: center; }
+.match-notice { position: absolute; top: 50%; left: 0; width: 100%; margin: 0; transform: translateY(-50%); text-align: center; }
 
 /* Partida: interação (botões, dicas, fim) */
 .hud button, .hud .hand-card { pointer-events: auto; }
@@ -236,7 +252,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .end-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(10, 8, 18, 0.78); }
 .end-overlay[hidden] { display: none; }
 .surrender-overlay { z-index: 10; }
-.surrender-button { padding: 0.4rem 0.8rem; font-size: 0.85rem; }
+.surrender-button { box-sizing: border-box; height: 2.1rem; padding: 0 0.8rem; font-size: 0.85rem; line-height: 1; }
 .surrender-button[hidden] { display: none; }
 .end-box { display: flex; flex-direction: column; gap: 0.75rem; min-width: min(18rem, 92vw); max-width: min(24rem, 92vw); padding: 1.5rem; text-align: center; background: linear-gradient(180deg, #262040, var(--c-panel)); color: var(--c-text); border: 3px double var(--c-gold); border-radius: var(--radius-md); box-shadow: var(--shadow-panel); }
 .end-box h2 { margin: 0; font-family: var(--font-title); font-size: 2rem; color: var(--c-gold); text-shadow: var(--shadow-text); }
@@ -250,7 +266,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .turn-countdown.warning { background: #d99a1c; color: #1a1a1a; }
 .turn-countdown.critical { background: #c0392b; color: #fff; animation: turn-pulse 0.6s ease-in-out infinite alternate; }
 @keyframes turn-pulse { from { opacity: 1; } to { opacity: 0.55; } }
-.turn-toast { position: absolute; top: 30%; left: 0; width: 100%; text-align: center; font-family: var(--font-title); font-size: 2.2rem; font-weight: 800; color: var(--c-gold-light); text-shadow: 0 2px 8px #000; pointer-events: none; }
+.match-toasts { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem; padding: 0 5%; pointer-events: none; }
+.turn-toast { max-width: 100%; text-align: center; font-family: var(--font-title); font-size: 2.2rem; font-weight: 800; color: var(--c-gold-light); text-shadow: 0 2px 8px #000; pointer-events: none; }
 
 /* Feedback visual dos eventos: avisos em fila, variação de vida e cemitério */
 .info-box { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 0.2rem 0.5rem; max-width: 22rem; }
@@ -261,13 +278,13 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .life-delta { position: absolute; top: 0; right: 0.5rem; font-size: 1.6rem; font-weight: 800; text-shadow: 0 2px 6px #000; pointer-events: none; }
 .life-delta.damage { color: #ff5a5a; }
 .life-delta.heal { color: var(--c-heal); }
-.event-notice { position: absolute; top: 42%; left: 50%; transform: translateX(-50%); max-width: 90%; padding: 0.5rem 1.2rem; border-radius: var(--radius-md); background: var(--c-panel-alpha); border: var(--border-gold); box-shadow: var(--shadow-panel); font-family: var(--font-title); font-size: 1.3rem; font-weight: 700; text-align: center; text-shadow: var(--shadow-text); pointer-events: none; }
+.event-notice { max-width: 100%; box-sizing: border-box; padding: 0.5rem 1.2rem; border-radius: var(--radius-md); background: var(--c-panel-alpha); border: var(--border-gold); box-shadow: var(--shadow-panel); font-family: var(--font-title); font-size: 1.3rem; font-weight: 700; text-align: center; text-shadow: var(--shadow-text); pointer-events: none; }
 .event-notice[hidden] { display: none; }
 .event-notice.summon { border-color: #4a90d9; }
 .event-notice.graveyard { border-color: #888; }
 .event-notice.damage { border-color: #ff5a5a; }
 .event-notice.heal { border-color: var(--c-heal); }
-.event-notice.end { top: 35%; padding: 1rem 3rem; font-size: 3.2rem; font-weight: 900; color: var(--c-gold-light); border-color: var(--c-gold-light); }
+.event-notice.end { padding: 1rem 3rem; font-size: 3.2rem; font-weight: 900; color: var(--c-gold-light); border-color: var(--c-gold-light); }
 .event-notice.end.defeat { color: var(--c-danger); border-color: #ff5a5a; }
 .end-box h2.victory { color: var(--c-gold-light); }
 .end-box h2.defeat { color: var(--c-danger); }
@@ -280,7 +297,12 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Detalhe da carta (painel em HTML sobre a partida; também usado no tutorial) */
 /* Abaixo do HUD superior (oponente, turno/fase/contagem) e acima da mão/comandos; o conteúdo longo rola dentro do painel */
-.card-detail { position: absolute; top: 10rem; right: 0.75rem; width: min(18rem, 40vw); max-height: max(8rem, calc(100vh - 10rem - 16rem)); overflow-y: auto; pointer-events: none; }
+/* Reserva de 21rem embaixo (dica, comandos e mão). Em telas estreitas/baixas a prévia pode cobrir parte da mão: é aceito, pois o painel não captura o mouse (pointer-events: none). */
+.card-detail { --detail-top: 2.7rem; --detail-free: calc(100vh - var(--detail-top) - 21rem); position: absolute; top: var(--detail-top); right: 0.75rem; width: min(18rem, 40vw); max-height: max(8rem, var(--detail-free)); overflow-y: auto; pointer-events: none; }
+@supports (height: 100dvh) { .card-detail { --detail-free: calc(100dvh - var(--detail-top) - 21rem); } }
+@media (max-width: 70rem) { .card-detail { --detail-top: 7.5rem; } }
+@media (max-width: 40rem) { .card-detail { --detail-top: 14.5rem; } }
+.card-detail .card-view.has-art .card-art { width: auto; max-width: 100%; height: max(6rem, var(--detail-free)); max-height: calc(min(18rem, 40vw) * 1500 / 1030); margin-left: auto; object-fit: contain; }
 .card-detail[hidden] { display: none; }
 .card-view { box-sizing: border-box; padding: 0.7rem 0.8rem; border-radius: var(--radius-md); background: linear-gradient(180deg, var(--c-parchment), var(--c-parchment-dark)); color: var(--c-ink); border: 4px double var(--c-monster); box-shadow: var(--shadow-panel); font-size: 0.85rem; overflow-wrap: anywhere; word-break: break-word; }
 .card-view.spell { border-color: var(--c-spell); }
