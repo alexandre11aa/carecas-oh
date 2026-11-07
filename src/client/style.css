@@ -386,8 +386,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .tutorial-page > .hero { box-sizing: border-box; width: 100%; max-width: 44rem; }
 .scroll-button { position: fixed; right: max(0.75rem, env(safe-area-inset-right)); bottom: max(0.75rem, env(safe-area-inset-bottom)); z-index: 4; display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 2.75rem; height: 2.75rem; padding: 0; font-size: 1.2rem; line-height: 1; color: var(--c-text); background: var(--c-panel-alpha); border: var(--border-gold-thin); border-radius: 50%; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5); opacity: 0.6; cursor: pointer; }
 .scroll-button[hidden] { display: none; }
-.scroll-button::before { content: "93"; }
-.scroll-button[data-target="top"]::before { content: "91"; }
+.scroll-button::before { content: "\2193"; }
+.scroll-button[data-target="top"]::before { content: "\2191"; }
 .scroll-button:hover, .scroll-button:focus-visible { opacity: 1; }
 .scroll-button:focus-visible { outline: 3px solid var(--c-gold-light); outline-offset: 2px; }
 .tutorial-page .tutorial-catalog { max-width: 70rem; }
