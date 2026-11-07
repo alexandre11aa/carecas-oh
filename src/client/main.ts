@@ -4,7 +4,8 @@ import { createHomeScreen } from "./screens/homeScreen.js";
 import { createMatchScreen } from "./screens/matchScreen.js";
 import { createLoadingScreen } from "./screens/loadingScreen.js";
 import { createCardsPage, createGuidePage } from "./screens/tutorialScreen.js";
-import { pathAfterRoomExit, resolveRoute, routePath } from "./screens/routes.js";
+import { pathAfterRoomExit, resolveRoute, routePath, shouldAutoJoin } from "./screens/routes.js";
+import { mountToasts } from "./screens/toastView.js";
 import { createWaitingRoomScreen } from "./screens/waitingRoomScreen.js";
 import type { Screen } from "./screens/dom.js";
 import { getState, loadNickname, subscribe } from "./state.js";
@@ -57,7 +58,7 @@ const render = () => {
     }
     // Link de convite com apelido já salvo: entra direto na sala.
     const nickname = loadNickname();
-    if (code && nickname && !autoJoinTried && state.connection === "online") {
+    if (code && shouldAutoJoin({ code, nickname, tried: autoJoinTried, online: state.connection === "online", busy: state.busy })) {
       autoJoinTried = true;
       joinRoom(code, nickname);
     }
@@ -73,6 +74,7 @@ const render = () => {
   }
 };
 
+mountToasts(document.body);
 subscribe(render);
 // Voltar/avançar do navegador (e os links internos) redesenham a página sem recarregar.
 window.addEventListener("popstate", render);

@@ -31,7 +31,7 @@ type Setup = {
 
 /** Turno 5; `p` é o jogador do turno (atacante) e `o` o defensor, dono das armadilhas. */
 const setup = ({ hand = [], mine = [], mineSpellTraps = [], theirs = [], theirTraps = [], phase = "BATTLE" }: Setup) => {
-  const base = createMatch(42);
+  const base = createMatch(42, { P1: "balanced", P2: "strategic" });
   const p = base.currentPlayer;
   const o = opponentOf(p);
   const state: MatchState = {
@@ -199,13 +199,13 @@ describe("armadilha: maxAttack do spike_pit", () => {
 
   it("divine_glory_evasion_anula_atacante_forte", () => {
     const { state, p, o } = setup({
-      mine: [field("abyss_titan")],
+      mine: [field("ash_dragon")],
       theirs: [field("bone_knight")],
       theirTraps: [trap("divine_glory_evasion")],
     });
-    const opened = ok(state, p, attackWith("abyss_titan", 0));
+    const opened = ok(state, p, attackWith("ash_dragon", 0));
     const r = ok(opened.state, o, activate("divine_glory_evasion"));
-    expect(r.events).toContainEqual({ type: "ATTACK_NEGATED", player: p, attackerCardId: "abyss_titan" });
+    expect(r.events).toContainEqual({ type: "ATTACK_NEGATED", player: p, attackerCardId: "ash_dragon" });
     expect(r.state.players[o].monsters[0]?.cardId).toBe("bone_knight");
   });
 });

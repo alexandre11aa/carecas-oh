@@ -11,11 +11,11 @@ const next = (state: MatchState): MatchState => {
   return r.state;
 };
 
-const start = (): MatchState => next(createMatch(42));
+const start = (): MatchState => next(createMatch(42, { P1: "balanced", P2: "strategic" }));
 
 describe("applyAction - turnos", () => {
   it("compra_automatica_ao_sair_da_fase_de_compra", () => {
-    const initial = createMatch(42);
+    const initial = createMatch(42, { P1: "balanced", P2: "strategic" });
     const p = initial.currentPlayer;
     const result = applyAction(initial, p, { type: "NEXT_PHASE" });
     if (!result.ok) throw new Error("esperado ok");
@@ -27,7 +27,7 @@ describe("applyAction - turnos", () => {
   });
 
   it("nao_altera_o_estado_recebido", () => {
-    const initial = createMatch(42);
+    const initial = createMatch(42, { P1: "balanced", P2: "strategic" });
     const snapshot = structuredClone(initial);
     applyAction(initial, initial.currentPlayer, { type: "NEXT_PHASE" });
     applyAction(initial, opponentOf(initial.currentPlayer), { type: "END_TURN" });
@@ -80,7 +80,7 @@ describe("applyAction - turnos", () => {
   });
 
   it("end_turn_na_fase_de_compra_retorna_invalid_phase", () => {
-    const initial = createMatch(42);
+    const initial = createMatch(42, { P1: "balanced", P2: "strategic" });
     expect(applyAction(initial, initial.currentPlayer, { type: "END_TURN" })).toEqual({
       ok: false,
       code: "INVALID_PHASE",

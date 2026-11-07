@@ -4,9 +4,8 @@ import { getState, loadNickname, saveNickname } from "../state.js";
 import { el, type Screen } from "./dom.js";
 import { createFooter } from "./footer.js";
 import { createHero } from "./hero.js";
-import { errorMessage } from "./errorMessages.js";
+import { showErrorMessage } from "./toasts.js";
 import { NICKNAME_HINT, canSubmitNickname } from "./nickname.js";
-import { createTutorialLinks } from "./tutorialScreen.js";
 
 /** Painel temático com título opcional. */
 const createPanel = (title: string | null, ...children: HTMLElement[]): HTMLElement => {
@@ -39,13 +38,11 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
 
   const createButton = el("button", "primary", "Criar duelo");
   const joinButton = el("button", presetCode ? "primary" : undefined, presetCode ? `Entrar na sala ${presetCode}` : "Entrar");
-  const error = el("p", "error");
-  error.setAttribute("role", "alert");
 
   const readNickname = (): string | null => {
     const nickname = nicknameInput.value.trim();
     if (!nickname) {
-      error.textContent = "Informe um apelido.";
+      showErrorMessage("Informe um apelido.");
       nicknameInput.focus();
       return null;
     }
@@ -63,7 +60,7 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
     if (!nickname) return;
     const code = (presetCode ?? codeInput.value).trim().toUpperCase();
     if (!code) {
-      error.textContent = "Informe o código da sala.";
+      showErrorMessage("Informe o código da sala.");
       codeInput.focus();
       return;
     }
@@ -90,11 +87,11 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
     '<svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="10" fill="var(--c-panel-2)" stroke="var(--c-gold)" stroke-width="1.5" stroke-dasharray="3 2.5"/><path d="M12 6.5 17 12 12 17.5 7 12Z" fill="none" stroke="var(--c-gold-light)" stroke-width="1.5" stroke-linejoin="round"/></svg>';
   lobbyEmpty.append(el("span", undefined, "Nenhuma sala aberta no momento..."), lobbyEmptyIcon);
   if (presetCode) {
-    element.append(createPanel(null, joinButton, error));
+    element.append(createPanel(null, joinButton));
   } else {
     const joinRow = el("div", "join-row");
     joinRow.append(codeInput, joinButton);
-    const newDuel = createPanel("Novo duelo", createButton, el("p", "hint divider", "ou entre com um código"), joinRow, error);
+    const newDuel = createPanel("Novo duelo", createButton, el("p", "hint divider", "ou entre com um código"), joinRow);
     newDuel.classList.add("lobby-new");
     const openRooms = createPanel("Salas abertas", lobbyEmpty, lobbyList);
     openRooms.classList.add("lobby-open");
@@ -128,21 +125,18 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
   };
 
   const update = () => {
-    const { busy, errorCode } = getState();
+    const { busy } = getState();
     const nicknameOk = canSubmitNickname(nicknameInput.value);
     createButton.disabled = busy || !nicknameOk;
     joinButton.disabled = busy || !nicknameOk;
     nicknameHint.hidden = nicknameOk;
-    if (errorCode) error.textContent = errorMessage(errorCode);
-    else if (busy) error.textContent = "";
     if (!presetCode) renderLobby();
   };
   nicknameInput.addEventListener("input", update);
   update();
   if (presetCode) return { element: home, update };
   subscribeLobby();
-  // Menu para guia e cartas: abaixo do bloco, só na home geral.
-  element.append(createTutorialLinks());
+  // Rodapé de navegação (guia e cartas): só na home geral.
   home.append(createFooter());
   return {
     element: home,

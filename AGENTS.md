@@ -60,7 +60,7 @@ Seguem as regras do Yu-Gi-Oh, com monstros, magias, armadilhas e tributo.
 ### Pontos de vida e decks
 
 - Dois jogadores, cada um com 8000 pontos de vida.
-- Existem 20 cartas provisórias. Ao iniciar a partida, cada jogador recebe 10 cartas sorteadas sem repetição, sem que as cartas se repitam entre os jogadores. O sorteio usa a semente do estado.
+- Existem 6 decks fixos de 10 cartas (`DECKS` em `decks.ts`): Agressivo 6/3/1, Defensivo 5/2/3, Mágico 4/5/1, Controle 4/3/3, Equilibrado 5/3/2 e Estratégico 5/4/1 (monstros/magias/armadilhas). Cada carta pertence a um só deck e cada deck tem ao menos uma magia de efeito exclusivo. Cada jogador usa um deck (os dois podem usar o mesmo), embaralhado com a semente do estado.
 - Mão inicial de 5 cartas; as outras 5 ficam no deck.
 - Perde quem não puder comprar quando for obrigado a comprar.
 - Cada turno tem limite de 30 segundos para o jogador da vez (ou o defensor, se houver janela de resposta aberta). O prazo recomeça a cada ação válida. Ao expirar, o servidor passa a resposta pendente ou encerra o turno. O relógio vive no servidor (`roomService`), nunca na engine.
@@ -93,9 +93,9 @@ Seguem as regras do Yu-Gi-Oh, com monstros, magias, armadilhas e tributo.
 
 1. **Lobby:** o jogador informa um apelido e cria uma sala ou entra por código/link.
 2. **Sala:** os dois jogadores ficam na sala de espera.
-3. **Pronto:** cada jogador marca "pronto"; a partida começa quando ambos estiverem prontos.
+3. **Pronto:** cada jogador escolhe um dos 6 decks fixos e marca "pronto"; a partida começa quando ambos estiverem prontos. A escolha é secreta até o início (ver Backend).
 4. **Partida 3D:** jogada conforme as regras acima, na cena 3D com interface em HTML.
-5. **Fim:** exibe o resultado e oferece **revanche** (reembaralha: sorteia de novo as 10 cartas de cada jogador com nova semente, e reinicia a vida em 8000) ou **voltar ao lobby**.
+5. **Fim:** exibe o resultado e oferece **revanche** (reembaralha: reembaralha o deck de cada jogador com nova semente, e reinicia a vida em 8000) ou **voltar ao lobby**.
 
 ## Engine (`src/engine/`)
 
@@ -104,7 +104,7 @@ Seguem as regras do Yu-Gi-Oh, com monstros, magias, armadilhas e tributo.
 ```text
 src/engine/
   cards.ts              definições das cartas, tipadas
-  decks.ts              as 20 cartas provisórias e o sorteio dos decks de 10 cartas
+  decks.ts              os 6 decks fixos de 10 cartas (`DECKS`, `DeckId`, `getDeck`)
   types.ts              tipos de cartas, ações e estado da partida
   rules/                turnos, invocação e combate, um arquivo por assunto
   createMatch.ts        cria o estado inicial a partir dos decks e da semente
@@ -123,14 +123,15 @@ src/engine/
 - `applyAction` retorna `{ ok: true, state, events }` ou `{ ok: false, code }`. Jogadas inválidas fazem parte do fluxo e não lançam exceção.
 - Ações são uma união discriminada pelo campo `type`, em `UPPER_SNAKE_CASE` (`SUMMON_CARD`, `ATTACK`, `END_TURN`).
 - `playerView` é o único caminho para gerar dados enviados aos jogadores. A mão do oponente, a ordem dos decks e a semente nunca são incluídas.
-- `playerView(state, viewer)` devolve `you` (mão e campo completos, deck só como `deckCount`) e `opponent` (contagem de mão/deck; monstros e magias/armadilhas virados viram `cardId: null`, sem `attackBonus`/`hasAttacked`). Públicos: vida, fase, turno, cemitérios e, nos monstros virados para cima, `attackBonus`, `hasAttacked` e `changedPositionOnTurn`. `pendingResponse` aparece como `{ responder, canRespond: false }` para o jogador do turno; só o defensor recebe gatilho e ação interrompida (alvos de ataque e magia vão por zona; ids de tributos virados são removidos). Todo campo novo do estado exige decidir aqui se é público.
+- `playerView(state, viewer)` devolve `you` (mão e campo completos, deck só como `deckCount`) e `opponent` (contagem de mão/deck; monstros e magias/armadilhas virados viram `cardId: null`, sem `attackBonus`/`hasAttacked`). Públicos: vida, fase, turno, cemitérios e, nos monstros virados para cima, `attackBonus`, `hasAttacked` e `changedPositionOnTurn`; `deckId` de ambos os jogadores (`you.deckId` e `opponent.deckId`) também é público, pois a partida só existe depois da revelação dos decks. `pendingResponse` aparece como `{ responder, canRespond: false }` para o jogador do turno; só o defensor recebe gatilho e ação interrompida (alvos de ataque e magia vão por zona; ids de tributos virados são removidos). Todo campo novo do estado exige decidir aqui se é público.
 - `eventView(event, viewer)` é o único caminho de eventos aos jogadores: o servidor nunca envia `GameEvent` bruto. Ids de cartas ocultas do oponente viram `null` (compra, monstro baixado/mudado de posição virado, magia/armadilha baixada, reforço de ataque; alvos de ataque e magia são por zona, públicos). Evento novo que carregue `cardId` exige decidir aqui se é público.
 
 ### Cartas
 
 - Cartas são dados tipados em `cards.ts`. Não crie uma classe nem um arquivo de código para cada carta.
-- Efeitos de magia são dados tipados (`effect` em `SpellCard`, união `SpellEffect` em `types.ts`: `BOOST_ATTACK`, `HEAL`, `DAMAGE`, `DESTROY_MONSTER`, `DRAW`), interpretados por `rules/spells.ts`. Efeito novo = novo `kind` na união e um caso no interpretador, nunca código por carta.
-- Balanceamento (Sprint 1): `dealDecks` divide por categoria (monstro nível 1-4, 5-6, 7+, magia, armadilha) para equilibrar os decks. `DESTROY_MONSTER` e `DESTROY_ATTACKER` aceitam `maxAttack` opcional (ATK com bônus). `arcane_draw` continua "compre 1 carta": o risco de deck vazio antes da hora é decisão consciente.
+- Efeitos de magia são dados tipados (`effect` em `SpellCard`, união `SpellEffect` em `types.ts`: `BOOST_ATTACK`, `HEAL`, `DAMAGE`, `DESTROY_MONSTER`, `DRAW`, `BOOST_ALL_ATTACK`, `HEAL_PER_MONSTER`, `REVIVE_MONSTER`, `DESTROY_SPELL_TRAP`, `DRAIN`, `BOUNCE_MONSTER`), interpretados por `rules/spells.ts`. Efeito novo = novo `kind` na união e um caso no interpretador, nunca código por carta.
+- Balanceamento (régua): a composição de cada deck é fixa e testada em `decks.test.ts` (monstros/magias/armadilhas), sem sorteio por categoria. `DESTROY_MONSTER` e `DESTROY_ATTACKER` aceitam `maxAttack` opcional (ATK com bônus). `arcane_draw` continua "compre 1 carta": o risco de deck vazio antes da hora é decisão consciente.
+- Balanceamento (simulação): `src/engine/balance.test.ts` joga, com um bot simples e fixo (só no arquivo de teste) e sementes fixas, todos os confrontos deck x deck nos dois lados (200 partidas por confronto ordenado). Critério: taxa de vitória média de cada deck contra os outros entre 45% e 55%, e nenhum confronto fora de 35%-65%. Rode `BALANCE_REPORT=1 npx vitest run src/engine/balance.test.ts -t imprime` para ver a tabela. Ao mexer em cartas ou decks, o teste deve continuar passando; ajuste ATK/DEF/valores de efeito (dentro da régua) e as descrições, nunca o teste. O bot só usa `DRAW` com a mão quase vazia, pois em decks de 10 cartas comprar a mais antecipa a derrota por deck vazio.
 - Use apenas cartas, artes, nomes e identidade visual próprios. Não copie material oficial de Yu-Gi-Oh.
 
 ```ts
@@ -175,10 +176,11 @@ src/server/
 - Funções de service recebem um único objeto como argumento: `joinRoom({ code, nickname })`.
 - O cliente nunca é confiável: toda mensagem passa pelo Zod, e o jogador é identificado pelo servidor, nunca por um campo enviado pelo cliente.
 - Após cada jogada válida, cada jogador recebe `match:state` com o próprio `playerView` e os eventos filtrados por `eventView`. A semente é gerada no servidor e nunca sai dele.
+- Escolha secreta de deck: `room:ready` e `match:rematch` (ao aceitar) levam `deckId` (Zod: enum dos 6 ids, obrigatório ao marcar pronto/aceitar). O deck é do jogador identificado pelo token e fica em `Room.players[i].deckId` (a revanche reaproveita o campo); é limpo ao iniciar partida/revanche, ao desmarcar/retirar o voto, ao perder a conexão sem partida e ao sair. `room:updated`, `room:created`, `room:joined` e `lobby:rooms` nunca o incluem; só `room:rejoined` devolve ao próprio jogador a sua escolha. Depois do início, ambos os decks saem via `playerView`.
 - A partida (estado completo) fica em `Room.match` no store; o lado (P1/P2) de cada jogador vem do token, nunca da mensagem.
 - Erros enviados ao cliente têm um `code` estável, e a interface escolhe a mensagem em português.
 - O estado das partidas fica apenas em `store/`.
-- Fim de partida: `Room.match` guarda `outcome` (vencedor e motivo) e `rematchVotes`; a partida encerrada continua na sala até a revanche (`match:rematch`, precisa dos dois votos, troca os lados e sorteia de novo) ou a saída. `room:leave` no meio da partida é desistência (o outro vence com `OPPONENT_LEFT`); perder a conexão não é. Detalhes em `docs/events.md`.
+- Fim de partida: `Room.match` guarda `outcome` (vencedor e motivo) e `rematchVotes`; a partida encerrada continua na sala até a revanche (`match:rematch`, precisa dos dois votos, troca os lados e reembaralha o deck escolhido por cada jogador) ou a saída. `room:leave` no meio da partida é desistência (o outro vence com `OPPONENT_LEFT`); perder a conexão não é. Detalhes em `docs/events.md`.
 
 ### Salas e reconexão
 
@@ -200,19 +202,27 @@ src/client/
   style.css
   public/cards/         imagens das cartas (PNG 1030:1500)
   public/textures/      fundo e mesa (PNG, opcionais)
+  public/decks/         imagens dos botões de deck da sala de espera (PNG, <deckId>.png)
+  public/favicon-32.png, icon-192.png, apple-touch-icon.png   ícones da aba (logo reduzido, na raiz de public/; referenciados em index.html com caminho absoluto)
   network/
     socket.ts           conexão, envio e recebimento de eventos
   screens/              telas em HTML: início, sala de espera e interface da partida
     matchActions.ts     lógica pura (testável): PlayerView + seleção => comandos e `match:action` a enviar
-    matchEnd.ts         lógica pura: textos de resultado e estado do botão de revanche
+    matchEnd.ts         lógica pura: textos de resultado, estado do botão de revanche (exige deck escolhido) e payload de `match:rematch`
+    deckSelect.ts       lógica pura (testável): decks para exibir (id, nome, imagem), deck da partida (`deckOptionFor`), seleção, botão "Pronto" e payload de `room:ready`
+    deckPicker.ts       componente HTML dos botões de imagem de deck (sala de espera e revanche)
     cardDetail.ts       lógica pura: textos de nome, tipo, ATK/DEF, efeito e mecânica da carta e carta visível num slot
     hero.ts             componente HTML do título temático com cartas decorativas (home, Guia e Cartas)
     cardView.ts         componente HTML de carta, reutilizável (partida e tutorial)
     matchNotices.ts     lógica pura: EventView (de `eventView`) => avisos de interface em ordem (carta, invocação, cemitério, dano/cura, fim); fila e animação ficam em `matchScreen.ts`
     routes.ts           lógica pura: pathname => página (`/`, `/guia`, `/cartas`, `/sala/CODIGO`; desconhecida => `/`) e URL após sair da sala; `FOOTER_LINKS` define os links do rodapé
     footer.ts           DOM do rodapé de navegação (menu, guia, cartas), usando `FOOTER_LINKS` de `routes.ts`
-    tutorialSections.ts lógica pura: seções do guia (dados tipados), catálogo agrupado de cartas, visibilidade e seção ativa
-    tutorialScreen.ts   DOM das páginas `/guia` (menu de âncoras, blocos lista/tabela, seção ativa) e `/cartas` (catálogo), e links da home
+    toasts.ts           lógica pura: toasts de erro (fila, dedup do mesmo erro visível, expiração, limite de empilhamento, dispensa) e armazém global; `socket.ts` e as telas só chamam `showErrorCode`/`showErrorMessage`
+    toastView.ts        DOM dos toasts (`role="alert"`, botão de dispensar), montado uma vez em `main.ts` e persistente na troca de telas; animação em `hudEffects.ts`
+    tutorialSections.ts lógica pura: seções do guia (dados tipados), catálogo de cartas agrupado por deck (composição e magia de efeito único), visibilidade e seção ativa
+    tutorialScreen.ts   DOM das páginas `/guia` (menu de âncoras, blocos lista/tabela, seção ativa) e `/cartas` (catálogo por deck)
+    scrollButton.ts     lógica pura: botão fixo único que alterna entre descer ao fim e subir ao topo (`pickScrollTarget`: `top`, `bottom` ou `null` sem rolagem) e rótulos
+    scrollButtonView.ts DOM do botão fixo de subir/descer (só em `/guia` e `/cartas`, via `createPage`): usa `scrollButton.ts`, `scrollTo` com `auto`/`smooth` conforme `prefers-reduced-motion`, remove listeners no `destroy`
   scene/
     scene.ts            renderer, câmera, luzes e loop
     layout.ts           lógica pura (sem WebGL, testável): PlayerView -> posições das cartas na mesa e clique -> slot (`pickSlot`)
@@ -236,6 +246,7 @@ src/client/
 - A comunicação com o servidor passa por `network/socket.ts`.
 - `state.ts` guarda o último estado do servidor, inclusive a última visão da partida (`match`, vinda de `match:state`); a tela da partida (`screens/matchScreen.ts`) abre quando ela existe e a cena apenas a representa. Monstros virados do oponente (`cardId: null`) aparecem como carta de costas.
 - `state.ts` guarda o último estado do servidor. Estado visual, como carta selecionada, fica separado.
+- Todo erro (`app:error`, conexão, cópia, validação de formulário) aparece como toast; as telas não têm linha de erro própria.
 - Texto de interface, mensagens e comentários em português. Identificadores de código em inglês.
 
 ### Cena 3D
@@ -277,7 +288,7 @@ O que cobrir:
 
 - **Engine:** cada regra, incluindo jogadas válidas e inválidas, e a garantia de que `playerView` não vaza informação oculta.
 - **Server:** cada evento, incluindo caminho feliz, payload inválido, sala inexistente, jogador sem permissão e reconexão.
-- **Client:** a lógica pura (`scene/layout.ts`, `screens/matchActions.ts`, `screens/matchEnd.ts`, `screens/matchNotices.ts`, `state.ts`) tem testes; DOM e WebGL não. Mantenha a decisão de qual ação enviar nos módulos puros. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
+- **Client:** a lógica pura (`scene/layout.ts`, `screens/matchActions.ts`, `screens/matchEnd.ts`, `screens/matchNotices.ts`, `screens/scrollButton.ts`, `state.ts`) tem testes; DOM e WebGL não. Mantenha a decisão de qual ação enviar nos módulos puros. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
 - **Correção de bug:** um teste que falharia antes da correção, quando o bug estiver em `engine` ou `server`.
 
 Como escrever:
@@ -353,7 +364,7 @@ Antes de entregar uma tarefa, rode `npm run check`, `npm test`, `npm run build` 
 - O primeiro acesso após a hibernação demora mais, então a interface deve exibir um estado de carregamento.
 - Conexões podem cair durante a partida, então a reconexão por token precisa funcionar desde o início.
 - Cadeia com múltiplos efeitos (vários efeitos encadeados e respondidos entre si) fica fora da Sprint 1; há apenas uma resposta de armadilha por janela.
-- As 20 cartas do jogo são provisórias.
+- As cartas do jogo são provisórias.
 
 ## Decisões em aberto
 

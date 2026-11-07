@@ -1,5 +1,5 @@
 // src/server/store/roomStore.ts
-import type { MatchState, PlayerId } from "../../engine/index.js";
+import type { DeckId, MatchState, PlayerId } from "../../engine/index.js";
 
 export type RoomPlayer = {
   token: string;
@@ -8,6 +8,11 @@ export type RoomPlayer = {
   connectionId: string | null;
   /** Marcou "pronto" na sala de espera. */
   ready: boolean;
+  /**
+   * Deck escolhido (secreto para o oponente) ao marcar "pronto" ou votar por revanche; null sem escolha.
+   * Limpo ao iniciar partida/revanche, ao desmarcar/retirar o voto e ao sair.
+   */
+  deckId: DeckId | null;
 };
 
 export type EndReason = "LIFE_ZERO" | "DECK_OUT" | "OPPONENT_LEFT";

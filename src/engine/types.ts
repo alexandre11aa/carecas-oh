@@ -1,5 +1,6 @@
 // src/engine/types.ts
 // Tipos serializáveis em JSON: cartas, ações e estado da partida.
+import type { DeckId } from "./decks.js";
 
 export type CardType = "MONSTER" | "SPELL" | "TRAP";
 
@@ -21,7 +22,13 @@ export type SpellEffect =
   | { kind: "HEAL"; amount: number } // cura o conjurador
   | { kind: "DAMAGE"; amount: number } // dano direto ao oponente
   | { kind: "DESTROY_MONSTER"; maxAttack?: number } // alvo: monstro do oponente (com ATK <= maxAttack, se houver)
-  | { kind: "DRAW"; count: number }; // o conjurador compra cartas
+  | { kind: "DRAW"; count: number } // o conjurador compra cartas
+  | { kind: "BOOST_ALL_ATTACK"; amount: number } // sem alvo: todos os monstros próprios no campo ganham ATK até o fim do turno
+  | { kind: "HEAL_PER_MONSTER"; amountPerMonster: number; maxAmount: number } // sem alvo: cura amountPerMonster x monstros próprios, até maxAmount
+  | { kind: "REVIVE_MONSTER"; maxLevel: number } // sem alvo: traz, em ataque, o monstro de maior ATK do cemitério próprio com nível <= maxLevel
+  | { kind: "DESTROY_SPELL_TRAP" } // alvo: magia/armadilha do oponente por zona (mesmo virada); vai ao cemitério dele
+  | { kind: "DRAIN"; amount: number } // sem alvo: causa amount de dano ao oponente e cura amount ao conjurador
+  | { kind: "BOUNCE_MONSTER" }; // alvo: monstro do oponente por zona; volta à mão dele e perde o bônus de ATK
 
 export type SpellCard = {
   id: string;
@@ -82,6 +89,7 @@ export type SpellTrapOnField = {
 
 export type PlayerState = {
   id: PlayerId;
+  deckId: DeckId;
   lifePoints: number;
   deck: string[];
   hand: string[];
@@ -148,6 +156,7 @@ export type ErrorCode =
   | "NOT_A_SPELL"
   | "SPELL_NOT_AVAILABLE"
   | "SPELL_TRAP_ZONES_FULL"
+  | "NO_ELIGIBLE_MONSTER"
   | "RESPONSE_PENDING"
   | "NO_RESPONSE_WINDOW"
   | "TRAP_NOT_AVAILABLE"
@@ -162,6 +171,7 @@ export type GameEvent =
   | { type: "MATCH_ENDED"; winner: PlayerId }
   | { type: "MONSTER_SUMMONED"; player: PlayerId; cardId: string; zone: number; position: MonsterPosition; faceDown: boolean }
   | { type: "CARD_SENT_TO_GRAVEYARD"; player: PlayerId; cardId: string }
+  | { type: "CARD_RETURNED_TO_HAND"; player: PlayerId; cardId: string; zone: number; faceDown: boolean }
   | { type: "POSITION_CHANGED"; player: PlayerId; cardId: string; position: MonsterPosition; faceDown: boolean }
   | { type: "MONSTER_FLIPPED"; player: PlayerId; cardId: string }
   | { type: "ATTACK_DECLARED"; player: PlayerId; attackerCardId: string; targetZone: number | null }

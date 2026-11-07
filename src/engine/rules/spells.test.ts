@@ -38,7 +38,7 @@ const setup = ({
   myLife = 8000,
   theirLife = 8000,
 }: Setup) => {
-  const base = createMatch(42);
+  const base = createMatch(42, { P1: "balanced", P2: "strategic" });
   const p = base.currentPlayer;
   const o = opponentOf(p);
   const state: MatchState = {
@@ -165,8 +165,8 @@ describe("efeitos de magia", () => {
     expect(applyAction(state, p, activate("wind_gust", 0))).toEqual({ ok: false, code: "INVALID_TARGET" });
   });
 
-  it("wind_gust_nao_destroi_o_titan_do_abismo", () => {
-    const { state, p } = setup({ hand: ["wind_gust"], theirs: [field("abyss_titan")] });
+  it("wind_gust_nao_destroi_monstro_com_atk_acima_de_2000", () => {
+    const { state, p } = setup({ hand: ["wind_gust"], theirs: [field("ash_dragon")] });
     expect(applyAction(state, p, activate("wind_gust", 0))).toEqual({ ok: false, code: "INVALID_TARGET" });
   });
 

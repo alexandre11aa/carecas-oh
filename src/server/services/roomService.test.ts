@@ -14,8 +14,8 @@ const setup = () => {
 const joinAndStart = () => {
   const ctx = setup();
   const joined = ctx.service.joinRoom({ code: ctx.code, nickname: "Bia", connectionId: "b" });
-  ctx.service.setReady({ connectionId: "a", ready: true });
-  const started = ctx.service.setReady({ connectionId: "b", ready: true });
+  ctx.service.setReady({ connectionId: "a", ready: true, deckId: "balanced" });
+  const started = ctx.service.setReady({ connectionId: "b", ready: true, deckId: "balanced" });
   return { ...ctx, joined, started };
 };
 
@@ -42,9 +42,9 @@ describe("PublicRoom.hasMatch", () => {
   it("e_false_com_um_jogador_pronto_e_true_quando_a_partida_comeca", () => {
     const ctx = setup();
     ctx.service.joinRoom({ code: ctx.code, nickname: "Bia", connectionId: "b" });
-    const first = ctx.service.setReady({ connectionId: "a", ready: true });
+    const first = ctx.service.setReady({ connectionId: "a", ready: true, deckId: "balanced" });
     expect(first.ok && first.room.hasMatch).toBe(false);
-    const second = ctx.service.setReady({ connectionId: "b", ready: true });
+    const second = ctx.service.setReady({ connectionId: "b", ready: true, deckId: "balanced" });
     expect(second.ok && second.room.hasMatch).toBe(true);
   });
 

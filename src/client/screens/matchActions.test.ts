@@ -38,7 +38,7 @@ type Setup = {
 
 /** Visão de P1 em que P1 é o jogador do turno. */
 const viewOf = ({ phase = "MAIN_1", turn = 3, mine = {}, theirs = {}, pendingResponse = null, winner = null }: Setup): PlayerView => {
-  const base = createMatch(123);
+  const base = createMatch(123, { P1: "balanced", P2: "strategic" });
   const state: MatchState = {
     ...base,
     turn,
@@ -159,8 +159,8 @@ describe("invocacao por clique", () => {
   });
 
   it("nivel_8_exige_dois_tributos", () => {
-    const view = viewOf({ mine: { hand: ["abyss_titan"], monsters: field(monster("tide_imp"), monster("ash_sprite")) } });
-    const start = { kind: "summon", cardId: "abyss_titan", set: false, tributes: [] } as const;
+    const view = viewOf({ mine: { hand: ["ash_dragon"], monsters: field(monster("tide_imp"), monster("ash_sprite")) } });
+    const start = { kind: "summon", cardId: "ash_dragon", set: false, tributes: [] } as const;
     const one = slotClick(view, start, slot("you", "monster", 0));
     expect(one.action).toBeUndefined();
     const two = slotClick(view, one.selection, slot("you", "monster", 1));
@@ -262,6 +262,21 @@ describe("magia com alvo", () => {
     });
   });
 
+  it("selecao_de_alvo_por_zona_de_magia_armadilha_do_oponente", () => {
+    const view = viewOf({
+      theirs: { spellTraps: [null, { cardId: "mirror_wall", faceDown: true, setOnTurn: 1 }, null, null, null] },
+    });
+    const sel = { kind: "spellTarget", cardId: "t", side: "opponent", slotKind: "spellTrap" } as const;
+    expect(highlightKeys(view, sel)).toEqual(["opponent:spellTrap:1"]);
+    expect(slotClick(view, sel, slot("opponent", "spellTrap", 1)).action).toEqual({
+      type: "ACTIVATE_SPELL",
+      cardId: "t",
+      targetZone: 1,
+    });
+    expect(slotClick(view, sel, slot("opponent", "spellTrap", 0))).toEqual({ selection: sel });
+    expect(slotClick(view, sel, slot("opponent", "monster", 0)).action).toBeUndefined();
+  });
+
   it("magia_baixada_no_campo_pode_ser_ativada", () => {
     const view = viewOf({
       mine: { spellTraps: [{ cardId: "healing_spring", faceDown: true, setOnTurn: 1 }, null, null, null, null] },
@@ -308,7 +323,7 @@ describe("fase e turno", () => {
 describe("janela de resposta", () => {
   /** P1 é o defensor: o jogador do turno é P2. */
   const defender = (trigger: "ATTACK_DECLARED" | "SUMMON", setOnTurn = 1): PlayerView => {
-    const base = createMatch(123);
+    const base = createMatch(123, { P1: "balanced", P2: "strategic" });
     const state: MatchState = {
       ...base,
       turn: 4,

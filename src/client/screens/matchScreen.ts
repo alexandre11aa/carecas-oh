@@ -1,13 +1,13 @@
 // src/client/screens/matchScreen.ts
 import { floatDelta, flashCounter, playNotice, snapLife, tweenLife } from "../animations/hudEffects.js";
 import { getCard } from "../../engine/cards.js";
+import type { DeckId } from "../../engine/decks.js";
 import type { Phase } from "../../engine/types.js";
 import type { PlayerView } from "../../engine/playerView.js";
 import { leaveRoom, sendAction, sendRematch } from "../network/socket.js";
 import { createMatchScene, type MatchScene } from "../scene/scene.js";
 import { getState, loadNickname } from "../state.js";
 import { el, type Screen } from "./dom.js";
-import { errorMessage } from "./errorMessages.js";
 import {
   connectionNotice,
   handClick,
@@ -26,6 +26,8 @@ import { buildCardDetail, slotCardId } from "./cardDetail.js";
 import { applyCardArt } from "./cardArtImage.js";
 import { reusableHandSlots } from "./handReconcile.js";
 import { createCardView } from "./cardView.js";
+import { createDeckPicker } from "./deckPicker.js";
+import { asDeckId, deckOptionFor, selectDeck } from "./deckSelect.js";
 import { canSurrender, endSummary, rematchState } from "./matchEnd.js";
 import { actingPlayer, opponentNickname, secondsRemaining, timerLevel, turnBannerText } from "./turnTimer.js";
 
@@ -33,7 +35,7 @@ const NOTICE_MS = 2200;
 const NOTICE_HOLD = 0.9; // segundos de cada aviso de evento
 const END_HOLD = 1.6;
 
-type InfoBox = { box: HTMLElement; life: HTMLElement; fill: HTMLElement; rest: HTMLElement; graveyard: HTMLElement };
+type InfoBox = { box: HTMLElement; life: HTMLElement; fill: HTMLElement; rest: HTMLElement; graveyard: HTMLElement; deck: HTMLElement };
 
 /** Caixa de status de um jogador: vida com barra, contadores e cemitério (realçável). */
 const createInfoBox = (): InfoBox => {
@@ -44,8 +46,24 @@ const createInfoBox = (): InfoBox => {
   bar.append(fill);
   const rest = el("span");
   const graveyard = el("span", "graveyard-count");
-  box.append(life, bar, rest, graveyard);
-  return { box, life, fill, rest, graveyard };
+  const deck = el("span", "deck-badge");
+  box.append(life, bar, rest, graveyard, deck);
+  return { box, life, fill, rest, graveyard, deck };
+};
+
+/** Miniatura e nome do deck em uso; sem a imagem, o nome em texto basta. */
+const renderDeckBadge = (badge: HTMLElement, deckId: unknown) => {
+  const option = deckOptionFor(deckId);
+  if (badge.dataset.deck === (option?.id ?? "")) return; // já mostrando: não recria (evita pisca)
+  badge.dataset.deck = option?.id ?? "";
+  badge.replaceChildren();
+  if (!option) return;
+  badge.title = option.label;
+  const image = el("img", "deck-badge-image");
+  image.alt = "";
+  image.src = option.image;
+  image.addEventListener("error", () => image.remove());
+  badge.append(image, el("span", "deck-badge-name", option.name));
 };
 
 export const PHASE_LABELS: Record<Phase, string> = {
@@ -86,13 +104,12 @@ export const createMatchScreen = (): Screen => {
 
   const youInfo = infoBoxes.you.box;
   const hintLine = el("p", "hud-hint");
-  const errorLine = el("p", "error");
   const commandsBox = el("div", "hud-commands");
   const hand = el("div", "hand");
   let handButtons: HTMLButtonElement[] = [];
   let handCardIds: string[] = [];
   const bottom = el("div");
-  bottom.append(hintLine, errorLine, commandsBox, hand, youInfo);
+  bottom.append(hintLine, commandsBox, hand, youInfo);
   youInfo.style.marginTop = "0.5rem";
 
   hud.append(top, bottom);
@@ -104,8 +121,12 @@ export const createMatchScreen = (): Screen => {
   const rematchStatus = el("p", "hint");
   const lobbyButton = el("button", undefined, "Voltar ao lobby");
   lobbyButton.type = "button";
+  const deckPicker = createDeckPicker("Escolha seu deck para a revanche", (id) => {
+    selectedDeck = selectDeck(selectedDeck, id, decksLocked);
+    update();
+  });
   const endBox = el("div", "end-box");
-  endBox.append(endTitle, endReason, rematchButton, rematchStatus, lobbyButton);
+  endBox.append(endTitle, endReason, deckPicker.element, rematchButton, rematchStatus, lobbyButton);
   const endOverlay = el("div", "end-overlay");
   endOverlay.hidden = true;
   endOverlay.append(endBox);
@@ -144,6 +165,8 @@ export const createMatchScreen = (): Screen => {
   let selection: Selection | null = null;
   let lastMatch: PlayerView | null = null;
   let acceptRematch = true;
+  let decksLocked = false;
+  let selectedDeck: DeckId | null = asDeckId(getState().deckId); // escolha anterior pré-selecionada, editável
   let shownNoticeSeq = getState().turnNotice?.seq ?? 0; // aviso já existente ao abrir a tela (ex.: reconexão) não reaparece
   let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -209,7 +232,10 @@ export const createMatchScreen = (): Screen => {
     pumpNotices();
   };
 
-  rematchButton.addEventListener("click", () => sendRematch(acceptRematch));
+  rematchButton.addEventListener("click", () => {
+    sendRematch(acceptRematch, selectedDeck);
+    if (!acceptRematch) selectedDeck = null;
+  });
   lobbyButton.addEventListener("click", () => leaveRoom());
   // Desistir exige confirmação: o clique no botão só abre o diálogo; apenas "Desistir" nele envia `room:leave`.
   surrenderButton.addEventListener("click", () => (surrenderOverlay.hidden = false));
@@ -268,7 +294,7 @@ export const createMatchScreen = (): Screen => {
   const countdownInterval = setInterval(renderCountdown, 250);
 
   const update = () => {
-    const { match, connection, errorCode, ended, room, turnNotice, matchEvents } = getState();
+    const { match, connection, ended, room, turnNotice, matchEvents } = getState();
     if (!match) return;
     // Nova visão do servidor: a seleção anterior pode não valer mais.
     if (match !== lastMatch) {
@@ -287,6 +313,8 @@ export const createMatchScreen = (): Screen => {
     infoBoxes.opponent.graveyard.textContent = `Cemitério ${opponent.graveyard.length}`;
     infoBoxes.you.rest.textContent = ` Você · Deck ${you.deckCount} · `;
     infoBoxes.you.graveyard.textContent = `Cemitério ${you.graveyard.length}`;
+    renderDeckBadge(infoBoxes.opponent.deck, opponent.deckId);
+    renderDeckBadge(infoBoxes.you.deck, you.deckId);
     (["you", "opponent"] as const).forEach((side) => {
       if (!heldLife.has(side)) snapLife(lifeShown[side], serverLife(side), (value) => renderLife(side, value));
     });
@@ -314,7 +342,6 @@ export const createMatchScreen = (): Screen => {
     phaseLine.textContent = `Fase: ${PHASE_LABELS[match.phase]}`;
     noticeLine.textContent = connectionNotice(connection);
     hintLine.textContent = selectionHint(match, selection);
-    errorLine.textContent = errorCode ? errorMessage(errorCode) : "";
 
     const commands = [
       ...selectionCommands(match, selection),
@@ -370,7 +397,10 @@ export const createMatchScreen = (): Screen => {
 
     if (match.winner && !playing && noticeQueue.length === 0) {
       const summary = endSummary(match.viewer, match.winner, ended);
-      const rematch = rematchState(ended, opponentInRoom(room?.players ?? []));
+      selectedDeck ??= asDeckId(getState().deckId);
+      const rematch = rematchState(ended, opponentInRoom(room?.players ?? []), selectedDeck);
+      decksLocked = rematch.decksLocked;
+      deckPicker.update(selectedDeck, decksLocked);
       endTitle.textContent = summary.title;
       endReason.textContent = summary.reason;
       rematchButton.textContent = rematch.label;

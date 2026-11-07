@@ -9,7 +9,7 @@ const room = (hasMatch: boolean, ready: boolean[] = []): PublicRoom => ({
   hasMatch,
   players: ready.map((r, i) => ({ nickname: `J${i}`, connected: true, ready: r })),
 });
-const view = playerView(createMatch(123), "P1");
+const view = playerView(createMatch(123, { P1: "balanced", P2: "strategic" }), "P1");
 
 describe("matchForRoom", () => {
   it("preserva_a_partida_quando_a_sala_guarda_uma_partida", () => {

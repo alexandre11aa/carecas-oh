@@ -1,6 +1,6 @@
 // src/engine/createMatch.ts
-import { dealDecks } from "./decks.js";
-import { nextRandom } from "./rng.js";
+import { getDeck, type DeckId } from "./decks.js";
+import { nextRandom, shuffle } from "./rng.js";
 import type { MatchState, PlayerId, PlayerState } from "./types.js";
 
 export const INITIAL_LIFE_POINTS = 8000;
@@ -8,8 +8,9 @@ export const INITIAL_HAND_SIZE = 5;
 export const MONSTER_ZONES = 5;
 export const SPELL_TRAP_ZONES = 5;
 
-const createPlayer = (id: PlayerId, cards: string[]): PlayerState => ({
+const createPlayer = (id: PlayerId, deckId: DeckId, cards: string[]): PlayerState => ({
   id,
+  deckId,
   lifePoints: INITIAL_LIFE_POINTS,
   hand: cards.slice(0, INITIAL_HAND_SIZE),
   deck: cards.slice(INITIAL_HAND_SIZE),
@@ -20,20 +21,22 @@ const createPlayer = (id: PlayerId, cards: string[]): PlayerState => ({
 });
 
 /**
- * Cria o estado inicial: 8000 LP, 5 cartas na mão e 5 no deck. O jogador inicial sai da semente.
+ * Cria o estado inicial: 8000 LP, deck fixo de cada jogador embaralhado com a semente, 5 cartas na mão e
+ * 5 no deck. Os dois jogadores podem escolher o mesmo deck. O jogador inicial sai da semente.
  * O estado começa na fase de compra do turno 1; a compra é executada ao avançar a fase (NEXT_PHASE).
  */
-export const createMatch = (seed: number): MatchState => {
-  const dealt = dealDecks(seed);
-  const rng = nextRandom(dealt.seed);
+export const createMatch = (seed: number, decks: Record<PlayerId, DeckId>): MatchState => {
+  const p1 = shuffle(getDeck(decks.P1).cardIds, seed);
+  const p2 = shuffle(getDeck(decks.P2).cardIds, p1.seed);
+  const rng = nextRandom(p2.seed);
   return {
     seed: rng.seed,
     turn: 1,
     currentPlayer: rng.value < 0.5 ? "P1" : "P2",
     phase: "DRAW",
     players: {
-      P1: createPlayer("P1", dealt.decks.P1),
-      P2: createPlayer("P2", dealt.decks.P2),
+      P1: createPlayer("P1", decks.P1, p1.items),
+      P2: createPlayer("P2", decks.P2, p2.items),
     },
     winner: null,
     pendingResponse: null,

@@ -1,5 +1,6 @@
 // src/client/state.ts
 import type { EventView } from "../engine/eventView.js";
+import type { DeckId } from "../engine/decks.js";
 import type { PlayerView } from "../engine/playerView.js";
 import type { PlayerId } from "../engine/types.js";
 import type { TurnClock } from "./screens/turnTimer.js";
@@ -35,8 +36,8 @@ export type ClientState = {
   ended: MatchEnded | null;
   /** Salas abertas recebidas em `lobby:rooms`; vazia sem assinatura ou sem salas. */
   lobbyRooms: LobbyRoom[];
-  /** Código do último erro recebido (a tela escolhe a mensagem). */
-  errorCode: string | null;
+  /** Deck do próprio jogador (escolha em `room:ready` ou vinda de `room:rejoined`); nunca o do oponente. */
+  deckId: DeckId | null;
   /** Há uma requisição de sala (criar/entrar) aguardando resposta. */
   busy: boolean;
 };
@@ -51,7 +52,7 @@ let state: ClientState = {
   matchEvents: null,
   ended: null,
   lobbyRooms: [],
-  errorCode: null,
+  deckId: null,
   busy: false,
 };
 

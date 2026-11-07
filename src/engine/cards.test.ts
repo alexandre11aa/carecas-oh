@@ -3,9 +3,27 @@ import { describe, expect, it } from "vitest";
 import { CARDS } from "./cards.js";
 
 describe("cards", () => {
-  it("tem_20_cartas_com_ids_unicos", () => {
-    expect(CARDS).toHaveLength(20);
-    expect(new Set(CARDS.map((c) => c.id)).size).toBe(20);
+  it("tem_ids_nomes_e_descricoes_unicos", () => {
+    expect(CARDS).toHaveLength(60);
+    expect(new Set(CARDS.map((c) => c.id)).size).toBe(60);
+    expect(new Set(CARDS.map((c) => c.name)).size).toBe(60);
+    expect(new Set(CARDS.map((c) => c.description)).size).toBe(60);
+  });
+
+  it("ids_sao_snake_case", () => {
+    for (const card of CARDS) expect(card.id).toMatch(/^[a-z]+(_[a-z]+)*$/);
+  });
+
+  it("cartas_novas_tem_efeitos_e_valores_definidos", () => {
+    const byId = (id: string) => CARDS.find((c) => c.id === id);
+    expect(byId("war_cry")).toMatchObject({ type: "SPELL", effect: { kind: "BOOST_ALL_ATTACK", amount: 400 } });
+    expect(byId("life_wall")).toMatchObject({
+      effect: { kind: "HEAL_PER_MONSTER", amountPerMonster: 500, maxAmount: 2000 },
+    });
+    expect(byId("call_beyond")).toMatchObject({ effect: { kind: "REVIVE_MONSTER", maxLevel: 4 } });
+    expect(byId("runic_seal")).toMatchObject({ trigger: "SPELL_ACTIVATION", effect: { kind: "NEGATE_SPELL" } });
+    expect(byId("blazing_colossus")).toMatchObject({ level: 7, attack: 2800, defense: 1500 });
+    expect(byId("granite_giant")).toMatchObject({ level: 7, attack: 2400, defense: 2500 });
   });
 
   it("cobre_faixas_de_nivel_e_ao_menos_3_magias_e_3_armadilhas", () => {
@@ -40,6 +58,31 @@ describe("cards", () => {
       image: "/cards/esquiva_da_gloria_divina.png",
     });
     expect(CARDS.some((c) => c.id === "mirror_wall")).toBe(false);
+  });
+
+  it("abyss_titan_foi_removido_do_catalogo", () => {
+    expect(CARDS.some((c) => c.id === "abyss_titan")).toBe(false);
+  });
+
+  it("cartas_dos_decks_controle_equilibrado_e_estrategico_tem_valores_definidos", () => {
+    const byId = (id: string) => CARDS.find((c) => c.id === id);
+    expect(byId("silent_rupture")).toMatchObject({ type: "SPELL", effect: { kind: "DESTROY_SPELL_TRAP" } });
+    expect(byId("vital_exchange")).toMatchObject({ type: "SPELL", effect: { kind: "DRAIN", amount: 800 } });
+    expect(byId("mist_wall")).toMatchObject({ type: "TRAP", trigger: "ATTACK_DECLARED", effect: { kind: "NEGATE_ATTACK" } });
+    expect(byId("cunning_scout")).toMatchObject({ level: 2, attack: 800, defense: 500 });
+    expect(byId("wall_archer")).toMatchObject({ level: 3, attack: 1300, defense: 1300 });
+    expect(byId("tactical_captain")).toMatchObject({ level: 4, attack: 1700, defense: 1000 });
+    expect(byId("strategist_knight")).toMatchObject({ level: 5, attack: 2000, defense: 1500 });
+    expect(byId("siege_general")).toMatchObject({ level: 7, attack: 2900, defense: 2000 });
+    expect(byId("retreat_plan")).toMatchObject({ type: "SPELL", effect: { kind: "BOUNCE_MONSTER" } });
+    expect(byId("precise_strike")).toMatchObject({ effect: { kind: "DESTROY_MONSTER", maxAttack: 2000 } });
+    expect(byId("tactical_reinforcement")).toMatchObject({ effect: { kind: "BOOST_ATTACK", amount: 700 } });
+    expect(byId("inside_information")).toMatchObject({ effect: { kind: "DRAW", count: 1 } });
+    expect(byId("counter_offensive")).toMatchObject({
+      type: "TRAP",
+      trigger: "ATTACK_DECLARED",
+      effect: { kind: "DESTROY_ATTACKER", maxAttack: 2000 },
+    });
   });
 
   it("e_serializavel_em_json", () => {

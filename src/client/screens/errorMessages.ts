@@ -1,7 +1,7 @@
 // src/client/screens/errorMessages.ts
 
 const MESSAGES: Record<string, string> = {
-  INVALID_PAYLOAD: "Dados inválidos. Confira o apelido (1 a 20 caracteres) e o código (4 caracteres).",
+  INVALID_PAYLOAD: "Dados inválidos. Confira o que foi informado e tente de novo.",
   ROOM_NOT_FOUND: "Sala não encontrada. Confira o código e tente de novo.",
   ROOM_FULL: "Esta sala já está cheia.",
   INVALID_TOKEN: "Sua sessão expirou. Entre em uma sala novamente.",
@@ -36,6 +36,7 @@ const MESSAGES: Record<string, string> = {
   NOT_A_SPELL: "Essa carta não é uma magia.",
   SPELL_NOT_AVAILABLE: "Essa magia não está disponível.",
   SPELL_TRAP_ZONES_FULL: "Suas zonas de magia e armadilha estão cheias.",
+  NO_ELIGIBLE_MONSTER: "Não há monstro elegível no seu cemitério.",
   RESPONSE_PENDING: "Aguarde a resposta do oponente.",
   NO_RESPONSE_WINDOW: "Não há nada para responder agora.",
   TRAP_NOT_AVAILABLE: "Essa armadilha não está disponível.",

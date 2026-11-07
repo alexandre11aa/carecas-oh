@@ -1,5 +1,6 @@
 // src/engine/playerView.ts
 // Único caminho de dados aos jogadores: filtra o estado e remove toda informação oculta.
+import type { DeckId } from "./decks.js";
 import type {
   Action,
   MatchState,
@@ -30,6 +31,8 @@ export type HiddenSpellTrapView = {
 /** Campo do oponente: cartas viradas aparecem sem identidade; as viradas para cima são públicas. */
 export type OpponentPlayerView = {
   id: PlayerId;
+  /** Deck escolhido: público dentro da partida (só existe depois da revelação). */
+  deckId: DeckId;
   lifePoints: number;
   handCount: number;
   deckCount: number;
@@ -103,7 +106,7 @@ const viewPending = (state: MatchState, viewer: PlayerId): PendingResponseView |
  * Estado visível a `viewer`. Nunca inclui: semente, ordem dos decks, mão do oponente (só a contagem),
  * identidade de cartas viradas do oponente nem o conteúdo de `pendingResponse` para quem não pode agir.
  * Públicos: pontos de vida, fase, turno, cemitérios, `attackBonus`, `hasAttacked` e
- * `changedPositionOnTurn` de monstros virados para cima, e `normalSummonUsed`.
+ * `changedPositionOnTurn` de monstros virados para cima, `normalSummonUsed` e `deckId` de ambos.
  */
 export const playerView = (state: MatchState, viewer: PlayerId): PlayerView => {
   const own = state.players[viewer];
@@ -118,6 +121,7 @@ export const playerView = (state: MatchState, viewer: PlayerId): PlayerView => {
     you: { ...ownRest, hand: [...own.hand], deckCount: deck.length },
     opponent: {
       id: other.id,
+      deckId: other.deckId,
       lifePoints: other.lifePoints,
       handCount: other.hand.length,
       deckCount: other.deck.length,

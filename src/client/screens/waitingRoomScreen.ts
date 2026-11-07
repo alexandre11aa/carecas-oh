@@ -1,8 +1,11 @@
 // src/client/screens/waitingRoomScreen.ts
 import { leaveRoom, sendReady } from "../network/socket.js";
 import { getState } from "../state.js";
+import type { DeckId } from "../../engine/decks.js";
+import { createDeckPicker } from "./deckPicker.js";
+import { asDeckId, canMarkReady, selectDeck } from "./deckSelect.js";
 import { el, type Screen } from "./dom.js";
-import { errorMessage } from "./errorMessages.js";
+import { showErrorMessage } from "./toasts.js";
 
 export const roomLink = (code: string): string => `${location.origin}/sala/${code}`;
 
@@ -17,13 +20,17 @@ export const createWaitingRoomScreen = (): Screen => {
   copyRow.append(copyCode, copyLink);
   const players = el("ul", "players");
   const status = el("p", "hint");
+  const deckTitle = el("h2", "deck-title", "Escolha seu deck");
+  const deckPicker = createDeckPicker("Escolha seu deck", (id) => {
+    selected = selectDeck(selected, id, sent);
+    update();
+  });
   const readyButton = el("button", "primary", "Pronto");
   const leaveButton = el("button", undefined, "Sair da sala");
-  const error = el("p", "error");
-  error.setAttribute("role", "alert");
-  element.append(el("h1", undefined, "Sala de espera"), code, link, copyRow, players, status, readyButton, leaveButton, error);
+  element.append(el("h1", undefined, "Sala de espera"), code, link, copyRow, players, deckTitle, deckPicker.element, status, readyButton, leaveButton);
 
   let sent = false;
+  let selected: DeckId | null = asDeckId(getState().deckId);
 
   const copy = async (button: HTMLButtonElement, label: string, text: string) => {
     try {
@@ -31,6 +38,7 @@ export const createWaitingRoomScreen = (): Screen => {
       button.textContent = "Copiado!";
     } catch {
       button.textContent = "Não foi possível copiar";
+      showErrorMessage("Não foi possível copiar. Copie manualmente.");
     }
     setTimeout(() => (button.textContent = label), 1500);
   };
@@ -43,14 +51,15 @@ export const createWaitingRoomScreen = (): Screen => {
     if (room) void copy(copyLink, "Copiar link", roomLink(room.code));
   });
   readyButton.addEventListener("click", () => {
+    if (!selected) return;
     sent = true;
-    sendReady();
+    sendReady(selected);
     update();
   });
   leaveButton.addEventListener("click", leaveRoom);
 
   const update = () => {
-    const { room, errorCode, connection } = getState();
+    const { room, connection } = getState();
     if (!room) return;
     code.textContent = room.code;
     link.textContent = roomLink(room.code);
@@ -67,9 +76,11 @@ export const createWaitingRoomScreen = (): Screen => {
         : full
           ? 'Os dois jogadores estão na sala. Marque "Pronto" para começar.'
           : "Aguardando o segundo jogador. Compartilhe o código ou o link.";
+    // Escolha restaurada pelo servidor após reconexão, se o jogador ainda não escolheu nada.
+    selected ??= asDeckId(getState().deckId);
+    deckPicker.update(selected, sent);
     readyButton.textContent = sent ? "Pronto! Aguardando o oponente..." : "Pronto";
-    readyButton.disabled = !full || connection !== "online" || sent;
-    error.textContent = errorCode ? errorMessage(errorCode) : "";
+    readyButton.disabled = !canMarkReady({ full, online: connection === "online", deckId: selected, ready: sent });
   };
   update();
   return { element, update };

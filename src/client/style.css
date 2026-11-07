@@ -111,6 +111,13 @@ html:has(.match) { scrollbar-gutter: auto; }
 .tutorial-table th { background: var(--c-panel-2); color: var(--c-gold-light); }
 .tutorial-group-title { margin: 1.5rem 0 0.75rem; font-size: 1.2rem; font-family: var(--font-title); color: var(--c-gold); }
 .tutorial-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 0.75rem; }
+.deck-catalog { margin-bottom: 2rem; }
+.deck-catalog-header { display: flex; align-items: center; gap: 1rem; margin-top: 1.5rem; margin-bottom: 0.75rem; }
+.deck-catalog-image { width: 5rem; height: 5rem; object-fit: contain; flex: none; }
+.deck-catalog-info .tutorial-group-title { margin: 0 0 0.25rem; }
+.deck-catalog-info .tutorial-summary { margin: 0.15rem 0; }
+.deck-signature { margin: 0.35rem 0 0; color: var(--c-gold-light); font-size: 0.9rem; }
+.card-view.signature { outline: 2px solid var(--c-gold-light); box-shadow: 0 0 12px var(--c-gold); }
 .tutorial-section > :last-child { margin-bottom: 0; }
 @media (max-width: 30rem) {
   .tutorial-section { padding: 1.5rem 0.25rem; scroll-margin-top: 6rem; }
@@ -203,7 +210,6 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .lobby-empty-icon { flex: none; width: 1.25rem; height: 1.25rem; display: inline-flex; }
 .lobby-empty-icon svg { width: 100%; height: 100%; }
 .lobby-new .hint.divider { margin: 0; }
-.home--lobby .tutorial-links { padding-bottom: 0.25rem; }
 @media (max-width: 40rem) { .lobby-block { grid-template-columns: minmax(0, 1fr); } .lobby-open { height: 10rem; } }
 .hero { position: relative; padding: 1.5rem 0 0.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.6rem; }
 .game-title {
@@ -253,14 +259,12 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .home input:focus-visible, .themed input:focus-visible { outline: 3px solid var(--c-gold-light); outline-offset: 1px; }
 .home .panel button, .themed button { font-family: var(--font-title); letter-spacing: 0.03em; color: var(--c-text); background: linear-gradient(180deg, var(--c-btn-top), var(--c-btn-bottom)); border: var(--border-gold); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5); transition: transform 0.12s, border-color 0.12s; }
 .home .panel button:hover:not(:disabled), .themed button:hover:not(:disabled) { background: linear-gradient(180deg, var(--c-btn-hover-top), var(--c-btn-hover-bottom)); border-color: var(--c-gold-light); transform: translateY(-1px); }
-.home .panel button:focus-visible, .themed button:focus-visible, .home .tutorial-cta:focus-visible { outline: 3px solid var(--c-gold-light); outline-offset: 2px; }
+.home .panel button:focus-visible, .themed button:focus-visible { outline: 3px solid var(--c-gold-light); outline-offset: 2px; }
 .home .panel button.primary, .themed button.primary { background: linear-gradient(180deg, var(--c-gold-light), var(--c-gold)); color: var(--c-ink); border-color: var(--c-gold-dark); font-weight: 700; }
 .home .panel button.primary:hover:not(:disabled), .themed button.primary:hover:not(:disabled) { background: linear-gradient(180deg, var(--c-gold-hover), var(--c-gold-light)); }
 .home .panel button:disabled, .themed button:disabled { opacity: 0.55; transform: none; }
 .home .lobby-item { padding: 0.4rem 0.6rem; background: var(--c-input); border: var(--border-gold-thin); border-radius: var(--radius-sm); }
 .home .lobby-code { color: var(--c-gold-light); }
-.home .tutorial-cta { display: inline-block; align-self: center; padding: 0.7rem 1.4rem; font-family: var(--font-title); font-weight: 700; color: var(--c-ink); text-decoration: none; background: linear-gradient(180deg, var(--c-gold-light), var(--c-gold)); border: 2px solid var(--c-gold-dark); border-radius: var(--radius-md); box-shadow: 0 0 14px rgba(255, 211, 77, 0.35), 0 3px 8px rgba(0, 0, 0, 0.6); }
-.home .tutorial-cta:hover { background: linear-gradient(180deg, var(--c-gold-hover), var(--c-gold-light)); text-decoration: none; }
 .themed .players li { background: var(--c-input); border: var(--border-gold-thin); }
 .themed .room-code { font-family: var(--font-title); color: var(--c-gold-light); text-shadow: var(--shadow-text); }
 .themed .spinner { border-color: var(--c-gold-dark); border-top-color: var(--c-gold-light); }
@@ -331,6 +335,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .life-bar { flex: 1 1 6rem; height: 0.6rem; border-radius: var(--radius-sm); background: rgba(0, 0, 0, 0.6); border: var(--border-gold-thin); overflow: hidden; }
 .life-fill { display: block; height: 100%; background: linear-gradient(180deg, var(--c-gold-light), var(--c-gold)); }
 .graveyard-count { display: inline-block; }
+.deck-badge { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.8rem; color: var(--c-gold-light); }
+.deck-badge-image { width: 1.6rem; height: 1.6rem; object-fit: contain; }
 .life-delta { position: absolute; top: 0; right: 0.5rem; font-size: 1.6rem; font-weight: 800; text-shadow: 0 2px 6px #000; pointer-events: none; }
 .life-delta.damage { color: var(--c-danger-strong); }
 .life-delta.heal { color: var(--c-heal); }
@@ -376,11 +382,14 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .card-view.has-art { padding: 0; border-width: 0; background: transparent; box-shadow: none; }
 
 /* Páginas do guia e das cartas */
-.tutorial-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; width: 100%; max-width: 24rem; margin-inline: auto; }
-.tutorial-links .tutorial-cta { box-sizing: border-box; width: 100%; padding-inline: 0.5rem; text-align: center; overflow-wrap: anywhere; }
-.tutorial-page { gap: 1rem; padding-bottom: 2rem; }
+.tutorial-page { gap: 1rem; padding-bottom: 5rem; }
 .tutorial-page > .hero { box-sizing: border-box; width: 100%; max-width: 44rem; }
-.tutorial-page .tutorial-back { align-self: flex-start; }
+.scroll-button { position: fixed; right: max(0.75rem, env(safe-area-inset-right)); bottom: max(0.75rem, env(safe-area-inset-bottom)); z-index: 4; display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 2.75rem; height: 2.75rem; padding: 0; font-size: 1.2rem; line-height: 1; color: var(--c-text); background: var(--c-panel-alpha); border: var(--border-gold-thin); border-radius: 50%; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5); opacity: 0.6; cursor: pointer; }
+.scroll-button[hidden] { display: none; }
+.scroll-button::before { content: "\2193"; }
+.scroll-button[data-target="top"]::before { content: "\2191"; }
+.scroll-button:hover, .scroll-button:focus-visible { opacity: 1; }
+.scroll-button:focus-visible { outline: 3px solid var(--c-gold-light); outline-offset: 2px; }
 .tutorial-page .tutorial-catalog { max-width: 70rem; }
 
 /* Rodapé de navegação: discreto, fora do fluxo de altura da home (ela segue em 100dvh sem scroll de página) */
@@ -391,3 +400,19 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .site-footer a[aria-current="page"] { color: var(--c-gold-light); border-bottom-color: var(--c-gold-light); }
 .site-footer a:focus-visible { outline: 3px solid var(--c-gold-light); outline-offset: 2px; }
 .tutorial-page .site-footer { margin-top: 1rem; }
+
+.deck-title { margin: 1rem 0 0.5rem; font-size: 1.1rem; }
+.deck-select { display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); gap: 0.6rem; margin-bottom: 1rem; }
+.end-box .deck-select { grid-template-columns: repeat(3, 1fr); margin-bottom: 0; }
+.themed button.deck-option, .end-box button.deck-option { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; padding: 0.4rem; }
+.deck-image { width: 100%; max-width: 6.5rem; aspect-ratio: 1; object-fit: contain; }
+.themed button.deck-option.selected, .end-box button.deck-option.selected { border-color: var(--c-gold-light); background: linear-gradient(180deg, var(--c-btn-hover-top), var(--c-btn-hover-bottom)); box-shadow: 0 0 0 3px var(--c-gold-light); }
+.themed button.deck-option:disabled:not(.selected), .end-box button.deck-option:disabled:not(.selected) { opacity: 0.5; }
+.themed button.deck-option.selected:disabled, .end-box button.deck-option.selected:disabled { opacity: 1; }
+
+/* Toasts de erro (globais, acima de qualquer tela) */
+.toasts { position: fixed; top: 0.75rem; right: 0.75rem; left: 0.75rem; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; pointer-events: none; }
+.toast { display: flex; align-items: flex-start; gap: 0.6rem; max-width: min(26rem, 100%); padding: 0.6rem 0.8rem; color: var(--c-text); background: var(--c-panel); border: 1px solid var(--c-danger-strong); border-left-width: 5px; border-radius: 6px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55); pointer-events: auto; }
+.toast-message { flex: 1; }
+.toast-close { flex: none; padding: 0 0.4rem; line-height: 1.4; font-size: 1.1rem; color: var(--c-text); background: transparent; border: 0; cursor: pointer; }
+.toast-close:focus-visible { outline: 3px solid var(--c-gold-light); outline-offset: 2px; }

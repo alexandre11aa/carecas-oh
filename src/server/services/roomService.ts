@@ -6,6 +6,7 @@ import {
   eventView,
   playerView,
   type Action,
+  type DeckId,
   type ErrorCode,
   type EventView,
   type GameEvent,
@@ -62,6 +63,8 @@ export type RoomResult =
       view?: PlayerView;
       /** Presente ao reconectar com a partida já encerrada. */
       ended?: MatchEnd;
+      /** Deck que o próprio jogador escolheu (só em `room:rejoined`; null sem escolha). Nunca o do oponente. */
+      deckId?: DeckId | null;
       /** Prazo do turno e hora do servidor; presentes junto com `view`. */
       turnDeadline?: number | null;
       serverNow?: number;
@@ -95,10 +98,12 @@ export type RoomService = {
   createRoom: (input: { nickname: string; connectionId: string }) => RoomResult;
   joinRoom: (input: { code: string; nickname: string; connectionId: string }) => RoomResult;
   rejoinRoom: (input: { token: string; connectionId: string }) => RoomResult;
-  /** Marca/desmarca "pronto"; com os dois prontos cria a partida e devolve o estado inicial de cada jogador. */
-  setReady: (input: { connectionId: string; ready: boolean }) => MatchResult;
-  /** Vota (ou retira o voto) por revanche; com os dois votos cria nova partida com novo sorteio. */
-  requestRematch: (input: { connectionId: string; accept: boolean }) => MatchResult;
+  /** Marca (com o deck escolhido) ou desmarca "pronto"; com os dois prontos cria a partida e devolve o estado inicial de cada jogador. */
+  setReady: (input: { connectionId: string; ready: false } | { connectionId: string; ready: true; deckId: DeckId }) => MatchResult;
+  /** Vota (com o deck escolhido) ou retira o voto por revanche; com os dois votos cria nova partida com novo sorteio. */
+  requestRematch: (
+    input: { connectionId: string; accept: false } | { connectionId: string; accept: true; deckId: DeckId },
+  ) => MatchResult;
   /** Aplica a ação do jogador da conexão (identificado pelo servidor) e devolve o resultado a cada jogador. */
   submitAction: (input: { connectionId: string; action: Action }) => MatchResult;
   /** Marca o jogador da conexão como desconectado (mantém o lugar para reconexão). */
@@ -226,10 +231,10 @@ export const createRoomService = (
     }
   };
 
-  /** A semente nasce no servidor e nunca é enviada aos jogadores. */
-  const newMatch = (code: string, tokens: RoomMatch["tokens"]): RoomMatch =>
+  /** A semente nasce no servidor e nunca é enviada aos jogadores; `decks` são as escolhas de cada lado. */
+  const newMatch = (code: string, tokens: RoomMatch["tokens"], decks: Record<PlayerId, DeckId>): RoomMatch =>
     armTurnTimer(code, {
-      state: createMatch(randomInt(1, SEED_LIMIT)),
+      state: createMatch(randomInt(1, SEED_LIMIT), decks),
       tokens,
       outcome: null,
       rematchVotes: [],
@@ -253,7 +258,7 @@ export const createRoomService = (
       const token = randomUUID();
       const room: Room = {
         code: generateCode(),
-        players: [{ token, nickname, connectionId, ready: false }],
+        players: [{ token, nickname, connectionId, ready: false, deckId: null }],
         match: null,
       };
       store.saveRoom(room);
@@ -272,8 +277,8 @@ export const createRoomService = (
         ...room,
         match: reset ? null : room.match,
         players: [
-          ...room.players.map((p) => (reset ? { ...p, ready: false } : p)),
-          { token, nickname, connectionId, ready: false },
+          ...room.players.map((p) => (reset ? { ...p, ready: false, deckId: null } : p)),
+          { token, nickname, connectionId, ready: false, deckId: null },
         ],
       };
       store.saveRoom(updated);
@@ -295,21 +300,34 @@ export const createRoomService = (
         view && updated.match
           ? { turnDeadline: updated.match.outcome ? null : updated.match.turnDeadline, serverNow: clock.now() }
           : {};
-      return { ok: true, room: toPublicRoom(updated), token, ...(view ? { view } : {}), ...(ended ? { ended } : {}), ...timing };
+      const own = updated.players.find((p) => p.token === token);
+      return {
+        ok: true,
+        room: toPublicRoom(updated),
+        token,
+        deckId: own?.deckId ?? null,
+        ...(view ? { view } : {}),
+        ...(ended ? { ended } : {}),
+        ...timing,
+      };
     },
 
-    setReady: ({ connectionId, ready }) => {
+    setReady: (input) => {
+      const { connectionId } = input;
       const room = store.getRoomByConnection(connectionId);
       if (!room) return { ok: false, code: "NOT_IN_ROOM" };
       if (room.match) return { ok: false, code: "MATCH_ALREADY_STARTED" };
       let updated: Room = {
         ...room,
-        players: room.players.map((p) => (p.connectionId === connectionId ? { ...p, ready } : p)),
+        players: room.players.map((p) =>
+          p.connectionId === connectionId ? { ...p, ready: input.ready, deckId: input.ready ? input.deckId : null } : p,
+        ),
       };
       const [first, second] = updated.players;
-      if (first && second && updated.players.every((p) => p.ready && p.connectionId !== null)) {
-        const match = newMatch(room.code, { P1: first.token, P2: second.token });
-        updated = { ...updated, match };
+      if (first?.deckId && second?.deckId && updated.players.every((p) => p.ready && p.connectionId !== null)) {
+        const match = newMatch(room.code, { P1: first.token, P2: second.token }, { P1: first.deckId, P2: second.deckId });
+        // A escolha vale só para esta partida: sai do store ao começar.
+        updated = { ...updated, match, players: updated.players.map((p) => ({ ...p, deckId: null })) };
         store.saveRoom(updated);
         return { ok: true, room: toPublicRoom(updated), deliveries: send(updated, match, []) };
       }
@@ -338,7 +356,8 @@ export const createRoomService = (
       return { ok: true, room: toPublicRoom(updated), deliveries: send(updated, match, result.events) };
     },
 
-    requestRematch: ({ connectionId, accept }) => {
+    requestRematch: (input) => {
+      const { connectionId, accept } = input;
       const room = store.getRoomByConnection(connectionId);
       if (!room) return { ok: false, code: "NOT_IN_ROOM" };
       if (!room.match) return { ok: false, code: "MATCH_NOT_STARTED" };
@@ -349,15 +368,22 @@ export const createRoomService = (
       if (room.players.length < MAX_PLAYERS) return { ok: false, code: "REMATCH_UNAVAILABLE" };
       const others = room.match.rematchVotes.filter((t) => t !== player.token);
       const votes = accept ? [...others, player.token] : others;
-      if (room.players.every((p) => votes.includes(p.token) && p.connectionId !== null)) {
-        // Revanche: novo sorteio das cartas, vida em 8000 e lados trocados.
-        const match = newMatch(room.code, { P1: room.match.tokens.P2, P2: room.match.tokens.P1 });
-        const updated: Room = { ...room, match };
+      // O deck do voto fica no jogador; retirar o voto descarta a escolha.
+      const players = room.players.map((p) =>
+        p.token === player.token ? { ...p, deckId: input.accept ? input.deckId : null } : p,
+      );
+      // Revanche: novo sorteio das cartas, vida em 8000 e lados trocados; cada deck acompanha o seu jogador.
+      const tokens = { P1: room.match.tokens.P2, P2: room.match.tokens.P1 };
+      const deckP1 = players.find((p) => p.token === tokens.P1)?.deckId;
+      const deckP2 = players.find((p) => p.token === tokens.P2)?.deckId;
+      if (deckP1 && deckP2 && players.every((p) => votes.includes(p.token) && p.connectionId !== null)) {
+        const match = newMatch(room.code, tokens, { P1: deckP1, P2: deckP2 });
+        const updated: Room = { ...room, match, players: players.map((p) => ({ ...p, deckId: null })) };
         store.saveRoom(updated);
         return { ok: true, room: toPublicRoom(updated), deliveries: send(updated, match, []) };
       }
       const match: RoomMatch = { ...room.match, rematchVotes: votes };
-      const updated: Room = { ...room, match };
+      const updated: Room = { ...room, match, players };
       store.saveRoom(updated);
       return { ok: true, room: toPublicRoom(updated), deliveries: send(updated, match, [], false) };
     },
@@ -376,7 +402,7 @@ export const createRoomService = (
         match,
         players: room.players.map((p) =>
           // Sem partida, "pronto" some junto com a conexão; com partida, o lugar é mantido para a reconexão.
-          p.connectionId === connectionId ? { ...p, connectionId: null, ready: room.match ? p.ready : false } : p,
+          p.connectionId === connectionId ? { ...p, connectionId: null, ready: room.match ? p.ready : false, deckId: null } : p,
         ),
       };
       store.saveRoom(updated);
@@ -411,7 +437,7 @@ export const createRoomService = (
       }
       cancelTurnTimer(room.code);
       if (match) match = { ...match, turnDeadline: null };
-      const updated: Room = { ...room, players: players.map((p) => ({ ...p, ready: false })), match };
+      const updated: Room = { ...room, players: players.map((p) => ({ ...p, ready: false, deckId: null })), match };
       store.saveRoom(updated);
       const deliveries = match ? send(updated, match, events) : [];
       return { code: room.code, room: toPublicRoom(updated), deliveries };

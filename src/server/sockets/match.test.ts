@@ -57,8 +57,8 @@ const startMatch = async (): Promise<Players & { viewA: PlayerView; viewB: Playe
   const players = await twoPlayers();
   const stateA = once(players.a, "match:state");
   const stateB = once(players.b, "match:state");
-  players.a.emit("room:ready");
-  players.b.emit("room:ready");
+  players.a.emit("room:ready", { deckId: "balanced" });
+  players.b.emit("room:ready", { deckId: "strategic" });
   const [{ view: viewA }, { view: viewB }] = await Promise.all([stateA, stateB]);
   return { ...players, viewA, viewB };
 };
@@ -77,7 +77,7 @@ describe("room:ready", () => {
   it("notifica_a_sala_ao_marcar_e_desmarcar_pronto", async () => {
     const { a, b } = await twoPlayers();
     const marked = once(b, "room:updated");
-    a.emit("room:ready");
+    a.emit("room:ready", { deckId: "balanced" });
     expect((await marked).room.players.map((p: any) => p.ready)).toEqual([true, false]);
     const unmarked = once(b, "room:updated");
     a.emit("room:ready", { ready: false });
@@ -94,13 +94,13 @@ describe("room:ready", () => {
   it("jogador_sem_sala_nao_marca_pronto", async () => {
     const a = await client();
     const error = once(a, "app:error");
-    a.emit("room:ready");
+    a.emit("room:ready", { deckId: "balanced" });
     expect(await error).toEqual({ event: "room:ready", code: "NOT_IN_ROOM" });
   });
 
   it("nao_inicia_com_apenas_um_jogador_pronto", async () => {
     const { a } = await twoPlayers();
-    a.emit("room:ready");
+    a.emit("room:ready", { deckId: "balanced" });
     await sleep(100);
     expect(logs.get(a)!.some((l) => l.event === "match:state")).toBe(false);
   });
