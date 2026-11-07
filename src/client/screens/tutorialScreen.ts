@@ -43,7 +43,7 @@ export const createTutorialLinks = (): HTMLElement => {
 
 const createPage = (title: string, content: HTMLElement[], destroy?: () => void): Screen => {
   const element = el("div", "home tutorial-page");
-  const back = linkTo("/", "← Voltar ao menu", "tutorial-back");
+  const back = linkTo("/", "Voltar ao menu", "tutorial-cta tutorial-back");
   element.append(back, el("h1", undefined, title), ...content, createFooter());
   return { element, update: () => undefined, destroy };
 };

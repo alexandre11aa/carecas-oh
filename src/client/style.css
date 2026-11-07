@@ -362,8 +362,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .tutorial-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; width: 100%; max-width: 24rem; margin-inline: auto; }
 .tutorial-links .tutorial-cta { box-sizing: border-box; width: 100%; padding-inline: 0.5rem; text-align: center; overflow-wrap: anywhere; }
 .tutorial-page { gap: 1rem; padding-bottom: 2rem; }
-.tutorial-back { align-self: flex-start; color: var(--c-text-dim); text-decoration: none; }
-.tutorial-back:hover { color: var(--c-gold-light); text-decoration: underline; }
+.tutorial-page .tutorial-back { align-self: flex-start; }
 .tutorial-page .tutorial-catalog { max-width: 70rem; }
 
 /* Rodapé de navegação: discreto, fora do fluxo de altura da home (ela segue em 100dvh sem scroll de página) */
