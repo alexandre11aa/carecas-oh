@@ -21,7 +21,7 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
   const home = el("div", presetCode ? "home home--invite" : "home home--lobby");
   const element = el("main", "screen");
   home.append(element);
-  const hero = createHero("Carecas Oh", presetCode ? `Você foi convidado para a sala ${presetCode}.` : undefined);
+  const hero = createHero("Carecas-Oh", presetCode ? `Você foi convidado para a sala ${presetCode}.` : undefined);
   element.append(hero);
 
   const nicknameInput = el("input");

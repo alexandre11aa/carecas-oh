@@ -6,7 +6,7 @@ import { el, type Screen } from "./dom.js";
 export const createLoadingScreen = (): Screen => {
   const element = el("main", "screen themed");
   const text = el("p", "hint");
-  element.append(el("h1", "game-title", "Carecas Oh"), el("div", "spinner"), text);
+  element.append(el("h1", "game-title", "Carecas-Oh"), el("div", "spinner"), text);
 
   const update = () => {
     text.textContent =
