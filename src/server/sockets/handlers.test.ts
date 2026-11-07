@@ -331,8 +331,8 @@ describe("lobby", () => {
     const { room } = await createRoom(a, "Rui");
     b.emit("room:join", { code: room.code, nickname: "Sol" });
     await once(b, "room:joined");
-    a.emit("room:ready");
-    b.emit("room:ready");
+    a.emit("room:ready", { deckId: "balanced" });
+    b.emit("room:ready", { deckId: "strategic" });
     await once(a, "match:state");
     // O oponente desiste: sobra 1 jogador conectado, mas a sala guarda a partida encerrada.
     b.emit("room:leave");
