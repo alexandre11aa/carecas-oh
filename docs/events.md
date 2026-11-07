@@ -35,6 +35,26 @@ Direção: servidor → cliente
 Payload:
 { "room": { "code": "X7K2", "hasMatch": false, "players": [{ "nickname": "Ana", "connected": true, "ready": false }] }, "token": "3b0c...-uuid" }
 
+Em salas contra a IA (`room:createAi`) o `room` traz também `vsAi: true` e `aiLevel` (`easy`, `medium` ou `hard`), e `hasMatch` já é `true`. Esses dois campos só existem nessas salas (ausentes nas demais) e valem em todos os eventos que carregam `room` (`room:created`, `room:rejoined`, `room:updated`):
+
+{ "room": { "code": "X7K2", "hasMatch": true, "players": [{ "nickname": "Ana", "connected": true, "ready": false }], "vsAi": true, "aiLevel": "medium" }, "token": "3b0c...-uuid" }
+
+### room:createAi
+
+Direção: cliente → servidor
+
+Payload:
+{ "nickname": "Ana", "level": "medium", "deckId": "magic" }
+
+`nickname`: como em `room:create`. `level`: `easy`, `medium` ou `hard`. `deckId`: um dos 6 decks (`aggressive`, `defensive`, `magic`, `control`, `balanced`, `strategic`), secreto como em `room:ready`.
+
+Cria uma sala contra a IA e já inicia a partida: sem sala de espera nem "pronto". O humano é o P1 e a IA o P2 (a IA não é um jogador da sala: não aparece em `players`, não tem token enviado ao cliente). O servidor sorteia o deck da IA entre os 6 e quem começa (pela semente, como no PvP); a semente nunca sai do servidor. A sala não aparece em `lobby:rooms`, `room:join` nela devolve `ROOM_FULL` e `room:ready` devolve `MATCH_ALREADY_STARTED`. `room:rejoin` restaura a partida como no PvP. `room:leave` (ou o abandono por desconexão) remove a sala.
+
+Comportamento transitório (até a IA jogar): enquanto o turno (ou a janela de resposta) for da IA, o `turnDeadline` do `match:state` é `null` e o prazo de 30 s não corre nem expira por ela.
+
+Respostas: `room:created` (só para quem criou) seguido do `match:state` inicial (`events: []`)
+Erros: `INVALID_PAYLOAD` (apelido, nível ou deck inválidos; não há `INVALID_DECK` separado, como em `room:ready`)
+
 ### room:join
 
 Direção: cliente → servidor

@@ -1,6 +1,6 @@
 // src/server/sockets/schemas.ts
 import { z } from "zod";
-import type { DeckId } from "../../engine/index.js";
+import type { AiLevel, DeckId } from "../../engine/index.js";
 
 const nickname = z.string().trim().min(1).max(20);
 
@@ -23,6 +23,12 @@ export const rejoinRoomSchema = z.object({ token: z.string().min(1).max(100) });
 /** Ids dos 6 decks fixos da engine (um teste confere que acompanha `DECKS`). */
 export const DECK_IDS = ["aggressive", "defensive", "magic", "control", "balanced", "strategic"] as const satisfies readonly DeckId[];
 const deckId = z.enum(DECK_IDS);
+
+/** Níveis da IA (um teste confere que acompanha `AI_LEVELS` da engine). */
+export const AI_LEVEL_IDS = ["easy", "medium", "hard"] as const satisfies readonly AiLevel[];
+
+/** `room:createAi`: apelido, nível da IA e deck do humano (secreto até a partida começar). */
+export const createAiRoomSchema = z.object({ nickname, level: z.enum(AI_LEVEL_IDS), deckId });
 
 /** `room:ready`: `{ deckId }` marca pronto com o deck escolhido; `{ ready: false }` desmarca (deck dispensável). */
 export const readySchema = z

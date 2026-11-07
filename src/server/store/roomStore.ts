@@ -1,5 +1,5 @@
 // src/server/store/roomStore.ts
-import type { DeckId, MatchState, PlayerId } from "../../engine/index.js";
+import type { AiLevel, DeckId, MatchState, PlayerId } from "../../engine/index.js";
 
 export type RoomPlayer = {
   token: string;
@@ -33,10 +33,15 @@ export type RoomMatch = {
   turnDeadline: number | null;
 };
 
+/** Adversário controlado pelo servidor. Não é um `RoomPlayer` (não tem conexão); só ocupa um lado em `match.tokens`. */
+export type RoomAi = { level: AiLevel; botToken: string };
+
 export type Room = {
   code: string;
   players: RoomPlayer[];
   match: RoomMatch | null;
+  /** Presente nas salas contra a IA: a partida começa na hora, a sala não é pública e não aceita outro jogador. */
+  ai?: RoomAi;
 };
 
 export type RoomStore = {

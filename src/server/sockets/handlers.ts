@@ -1,7 +1,7 @@
 // src/server/sockets/handlers.ts
 import type { Server, Socket } from "socket.io";
 import type { Delivery, MatchResult, RoomChange, RoomResult, RoomService } from "../services/roomService.js";
-import { createRoomSchema, lobbySchema, joinRoomSchema, matchActionSchema, readySchema, rejoinRoomSchema, rematchSchema } from "./schemas.js";
+import { createAiRoomSchema, createRoomSchema, lobbySchema, joinRoomSchema, matchActionSchema, readySchema, rejoinRoomSchema, rematchSchema } from "./schemas.js";
 
 export type HandlerOptions = {
   /** Tempo até remover uma sala em que todos os jogadores estão desconectados. */
@@ -96,6 +96,15 @@ export const registerHandlers = (io: Server, service: RoomService, { abandonTime
       if (!parsed.success) return fail("room:create", "INVALID_PAYLOAD");
       const result = service.createRoom({ ...parsed.data, connectionId: socket.id });
       if (!result.ok) return fail("room:create", result.code);
+      succeed("room:created", result);
+    });
+
+    socket.on("room:createAi", (payload: unknown) => {
+      const parsed = createAiRoomSchema.safeParse(payload);
+      if (!parsed.success) return fail("room:createAi", "INVALID_PAYLOAD");
+      const result = service.createAiRoom({ ...parsed.data, connectionId: socket.id });
+      if (!result.ok) return fail("room:createAi", result.code);
+      // `room:created` seguido do `match:state` inicial (a partida já começou).
       succeed("room:created", result);
     });
 
