@@ -6,6 +6,7 @@ import type { PlayerView } from "../../engine/playerView.js";
 import type { Action } from "../../engine/types.js";
 import { asDeckId } from "../screens/deckSelect.js";
 import { rematchPayload } from "../screens/matchEnd.js";
+import { showErrorCode, showErrorMessage } from "../screens/toasts.js";
 import { createTurnClock, turnNotice } from "../screens/turnTimer.js";
 import { clearToken, getState, loadToken, lobbyRoomsFromPayload, matchForRoom, saveToken, setState, type MatchEnded, type PublicRoom } from "../state.js";
 
@@ -19,7 +20,7 @@ let lobbyWanted = false;
 const applyReply = ({ room, token, deckId }: RoomReply): void => {
   saveToken(token);
   const match = matchForRoom(room, getState().match);
-  setState({ room, match, ended: match ? getState().ended : null, busy: false, booting: false, errorCode: null, deckId: asDeckId(deckId) });
+  setState({ room, match, ended: match ? getState().ended : null, busy: false, booting: false, deckId: asDeckId(deckId) });
 };
 
 /** Liga os eventos do servidor ao estado e abre a conexão. Chamar uma única vez. */
@@ -34,7 +35,11 @@ export const connect = (): void => {
     if (lobbyWanted) socket.emit("lobby:subscribe");
   });
 
-  socket.on("disconnect", () => setState({ connection: "offline" }));
+  socket.on("disconnect", () => {
+    setState({ connection: "offline" });
+    showErrorMessage("Conexão com o servidor perdida. Tentando reconectar...");
+  });
+  socket.on("connect_error", () => showErrorMessage("Não foi possível conectar ao servidor."));
   socket.io.on("reconnect_attempt", () => setState({ connection: "connecting" }));
 
   socket.on("lobby:rooms", (payload: unknown) => setState({ lobbyRooms: lobbyRoomsFromPayload(payload) }));
@@ -56,7 +61,7 @@ export const connect = (): void => {
       const text = turnNotice(events ?? [], view.viewer, previous.turnClock, serverNow);
       const notice = text ? { seq: (previous.turnNotice?.seq ?? 0) + 1, text } : previous.turnNotice;
       // Partida em andamento (inclusive a revanche) não tem resultado; o erro anterior perde o sentido.
-      setState({ match: view, turnClock, turnNotice: notice, matchEvents: { seq: (previous.matchEvents?.seq ?? 0) + 1, events: events ?? [] }, ended: view.winner ? previous.ended : null, errorCode: null });
+      setState({ match: view, turnClock, turnNotice: notice, matchEvents: { seq: (previous.matchEvents?.seq ?? 0) + 1, events: events ?? [] }, ended: view.winner ? previous.ended : null });
     },
   );
   socket.on("match:ended", (ended: MatchEnded) => setState({ ended }));
@@ -68,7 +73,8 @@ export const connect = (): void => {
       setState({ room: null, match: null, turnClock: null, turnNotice: null, matchEvents: null, ended: null, booting: false, busy: false, deckId: null });
       return;
     }
-    setState({ errorCode: code, busy: false, booting: false });
+    showErrorCode(code);
+    setState({ busy: false, booting: false });
   });
 
   socket.connect();
@@ -88,30 +94,29 @@ export const unsubscribeLobby = (): void => {
 };
 
 export const createRoom = (nickname: string): void => {
-  setState({ busy: true, errorCode: null });
+  setState({ busy: true });
   socket.emit("room:create", { nickname });
 };
 
 export const joinRoom = (code: string, nickname: string): void => {
-  setState({ busy: true, errorCode: null });
+  setState({ busy: true });
   socket.emit("room:join", { code, nickname });
 };
 
 export const leaveRoom = (): void => {
   socket.emit("room:leave");
   clearToken();
-  setState({ room: null, match: null, turnClock: null, turnNotice: null, matchEvents: null, ended: null, errorCode: null, deckId: null });
+  setState({ room: null, match: null, turnClock: null, turnNotice: null, matchEvents: null, ended: null, deckId: null });
 };
 
 /** Marca o jogador como pronto com o deck escolhido (`room:ready`). */
 export const sendReady = (deckId: DeckId): void => {
-  setState({ deckId, errorCode: null });
+  setState({ deckId });
   socket.emit("room:ready", { deckId });
 };
 
 /** Envia uma jogada (`match:action`); quem decide o resultado é o servidor. */
 export const sendAction = (action: Action): void => {
-  setState({ errorCode: null });
   socket.emit("match:action", action);
 };
 

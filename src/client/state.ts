@@ -38,8 +38,6 @@ export type ClientState = {
   lobbyRooms: LobbyRoom[];
   /** Deck do próprio jogador (escolha em `room:ready` ou vinda de `room:rejoined`); nunca o do oponente. */
   deckId: DeckId | null;
-  /** Código do último erro recebido (a tela escolhe a mensagem). */
-  errorCode: string | null;
   /** Há uma requisição de sala (criar/entrar) aguardando resposta. */
   busy: boolean;
 };
@@ -55,7 +53,6 @@ let state: ClientState = {
   ended: null,
   lobbyRooms: [],
   deckId: null,
-  errorCode: null,
   busy: false,
 };
 

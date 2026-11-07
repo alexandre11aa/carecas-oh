@@ -409,3 +409,10 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .themed button.deck-option.selected, .end-box button.deck-option.selected { border-color: var(--c-gold-light); background: linear-gradient(180deg, var(--c-btn-hover-top), var(--c-btn-hover-bottom)); box-shadow: 0 0 0 3px var(--c-gold-light); }
 .themed button.deck-option:disabled:not(.selected), .end-box button.deck-option:disabled:not(.selected) { opacity: 0.5; }
 .themed button.deck-option.selected:disabled, .end-box button.deck-option.selected:disabled { opacity: 1; }
+
+/* Toasts de erro (globais, acima de qualquer tela) */
+.toasts { position: fixed; top: 0.75rem; right: 0.75rem; left: 0.75rem; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; pointer-events: none; }
+.toast { display: flex; align-items: flex-start; gap: 0.6rem; max-width: min(26rem, 100%); padding: 0.6rem 0.8rem; color: var(--c-text); background: var(--c-panel); border: 1px solid var(--c-danger-strong); border-left-width: 5px; border-radius: 6px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55); pointer-events: auto; }
+.toast-message { flex: 1; }
+.toast-close { flex: none; padding: 0 0.4rem; line-height: 1.4; font-size: 1.1rem; color: var(--c-text); background: transparent; border: 0; cursor: pointer; }
+.toast-close:focus-visible { outline: 3px solid var(--c-gold-light); outline-offset: 2px; }

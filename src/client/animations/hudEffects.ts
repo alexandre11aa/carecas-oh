@@ -42,3 +42,21 @@ export const snapLife = (holder: { value: number }, target: number, onFrame: (va
 export const flashCounter = (target: HTMLElement): void => {
   gsap.fromTo(target, { scale: 1.6, color: "#ffd34d" }, { scale: 1, color: "#eeeeee", duration: 0.8, ease: "power2.out", clearProps: "color,transform" });
 };
+
+const prefersReducedMotion = (): boolean => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/** Entrada de um toast (desliza e aparece); sem animação com `prefers-reduced-motion`. */
+export const playToastIn = (target: HTMLElement): void => {
+  if (prefersReducedMotion()) return;
+  gsap.fromTo(target, { opacity: 0, y: -16 }, { opacity: 1, y: 0, duration: 0.25, ease: "power2.out" });
+};
+
+/** Saída de um toast; chama `done` ao terminar (imediatamente com `prefers-reduced-motion`). */
+export const playToastOut = (target: HTMLElement, done: () => void): void => {
+  gsap.killTweensOf(target);
+  if (prefersReducedMotion()) {
+    done();
+    return;
+  }
+  gsap.to(target, { opacity: 0, y: -12, duration: 0.2, ease: "power1.in", onComplete: done });
+};

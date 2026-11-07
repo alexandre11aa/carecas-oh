@@ -8,7 +8,6 @@ import { leaveRoom, sendAction, sendRematch } from "../network/socket.js";
 import { createMatchScene, type MatchScene } from "../scene/scene.js";
 import { getState, loadNickname } from "../state.js";
 import { el, type Screen } from "./dom.js";
-import { errorMessage } from "./errorMessages.js";
 import {
   connectionNotice,
   handClick,
@@ -105,13 +104,12 @@ export const createMatchScreen = (): Screen => {
 
   const youInfo = infoBoxes.you.box;
   const hintLine = el("p", "hud-hint");
-  const errorLine = el("p", "error");
   const commandsBox = el("div", "hud-commands");
   const hand = el("div", "hand");
   let handButtons: HTMLButtonElement[] = [];
   let handCardIds: string[] = [];
   const bottom = el("div");
-  bottom.append(hintLine, errorLine, commandsBox, hand, youInfo);
+  bottom.append(hintLine, commandsBox, hand, youInfo);
   youInfo.style.marginTop = "0.5rem";
 
   hud.append(top, bottom);
@@ -296,7 +294,7 @@ export const createMatchScreen = (): Screen => {
   const countdownInterval = setInterval(renderCountdown, 250);
 
   const update = () => {
-    const { match, connection, errorCode, ended, room, turnNotice, matchEvents } = getState();
+    const { match, connection, ended, room, turnNotice, matchEvents } = getState();
     if (!match) return;
     // Nova visão do servidor: a seleção anterior pode não valer mais.
     if (match !== lastMatch) {
@@ -344,7 +342,6 @@ export const createMatchScreen = (): Screen => {
     phaseLine.textContent = `Fase: ${PHASE_LABELS[match.phase]}`;
     noticeLine.textContent = connectionNotice(connection);
     hintLine.textContent = selectionHint(match, selection);
-    errorLine.textContent = errorCode ? errorMessage(errorCode) : "";
 
     const commands = [
       ...selectionCommands(match, selection),
