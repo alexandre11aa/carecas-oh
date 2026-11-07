@@ -21,7 +21,10 @@ export type SpellEffect =
   | { kind: "HEAL"; amount: number } // cura o conjurador
   | { kind: "DAMAGE"; amount: number } // dano direto ao oponente
   | { kind: "DESTROY_MONSTER"; maxAttack?: number } // alvo: monstro do oponente (com ATK <= maxAttack, se houver)
-  | { kind: "DRAW"; count: number }; // o conjurador compra cartas
+  | { kind: "DRAW"; count: number } // o conjurador compra cartas
+  | { kind: "BOOST_ALL_ATTACK"; amount: number } // sem alvo: todos os monstros próprios no campo ganham ATK até o fim do turno
+  | { kind: "HEAL_PER_MONSTER"; amountPerMonster: number; maxAmount: number } // sem alvo: cura amountPerMonster x monstros próprios, até maxAmount
+  | { kind: "REVIVE_MONSTER"; maxLevel: number }; // sem alvo: traz, em ataque, o monstro de maior ATK do cemitério próprio com nível <= maxLevel
 
 export type SpellCard = {
   id: string;
@@ -148,6 +151,7 @@ export type ErrorCode =
   | "NOT_A_SPELL"
   | "SPELL_NOT_AVAILABLE"
   | "SPELL_TRAP_ZONES_FULL"
+  | "NO_ELIGIBLE_MONSTER"
   | "RESPONSE_PENDING"
   | "NO_RESPONSE_WINDOW"
   | "TRAP_NOT_AVAILABLE"
