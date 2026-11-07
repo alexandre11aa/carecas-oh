@@ -31,7 +31,7 @@ const empty = (list: (MonsterOnField | null)[] = []): (MonsterOnField | null)[] 
 
 /** Fase de batalha do turno 5; `mine` é o campo de quem ataca e `theirs` o do oponente. */
 const setup = ({ mine, theirs, turn = 5, phase = "BATTLE", myLife, theirLife }: Setup) => {
-  const base = createMatch(42);
+  const base = createMatch(42, { P1: "balanced", P2: "strategic" });
   const p = base.currentPlayer;
   const o = opponentOf(p);
   const state: MatchState = {

@@ -31,7 +31,7 @@ const field = (cardId: string, extra: Partial<MonsterOnField> = {}): MonsterOnFi
 const pad = <T,>(list: (T | null)[]): (T | null)[] => [...list, ...Array<null>(5 - list.length).fill(null)];
 
 const setup = (cardId: string, mine: (MonsterOnField | null)[], graveyard: string[] = [], life = 3000) => {
-  const base = createMatch(42);
+  const base = createMatch(42, { P1: "balanced", P2: "strategic" });
   const p = base.currentPlayer;
   const o = opponentOf(p);
   const state: MatchState = {

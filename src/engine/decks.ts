@@ -1,60 +1,75 @@
 // src/engine/decks.ts
-import { CARDS } from "./cards.js";
-import { shuffle } from "./rng.js";
-
 export const DECK_SIZE = 10;
 
-export type DealtDecks = {
-  decks: { P1: string[]; P2: string[] };
-  seed: number;
+export type DeckId = "aggressive" | "defensive" | "magic" | "control" | "balanced" | "strategic";
+
+export type DeckDefinition = {
+  id: DeckId;
+  name: string;
+  /** Exatamente `DECK_SIZE` cartas; cada carta aparece em no máximo um deck. */
+  cardIds: readonly string[];
 };
 
-/**
- * Pool legado: as 20 cartas originais (com o General do Cerco no lugar do Titã do Abismo, removido do catálogo). Enquanto não houver decks fixos, `dealDecks` sorteia só sobre ele.
- * Remover quando a issue de decks fixos entrar.
- */
-const LEGACY_POOL = new Set([
-  "ash_sprite", "moss_golem", "dune_scout", "tide_imp", "bone_knight", "crystal_bat",
-  "storm_hawk", "iron_minotaur", "frost_witch", "ash_dragon", "siege_general",
-  "healing_spring", "power_surge", "wind_gust", "fire_bolt", "arcane_draw",
-  "spike_pit", "divine_glory_evasion", "hidden_snare", "dark_veil",
-]);
+/** Os 6 decks fixos (monstros/magias/armadilhas): 6/3/1, 5/2/3, 4/5/1, 4/3/3, 5/3/2 e 5/4/1. */
+export const DECKS: readonly DeckDefinition[] = [
+  {
+    id: "aggressive",
+    name: "Agressivo",
+    cardIds: [
+      "crimson_blade", "crimson_wolf", "crimson_warrior", "ember_boar", "war_executioner", "blazing_colossus",
+      "war_cry", "flaming_lance", "blind_fury",
+      "cutting_net",
+    ],
+  },
+  {
+    id: "defensive",
+    name: "Defensivo",
+    cardIds: [
+      "stone_sentinel", "iron_squire", "living_wall", "basalt_guardian", "granite_giant",
+      "life_wall", "sanctuary_blessing",
+      "mirror_shield", "spear_barrier", "silent_web",
+    ],
+  },
+  {
+    id: "magic",
+    name: "Mágico",
+    cardIds: [
+      "runic_raven", "eclipse_mage", "frost_witch", "sphinx_archmage",
+      "call_beyond", "arcane_dart", "runic_pulse", "frost_blast", "arcane_draw",
+      "runic_seal",
+    ],
+  },
+  {
+    id: "control",
+    name: "Controle",
+    cardIds: [
+      "moss_golem", "bone_knight", "storm_hawk", "iron_minotaur",
+      "silent_rupture", "power_surge", "wind_gust",
+      "divine_glory_evasion", "spike_pit", "dark_veil",
+    ],
+  },
+  {
+    id: "balanced",
+    name: "Equilibrado",
+    cardIds: [
+      "ash_sprite", "tide_imp", "crystal_bat", "dune_scout", "ash_dragon",
+      "vital_exchange", "fire_bolt", "healing_spring",
+      "mist_wall", "hidden_snare",
+    ],
+  },
+  {
+    id: "strategic",
+    name: "Estratégico",
+    cardIds: [
+      "cunning_scout", "wall_archer", "tactical_captain", "strategist_knight", "siege_general",
+      "retreat_plan", "precise_strike", "tactical_reinforcement", "inside_information",
+      "counter_offensive",
+    ],
+  },
+];
 
-const CATEGORIES = ["LOW_MONSTER", "MID_MONSTER", "HIGH_MONSTER", "SPELL", "TRAP"] as const;
-type Category = (typeof CATEGORIES)[number];
-
-const categoryOf = (card: (typeof CARDS)[number]): Category => {
-  if (card.type === "SPELL") return "SPELL";
-  if (card.type === "TRAP") return "TRAP";
-  if (card.level <= 4) return "LOW_MONSTER";
-  return card.level <= 6 ? "MID_MONSTER" : "HIGH_MONSTER";
-};
-
-/**
- * Divide as 20 cartas por categoria (monstro nível 1-4, 5-6, 7+, magia, armadilha): cada categoria é
- * embaralhada com a semente e distribuída alternadamente. Nas categorias de tamanho ímpar, quem recebe
- * a carta extra alterna (P1 na primeira, P2 na seguinte, e assim por diante).
- */
-export const dealDecks = (seed: number): DealtDecks => {
-  const decks: { P1: string[]; P2: string[] } = { P1: [], P2: [] };
-  let current = seed;
-  let extraTo: "P1" | "P2" = "P1";
-  for (const category of CATEGORIES) {
-    const shuffled = shuffle(
-      CARDS.filter((card) => LEGACY_POOL.has(card.id) && categoryOf(card) === category).map((card) => card.id),
-      current,
-    );
-    current = shuffled.seed;
-    const half = Math.floor(shuffled.items.length / 2);
-    const other: "P1" | "P2" = extraTo === "P1" ? "P2" : "P1";
-    const odd = shuffled.items.length % 2 === 1;
-    const firstCount = odd ? half + 1 : half;
-    decks[extraTo].push(...shuffled.items.slice(0, firstCount));
-    decks[other].push(...shuffled.items.slice(firstCount));
-    if (odd) extraTo = other;
-  }
-  // Embaralha a ordem final de cada deck para não revelar a categoria pela posição de compra.
-  const p1 = shuffle(decks.P1, current);
-  const p2 = shuffle(decks.P2, p1.seed);
-  return { decks: { P1: p1.items, P2: p2.items }, seed: p2.seed };
+export const getDeck = (id: DeckId): DeckDefinition => {
+  const deck = DECKS.find((candidate) => candidate.id === id);
+  if (!deck) throw new Error(`Deck desconhecido: ${id}`);
+  return deck;
 };

@@ -33,7 +33,7 @@ const setup = (
   cardId: string,
   theirs: { monsters?: (MonsterOnField | null)[]; spellTraps?: (SpellTrapOnField | null)[]; life?: number } = {},
 ) => {
-  const base = createMatch(42);
+  const base = createMatch(42, { P1: "balanced", P2: "strategic" });
   const p = base.currentPlayer;
   const o = opponentOf(p);
   const state: MatchState = {

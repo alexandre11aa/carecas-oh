@@ -21,7 +21,7 @@ const setCard = (cardId: string, faceDown = true): SpellTrapOnField => ({ cardId
 
 /** A é o jogador do turno (turno 5); B tem defesa virada, armadilha baixada e mão própria. */
 const scenario = () => {
-  const base = createMatch(7);
+  const base = createMatch(7, { P1: "balanced", P2: "strategic" });
   const a = base.currentPlayer;
   const b: PlayerId = a === "P1" ? "P2" : "P1";
   const state: MatchState = {
@@ -52,6 +52,15 @@ const scenario = () => {
 };
 
 describe("playerView", () => {
+  it("expoe_o_deckId_de_ambos_os_jogadores", () => {
+    const { state, a, b } = scenario();
+    const view = playerView(state, a);
+    expect(view.you.deckId).toBe(state.players[a].deckId);
+    expect(view.opponent.deckId).toBe(state.players[b].deckId);
+    expect(view.you.deckId).toBe("balanced");
+    expect(view.opponent.deckId).toBe("strategic");
+  });
+
   it("nao_vaza_ids_ocultos_do_oponente_nem_a_semente_no_json", () => {
     const { state, a } = scenario();
     const json = JSON.stringify(playerView(state, a));

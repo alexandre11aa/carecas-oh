@@ -1,5 +1,6 @@
 // src/engine/types.ts
 // Tipos serializáveis em JSON: cartas, ações e estado da partida.
+import type { DeckId } from "./decks.js";
 
 export type CardType = "MONSTER" | "SPELL" | "TRAP";
 
@@ -88,6 +89,7 @@ export type SpellTrapOnField = {
 
 export type PlayerState = {
   id: PlayerId;
+  deckId: DeckId;
   lifePoints: number;
   deck: string[];
   hand: string[];

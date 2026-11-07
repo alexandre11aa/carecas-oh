@@ -18,7 +18,7 @@ type Setup = { hand?: string[]; monsters?: (MonsterOnField | null)[]; used?: boo
 
 /** Estado na Principal 1 do turno 5 com mão e campo do jogador atual definidos. */
 const setup = ({ hand = [], monsters, used = false, phase = "MAIN_1" }: Setup): { state: MatchState; p: PlayerId } => {
-  const base = createMatch(42);
+  const base = createMatch(42, { P1: "balanced", P2: "strategic" });
   const p = base.currentPlayer;
   const player = base.players[p];
   return {

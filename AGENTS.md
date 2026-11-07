@@ -60,7 +60,7 @@ Seguem as regras do Yu-Gi-Oh, com monstros, magias, armadilhas e tributo.
 ### Pontos de vida e decks
 
 - Dois jogadores, cada um com 8000 pontos de vida.
-- Existem 20 cartas provisórias. Ao iniciar a partida, cada jogador recebe 10 cartas sorteadas sem repetição, sem que as cartas se repitam entre os jogadores. O sorteio usa a semente do estado.
+- Existem 6 decks fixos de 10 cartas (`DECKS` em `decks.ts`): Agressivo 6/3/1, Defensivo 5/2/3, Mágico 4/5/1, Controle 4/3/3, Equilibrado 5/3/2 e Estratégico 5/4/1 (monstros/magias/armadilhas). Cada carta pertence a um só deck e cada deck tem ao menos uma magia de efeito exclusivo. Cada jogador usa um deck (os dois podem usar o mesmo), embaralhado com a semente do estado.
 - Mão inicial de 5 cartas; as outras 5 ficam no deck.
 - Perde quem não puder comprar quando for obrigado a comprar.
 - Cada turno tem limite de 30 segundos para o jogador da vez (ou o defensor, se houver janela de resposta aberta). O prazo recomeça a cada ação válida. Ao expirar, o servidor passa a resposta pendente ou encerra o turno. O relógio vive no servidor (`roomService`), nunca na engine.
@@ -95,7 +95,7 @@ Seguem as regras do Yu-Gi-Oh, com monstros, magias, armadilhas e tributo.
 2. **Sala:** os dois jogadores ficam na sala de espera.
 3. **Pronto:** cada jogador marca "pronto"; a partida começa quando ambos estiverem prontos.
 4. **Partida 3D:** jogada conforme as regras acima, na cena 3D com interface em HTML.
-5. **Fim:** exibe o resultado e oferece **revanche** (reembaralha: sorteia de novo as 10 cartas de cada jogador com nova semente, e reinicia a vida em 8000) ou **voltar ao lobby**.
+5. **Fim:** exibe o resultado e oferece **revanche** (reembaralha: reembaralha o deck de cada jogador com nova semente, e reinicia a vida em 8000) ou **voltar ao lobby**.
 
 ## Engine (`src/engine/`)
 
@@ -104,7 +104,7 @@ Seguem as regras do Yu-Gi-Oh, com monstros, magias, armadilhas e tributo.
 ```text
 src/engine/
   cards.ts              definições das cartas, tipadas
-  decks.ts              as 20 cartas provisórias e o sorteio dos decks de 10 cartas
+  decks.ts              os 6 decks fixos de 10 cartas (`DECKS`, `DeckId`, `getDeck`)
   types.ts              tipos de cartas, ações e estado da partida
   rules/                turnos, invocação e combate, um arquivo por assunto
   createMatch.ts        cria o estado inicial a partir dos decks e da semente
@@ -123,14 +123,14 @@ src/engine/
 - `applyAction` retorna `{ ok: true, state, events }` ou `{ ok: false, code }`. Jogadas inválidas fazem parte do fluxo e não lançam exceção.
 - Ações são uma união discriminada pelo campo `type`, em `UPPER_SNAKE_CASE` (`SUMMON_CARD`, `ATTACK`, `END_TURN`).
 - `playerView` é o único caminho para gerar dados enviados aos jogadores. A mão do oponente, a ordem dos decks e a semente nunca são incluídas.
-- `playerView(state, viewer)` devolve `you` (mão e campo completos, deck só como `deckCount`) e `opponent` (contagem de mão/deck; monstros e magias/armadilhas virados viram `cardId: null`, sem `attackBonus`/`hasAttacked`). Públicos: vida, fase, turno, cemitérios e, nos monstros virados para cima, `attackBonus`, `hasAttacked` e `changedPositionOnTurn`. `pendingResponse` aparece como `{ responder, canRespond: false }` para o jogador do turno; só o defensor recebe gatilho e ação interrompida (alvos de ataque e magia vão por zona; ids de tributos virados são removidos). Todo campo novo do estado exige decidir aqui se é público.
+- `playerView(state, viewer)` devolve `you` (mão e campo completos, deck só como `deckCount`) e `opponent` (contagem de mão/deck; monstros e magias/armadilhas virados viram `cardId: null`, sem `attackBonus`/`hasAttacked`). Públicos: vida, fase, turno, cemitérios e, nos monstros virados para cima, `attackBonus`, `hasAttacked` e `changedPositionOnTurn`; `deckId` de ambos os jogadores (`you.deckId` e `opponent.deckId`) também é público, pois a partida só existe depois da revelação dos decks. `pendingResponse` aparece como `{ responder, canRespond: false }` para o jogador do turno; só o defensor recebe gatilho e ação interrompida (alvos de ataque e magia vão por zona; ids de tributos virados são removidos). Todo campo novo do estado exige decidir aqui se é público.
 - `eventView(event, viewer)` é o único caminho de eventos aos jogadores: o servidor nunca envia `GameEvent` bruto. Ids de cartas ocultas do oponente viram `null` (compra, monstro baixado/mudado de posição virado, magia/armadilha baixada, reforço de ataque; alvos de ataque e magia são por zona, públicos). Evento novo que carregue `cardId` exige decidir aqui se é público.
 
 ### Cartas
 
 - Cartas são dados tipados em `cards.ts`. Não crie uma classe nem um arquivo de código para cada carta.
 - Efeitos de magia são dados tipados (`effect` em `SpellCard`, união `SpellEffect` em `types.ts`: `BOOST_ATTACK`, `HEAL`, `DAMAGE`, `DESTROY_MONSTER`, `DRAW`, `BOOST_ALL_ATTACK`, `HEAL_PER_MONSTER`, `REVIVE_MONSTER`, `DESTROY_SPELL_TRAP`, `DRAIN`, `BOUNCE_MONSTER`), interpretados por `rules/spells.ts`. Efeito novo = novo `kind` na união e um caso no interpretador, nunca código por carta.
-- Balanceamento (Sprint 1): `dealDecks` divide por categoria (monstro nível 1-4, 5-6, 7+, magia, armadilha) para equilibrar os decks. `DESTROY_MONSTER` e `DESTROY_ATTACKER` aceitam `maxAttack` opcional (ATK com bônus). `arcane_draw` continua "compre 1 carta": o risco de deck vazio antes da hora é decisão consciente.
+- Balanceamento (régua): a composição de cada deck é fixa e testada em `decks.test.ts` (monstros/magias/armadilhas), sem sorteio por categoria. `DESTROY_MONSTER` e `DESTROY_ATTACKER` aceitam `maxAttack` opcional (ATK com bônus). `arcane_draw` continua "compre 1 carta": o risco de deck vazio antes da hora é decisão consciente.
 - Use apenas cartas, artes, nomes e identidade visual próprios. Não copie material oficial de Yu-Gi-Oh.
 
 ```ts
@@ -353,7 +353,7 @@ Antes de entregar uma tarefa, rode `npm run check`, `npm test`, `npm run build` 
 - O primeiro acesso após a hibernação demora mais, então a interface deve exibir um estado de carregamento.
 - Conexões podem cair durante a partida, então a reconexão por token precisa funcionar desde o início.
 - Cadeia com múltiplos efeitos (vários efeitos encadeados e respondidos entre si) fica fora da Sprint 1; há apenas uma resposta de armadilha por janela.
-- As 20 cartas do jogo são provisórias.
+- As cartas do jogo são provisórias.
 
 ## Decisões em aberto
 

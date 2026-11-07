@@ -31,7 +31,7 @@ type Setup = {
 
 /** Turno 5; `p` é o jogador do turno (atacante) e `o` o defensor, dono das armadilhas. */
 const setup = ({ hand = [], mine = [], mineSpellTraps = [], theirs = [], theirTraps = [], phase = "BATTLE" }: Setup) => {
-  const base = createMatch(42);
+  const base = createMatch(42, { P1: "balanced", P2: "strategic" });
   const p = base.currentPlayer;
   const o = opponentOf(p);
   const state: MatchState = {

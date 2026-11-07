@@ -182,7 +182,7 @@ Direção: cliente → servidor
 Payload (opcional):
 { "accept": false }
 
-Só vale com a partida encerrada. Sem payload, vota por revanche; `{ "accept": false }` retira o voto. Com os votos dos dois jogadores (ambos conectados), o servidor cria uma nova partida: novo sorteio das 20 cartas com nova semente (nunca enviada), vida em 8000, e os lados P1/P2 são trocados. Um só voto não inicia nada. Não é preciso passar por `room:ready`. Se o oponente já saiu da sala, não há revanche.
+Só vale com a partida encerrada. Sem payload, vota por revanche; `{ "accept": false }` retira o voto. Com os votos dos dois jogadores (ambos conectados), o servidor cria uma nova partida: novo embaralhamento dos decks com nova semente (nunca enviada), vida em 8000, e os lados P1/P2 são trocados. Um só voto não inicia nada. Não é preciso passar por `room:ready`. Se o oponente já saiu da sala, não há revanche.
 
 Respostas: `match:ended` para os dois (votos atualizados) ou, quando a partida recomeça, `match:state` para cada jogador (`events: []`, `winner: null`)
 Erros: `INVALID_PAYLOAD`, `NOT_IN_ROOM`, `MATCH_NOT_STARTED`, `MATCH_NOT_ENDED`, `REMATCH_UNAVAILABLE`
