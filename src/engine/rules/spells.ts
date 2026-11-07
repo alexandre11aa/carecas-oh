@@ -140,6 +140,49 @@ const resolveEffect = (
         winner: null,
       };
     }
+    case "DESTROY_SPELL_TRAP": {
+      const zone = targetZone ?? -1;
+      const target = enemy.spellTraps[zone];
+      if (!target) return fail("INVALID_TARGET");
+      events.push({ type: "CARD_SENT_TO_GRAVEYARD", player: enemyId, cardId: target.cardId });
+      return {
+        self,
+        enemy: {
+          ...enemy,
+          spellTraps: enemy.spellTraps.map((s, i) => (i === zone ? null : s)),
+          graveyard: [...enemy.graveyard, target.cardId],
+        },
+        events,
+        winner: null,
+      };
+    }
+    case "DRAIN": {
+      const lifePoints = Math.max(0, enemy.lifePoints - effect.amount);
+      events.push({ type: "DAMAGE_DEALT", player: enemyId, amount: effect.amount });
+      events.push({ type: "LIFE_RESTORED", player, amount: effect.amount });
+      return {
+        self: { ...self, lifePoints: self.lifePoints + effect.amount },
+        enemy: { ...enemy, lifePoints },
+        events,
+        winner: lifePoints === 0 ? player : null,
+      };
+    }
+    case "BOUNCE_MONSTER": {
+      const zone = targetZone ?? -1;
+      const target = enemy.monsters[zone];
+      if (!target) return fail("INVALID_TARGET");
+      events.push({ type: "CARD_RETURNED_TO_HAND", player: enemyId, cardId: target.cardId, zone, faceDown: target.faceDown });
+      return {
+        self,
+        enemy: {
+          ...enemy,
+          monsters: enemy.monsters.map((m, i) => (i === zone ? null : m)),
+          hand: [...enemy.hand, target.cardId],
+        },
+        events,
+        winner: null,
+      };
+    }
     case "DESTROY_MONSTER": {
       const zone = targetZone ?? -1;
       const target = enemy.monsters[zone];
