@@ -107,6 +107,7 @@ Volta ao lobby: remove o jogador da sala; se a sala ficar vazia, ela é removida
 - **Partida já encerrada (tela de fim):** o resultado permanece para quem ficou, os votos de revanche são apagados e o restante recebe `match:ended` atualizado.
 - Se outro jogador entrar numa sala com partida encerrada, a partida antiga é descartada e a sala volta ao estado de espera (todos "não pronto").
 - Perder a conexão (sem `room:leave`) não é desistência: o lugar é mantido para `room:rejoin`.
+- **Sala contra a IA (`vsAi`):** só há um humano, então sair (no meio da partida ou depois do fim) remove a sala na hora, cancela o agendamento da IA e esquece o seu estado. A desistência equivale a derrota do humano, mas ninguém resta para receber `match:state`/`match:ended` com `OPPONENT_LEFT`. Perder a conexão não remove a sala: a IA segue jogando no turno dela (sem entregas enquanto o humano estiver fora) e o humano volta com `room:rejoin`, inclusive com a partida encerrada (recebe `match:ended`). A sala de IA abandonada é removida pelo mesmo tempo de abandono das demais.
 
 Respostas: `room:updated` para os jogadores restantes (nenhuma para quem saiu) e, se havia partida, `match:state`/`match:ended` para quem ficou
 Erros: nenhum (sem efeito se o jogador não estiver em sala)
@@ -214,6 +215,8 @@ ou, para retirar o voto (o `deckId` pode ser omitido):
 
 Só vale com a partida encerrada. `{ "deckId": "..." }` vota por revanche com o deck escolhido (obrigatório ao aceitar, mesmos 6 ids de `room:ready`; sem ele ou inválido: `INVALID_PAYLOAD`); `{ "accept": false }` retira o voto e descarta a escolha. A escolha é do jogador do token, secreta para o oponente (o `match:ended` de revanche só mostra quem votou) e usada na nova partida: cada deck acompanha o seu jogador mesmo com os lados trocados. Com os votos dos dois jogadores (ambos conectados), o servidor cria uma nova partida: novo embaralhamento dos decks com nova semente (nunca enviada), vida em 8000, e os lados P1/P2 são trocados. Um só voto não inicia nada. Não é preciso passar por `room:ready`. Se o oponente já saiu da sala, não há revanche.
 
+**Sala contra a IA (`vsAi`):** a IA sempre aceita, então não há espera nem `REMATCH_UNAVAILABLE`. `{ "deckId": "..." }` (obrigatório, validado como no PvP) inicia a nova partida na hora: nova semente, vida em 8000, lados P1/P2 trocados (quem começa segue o sorteio da nova semente), nível da IA mantido e novo deck aleatório da IA, sorteado no servidor e nunca enviado. O humano escolhe o seu deck de novo a cada revanche. `{ "accept": false }` apenas descarta a escolha de deck: a partida continua encerrada, o jogador recebe `match:ended` (com `rematch.opponent: true`) e pode votar de novo ou sair com `room:leave`. Não entra segunda pessoa na sala (`ROOM_FULL`).
+
 Respostas: `match:ended` para os dois (votos atualizados) ou, quando a partida recomeça, `match:state` para cada jogador (`events: []`, `winner: null`)
 Erros: `INVALID_PAYLOAD`, `NOT_IN_ROOM`, `MATCH_NOT_STARTED`, `MATCH_NOT_ENDED`, `REMATCH_UNAVAILABLE`
 
@@ -224,7 +227,7 @@ Direção: servidor → cliente
 Payload:
 { "winner": "P2", "reason": "DECK_OUT", "rematch": { "you": true, "opponent": false } }
 
-Estado de fim, enviado a cada jogador conectado quando a partida termina (logo depois do `match:state` da jogada final), a cada voto de revanche retirado ou dado, na saída do oponente, ao perder a conexão (o voto some) e na reconexão com a partida já encerrada. `winner` é `P1` ou `P2` (compare com `view.viewer` do `match:state`). `reason`: `LIFE_ZERO` (vida do perdedor chegou a 0), `DECK_OUT` (perdedor sem carta para comprar) ou `OPPONENT_LEFT` (o oponente saiu com `room:leave`). `rematch` indica quem já votou por revanche (`you` é o próprio destinatário).
+Estado de fim, enviado a cada jogador conectado quando a partida termina (logo depois do `match:state` da jogada final), a cada voto de revanche retirado ou dado, na saída do oponente, ao perder a conexão (o voto some) e na reconexão com a partida já encerrada. `winner` é `P1` ou `P2` (compare com `view.viewer` do `match:state`). `reason`: `LIFE_ZERO` (vida do perdedor chegou a 0), `DECK_OUT` (perdedor sem carta para comprar) ou `OPPONENT_LEFT` (o oponente saiu com `room:leave`). `rematch` indica quem já votou por revanche (`you` é o próprio destinatário). Na sala contra a IA, `rematch.opponent` é sempre `true` (a IA aceita qualquer revanche), para o botão ficar habilitado.
 
 ## Erros
 
@@ -247,5 +250,5 @@ Payload:
 | `MATCH_NOT_STARTED` | `match:action` antes de a partida começar |
 | `MATCH_ALREADY_STARTED` | `room:ready` com a partida em andamento |
 | `MATCH_NOT_ENDED` | `match:rematch` com a partida em andamento |
-| `REMATCH_UNAVAILABLE` | `match:rematch` sem o oponente na sala |
+| `REMATCH_UNAVAILABLE` | `match:rematch` sem o oponente na sala (nunca em sala contra a IA) |
 | (códigos da engine) | Jogada inválida, por exemplo `NOT_YOUR_TURN` e `INVALID_PHASE` |
