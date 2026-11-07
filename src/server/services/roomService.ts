@@ -100,6 +100,8 @@ export type RoomServiceOptions = {
   turnTimeMs?: number;
   /** Atraso (ms) entre as ações da IA; injetável nos testes. */
   aiDelayMs?: number;
+  /** Limite de ações da IA por turno; perto dele só valem as ações de fechamento. Padrão: `MAX_AI_ACTIONS_PER_TURN`. */
+  aiMaxActionsPerTurn?: number;
 };
 
 /** Resultado de um turno que expirou: entregas já filtradas por jogador. */
@@ -111,6 +113,8 @@ export type AiMove = { code: string; room: PublicRoom; deliveries: Delivery[] };
 export type RoomService = {
   /** Registra quem recebe cada ação jogada pela IA (o servidor agenda e aplica; o cliente nunca decide). */
   onAiMove: (listener: (move: AiMove) => void) => void;
+  /** Diagnóstico: quantas salas ainda guardam estado interno da IA (some ao sair, remover a sala ou encerrar a partida). */
+  aiRunCount: () => number;
   /** Registra quem recebe o resultado quando o prazo do turno expira (o servidor aplica a ação por conta própria). */
   onTurnExpired: (listener: (expiry: TurnExpiry) => void) => void;
   /** Salas abertas: 1 jogador conectado e sem partida. */
@@ -205,7 +209,7 @@ const realClock: Clock = {
 
 export const createRoomService = (
   store: RoomStore,
-  { clock = realClock, turnTimeMs = TURN_TIME_MS, aiDelayMs = AI_DELAY_MS }: RoomServiceOptions = {},
+  { clock = realClock, turnTimeMs = TURN_TIME_MS, aiDelayMs = AI_DELAY_MS, aiMaxActionsPerTurn = MAX_AI_ACTIONS_PER_TURN }: RoomServiceOptions = {},
 ): RoomService => {
   const turnTimers = new Map<string, unknown>();
   const aiTimers = new Map<string, unknown>();
@@ -241,6 +245,8 @@ export const createRoomService = (
     const { code } = room;
     cancelAi(code);
     const match = room.match;
+    // Partida encerrada (por qualquer lado): o estado interno da IA não serve mais.
+    if (match?.outcome) aiRuns.delete(code);
     if (!room.ai || !match || match.outcome || !botMustAct(room, match)) return;
     aiTimers.set(code, clock.setTimeout(() => aiStep(code), aiDelayMs));
   };
@@ -259,7 +265,7 @@ export const createRoomService = (
       run.count = 0;
     }
     // Perto do limite de ações do turno, só as ações de fechamento valem (sem loop infinito).
-    const forced = run.count >= MAX_AI_ACTIONS_PER_TURN - 2;
+    const forced = run.count >= aiMaxActionsPerTurn - 2;
     let action: Action | null = null;
     if (!forced) {
       const decision = chooseAiAction({ state, side, level: room.ai.level, seed: run.seed });
@@ -280,7 +286,9 @@ export const createRoomService = (
     }
     aiRuns.set(code, run);
     if (!result?.ok) {
-      // Não deveria ocorrer: registra e para de agendar para não travar o servidor em laço.
+      // Inalcançável na prática: com a partida em andamento e a vez da IA, a engine sempre aceita uma destas
+      // ações (PASS_RESPONSE com janela aberta; NEXT_PHASE na compra; END_TURN nas demais fases). Se ocorrer,
+      // registra e para de agendar para não travar o servidor em laço.
       console.error(`IA sem ação válida na sala ${code}`);
       return;
     }
@@ -371,6 +379,8 @@ export const createRoomService = (
     onAiMove: (listener) => {
       aiListener = listener;
     },
+
+    aiRunCount: () => aiRuns.size,
 
     listOpenRooms: () =>
       store.listRooms().flatMap((room) => {
