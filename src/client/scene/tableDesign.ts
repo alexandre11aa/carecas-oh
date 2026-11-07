@@ -7,9 +7,9 @@ export const TABLE_DEPTH = 11;
 /** Largura da moldura em volta da mesa. */
 export const FRAME_BORDER = 0.4;
 /** Folga entre a carta e o interior da zona, em fração do tamanho da carta (mantém 1030:1500). */
-export const ZONE_MARGIN_RATIO = 0.08;
+export const ZONE_MARGIN_RATIO = 0.04;
 /** Espessura do contorno da zona, em fração da altura da carta. */
-export const ZONE_OUTLINE_RATIO = 0.035;
+export const ZONE_OUTLINE_RATIO = 0.025;
 
 export const TABLE_COLOR = 0x1a2a24;
 export const FRAME_COLOR = 0x3a2a12;

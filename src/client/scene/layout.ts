@@ -1,6 +1,7 @@
 // src/client/scene/layout.ts
 // Lógica pura (sem WebGL): converte o PlayerView em posições de cartas sobre a mesa.
 import type { PlayerView } from "../../engine/playerView.js";
+import { zoneOuterSize } from "./tableDesign.js";
 
 export const CARD_HEIGHT = 2;
 /** Proporção das artes: 1030:1500. */
@@ -25,8 +26,9 @@ export type CardPlacement = {
   yaw: number;
 };
 
-const ROW_Z: Record<SlotKind, number> = { monster: 1.4, spellTrap: 3.6, graveyard: 1.4, deck: 3.6 };
-const PILE_X = 5.6;
+/** Z de cada fileira (lado "you"); a altura externa da zona deve caber na distância entre fileiras. */
+export const ROW_Z: Record<SlotKind, number> = { monster: 1.4, spellTrap: 3.6, graveyard: 1.4, deck: 3.6 };
+export const PILE_X = 5.6;
 
 /** Posição de um slot; o lado do oponente é a mesa girada 180 graus. */
 export const slotPosition = (side: Side, kind: SlotKind, zone = 0): { x: number; z: number } => {
@@ -101,9 +103,11 @@ export const layoutBoard = (view: PlayerView): CardPlacement[] => [
   ...sidePlacements("opponent", view.opponent.monsters, view.opponent.spellTraps, view.opponent.deckCount, view.opponent.graveyard),
 ];
 
-/** Slot sob um ponto do plano da mesa (coordenadas x/z do mundo), ou null se o ponto cair fora de qualquer slot. */
+/** Slot sob um ponto do plano da mesa (coordenadas x/z do mundo), ou null se o ponto cair fora de qualquer slot.
+ * A área de clique é a área externa da zona desenhada (`zoneOuterSize`), com o mesmo centro do desenho. */
 export const pickSlot = (x: number, z: number): Slot | null => {
-  const halfWidth = ZONE_SPACING / 2;
-  const halfHeight = CARD_HEIGHT / 2;
+  const outer = zoneOuterSize();
+  const halfWidth = outer.width / 2;
+  const halfHeight = outer.height / 2;
   return allSlots().find((slot) => Math.abs(x - slot.x) <= halfWidth && Math.abs(z - slot.z) <= halfHeight) ?? null;
 };
