@@ -21,7 +21,7 @@ const codeFromUrl = (): string | null => {
 };
 
 // O loading cobre a tela inteira por cima da página: some quando o servidor responde e as imagens
-// da primeira tela carregam (ou o timeout estoura). Depois disso, navegar não o reabre.
+// da primeira tela carregam (ou o timeout estoura). Depois disso, navegar não o reabre (exceto ao abrir a mesa).
 const loadingScreen = createLoadingScreen();
 const loadingOverlay = document.createElement("div");
 loadingOverlay.className = "loading-overlay";
@@ -109,6 +109,8 @@ const renderPage = () => {
     current?.destroy?.();
     // Ciclo novo de recursos: o timeout da tela anterior não vale para esta (chaves são únicas por imagem).
     pageLoading.reset();
+    // A mesa reabre o loading em tela cheia até as texturas críticas carregarem (também ao reconectar).
+    if (key === "match") initialLoadDone = false;
     current = create();
     root.replaceChildren(current.element);
   } else {

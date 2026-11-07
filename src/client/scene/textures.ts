@@ -2,7 +2,7 @@
 // Carregador de texturas PNG com cache por URL e fallback: devolve null (sem lançar)
 // se o arquivo não existir ou falhar. A imagem é reduzida na carga antes de ir à GPU.
 import { CanvasTexture, LinearMipmapLinearFilter, SRGBColorSpace, Texture, TextureLoader } from "three";
-import { fitTextureSize, MAX_TEXTURE_WIDTH } from "./texturePaths.js";
+import { fitTextureSize, MAX_TEXTURE_WIDTH, textureOptionsFor } from "./texturePaths.js";
 
 export type LoadTextureOptions = {
   /** Largura máxima em pixels; padrão `MAX_TEXTURE_WIDTH`. A proporção é mantida. */
@@ -53,7 +53,7 @@ const load = (url: string, options: LoadTextureOptions): Promise<Texture | null>
   });
 
 /** Carrega uma textura (com cache por URL). Nunca lança: `null` significa "use o visual padrão". */
-export const loadTexture = (url: string, options: LoadTextureOptions = {}): Promise<Texture | null> => {
+export const loadTexture = (url: string, options: LoadTextureOptions = textureOptionsFor(url)): Promise<Texture | null> => {
   let pending = cache.get(url);
   if (!pending) {
     pending = load(url, options).catch(() => null);
@@ -61,3 +61,10 @@ export const loadTexture = (url: string, options: LoadTextureOptions = {}): Prom
   }
   return pending;
 };
+
+/**
+ * Pré-carrega as URLs com as opções padrão de cada uma (o cache serve depois a cena). `onSettled` roda a
+ * cada URL que termina, com sucesso ou falha (null = resolvida); a promessa devolvida nunca rejeita.
+ */
+export const preloadTextures = (urls: readonly string[], onSettled: (url: string) => void): Promise<void> =>
+  Promise.all(urls.map((url) => loadTexture(url).then(() => onSettled(url)))).then(() => undefined);

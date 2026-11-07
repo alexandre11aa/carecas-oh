@@ -1,5 +1,7 @@
 // src/client/scene/texturePaths.ts
 // Lógica pura (sem WebGL/DOM): caminhos das texturas e cálculo do tamanho alvo.
+import type { PlayerView } from "../../engine/playerView.js";
+import { faceImageUrl } from "./cardArt.js";
 
 /** Verso das cartas (PNG 1030x1500; sem o arquivo, usa o desenho provisório em canvas). */
 export const CARD_BACK_PATH = "/cards/back.png";
@@ -38,3 +40,28 @@ export const fitTextureSize = (
  * O PNG de 1920x1320 passa inteiro (a redução nunca amplia); 2048 é seguro para MAX_TEXTURE_SIZE >= 4096.
  */
 export const TABLE_MAX_TEXTURE_WIDTH = 2048;
+
+/** Opções de carga de uma textura pela URL: a mesa usa mais resolução e anisotropia; as demais, o padrão. */
+export const textureOptionsFor = (url: string): { maxWidth?: number; anisotropy?: number } =>
+  url === TABLE_PATH ? { maxWidth: TABLE_MAX_TEXTURE_WIDTH, anisotropy: 8 } : {};
+
+/**
+ * Texturas críticas do estado inicial da partida, sem repetição e em ordem estável: fundo, mesa, verso
+ * e a frente das cartas do próprio jogador (mão e campo viradas para cima). Só estas seguram o loading;
+ * cemitério, cartas do oponente e cartas futuras carregam depois, sem segurar. Cartas viradas usam o verso.
+ */
+export const criticalTextureUrls = (view: PlayerView | null): string[] => {
+  const urls = [BACKGROUND_PATH, TABLE_PATH, CARD_BACK_PATH];
+  if (view) {
+    const ids = [
+      ...view.you.hand,
+      ...view.you.monsters.map((monster) => (monster && !monster.faceDown ? monster.cardId : null)),
+      ...view.you.spellTraps.map((card) => (card && !card.faceDown ? card.cardId : null)),
+    ];
+    for (const id of ids) {
+      const url = faceImageUrl(id);
+      if (url) urls.push(url);
+    }
+  }
+  return [...new Set(urls)];
+};

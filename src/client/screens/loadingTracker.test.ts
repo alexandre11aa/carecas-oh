@@ -187,3 +187,35 @@ describe("shouldShowLoading", () => {
     expect(shouldShowLoading({ ...base, initialDone: true, booting: true })).toBe(false);
   });
 });
+
+describe("loadingTracker com texturas", () => {
+  it("falha_conta_como_resolvida_e_libera", () => {
+    const { tracker } = setup();
+    tracker.track("tex:1:/cards/a.png");
+    tracker.track("tex:2:/cards/b.png");
+    tracker.settle("tex:1:/cards/a.png");
+    expect(tracker.isReady()).toBe(false);
+    tracker.settle("tex:2:/cards/b.png"); // 404: loadTexture devolve null e o wrapper resolve a chave
+    expect(tracker.isReady()).toBe(true);
+    expect(tracker.expired()).toEqual([]);
+  });
+
+  it("textura_travada_nao_prende_alem_do_timeout", () => {
+    const { tracker, fire } = setup();
+    tracker.track("tex:1:/textures/table.png");
+    expect(tracker.isReady()).toBe(false);
+    fire();
+    expect(tracker.isReady()).toBe(true);
+    expect(tracker.expired()).toEqual(["tex:1:/textures/table.png"]);
+  });
+
+  it("reset_por_tela_ignora_resolucao_tardia_de_chave_antiga", () => {
+    const { tracker } = setup();
+    tracker.track("tex:1:/cards/a.png");
+    tracker.reset();
+    tracker.track("tex:2:/cards/a.png");
+    tracker.settle("tex:1:/cards/a.png"); // resolução tardia da tela anterior
+    expect(tracker.pending()).toEqual(["tex:2:/cards/a.png"]);
+    expect(tracker.isReady()).toBe(false);
+  });
+});
