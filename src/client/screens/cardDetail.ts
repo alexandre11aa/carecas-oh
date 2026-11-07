@@ -1,6 +1,7 @@
 // src/client/screens/cardDetail.ts
 import { getCard } from "../../engine/cards.js";
 import type { PlayerView } from "../../engine/playerView.js";
+import type { SpellEffect } from "../../engine/types.js";
 import type { Slot } from "../scene/layout.js";
 
 export type CardKind = "monster" | "spell" | "trap";
@@ -40,4 +41,41 @@ export const slotCardId = (view: PlayerView, slot: Slot): string | null => {
   if (slot.kind === "spellTrap") return side.spellTraps[slot.zone]?.cardId ?? null;
   if (slot.kind === "graveyard") return side.graveyard[side.graveyard.length - 1] ?? null;
   return null;
+};
+
+/** Texto de efeito e de mecânica de um efeito de magia (rótulos em português). */
+export const describeSpellEffect = (effect: SpellEffect): { effect: string; mechanic: string } => {
+  switch (effect.kind) {
+    case "BOOST_ATTACK":
+      return { effect: `Um monstro seu ganha ${effect.amount} de ATK até o fim do turno.`, mechanic: "Escolha um monstro seu no campo." };
+    case "HEAL":
+      return { effect: `Você recupera ${effect.amount} pontos de vida.`, mechanic: "Sem alvo." };
+    case "DAMAGE":
+      return { effect: `O oponente perde ${effect.amount} pontos de vida.`, mechanic: "Sem alvo." };
+    case "DESTROY_MONSTER":
+      return {
+        effect:
+          effect.maxAttack === undefined
+            ? "Destrói um monstro do oponente."
+            : `Destrói um monstro do oponente com ATK até ${effect.maxAttack}.`,
+        mechanic: "Escolha um monstro do oponente.",
+      };
+    case "DRAW":
+      return { effect: `Você compra ${effect.count} ${effect.count === 1 ? "carta" : "cartas"}.`, mechanic: "Sem alvo." };
+    case "BOOST_ALL_ATTACK":
+      return {
+        effect: `Todos os seus monstros no campo ganham ${effect.amount} de ATK até o fim do turno.`,
+        mechanic: "Sem alvo. Vale também para monstros virados.",
+      };
+    case "HEAL_PER_MONSTER":
+      return {
+        effect: `Você recupera ${effect.amountPerMonster} pontos de vida por monstro seu no campo, até ${effect.maxAmount}.`,
+        mechanic: "Sem alvo. Sem monstros no campo, não cura nada.",
+      };
+    case "REVIVE_MONSTER":
+      return {
+        effect: `Traz ao campo, em ataque, o monstro de maior ATK do seu cemitério com nível ${effect.maxLevel} ou menos.`,
+        mechanic: "Sem alvo. Em empate de ATK, vale o mais antigo no cemitério. Exige uma zona de monstro livre.",
+      };
+  }
 };
