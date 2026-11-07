@@ -4,7 +4,9 @@ import { DECKS } from "../../engine/decks.js";
 import {
   GUIDE_SECTIONS,
   groupCardsByDeck,
+  isScrolledToBottom,
   pickActiveSection,
+  sectionIdFromHash,
   sectionElementId,
   sectionHref,
 } from "./tutorialSections.js";
@@ -146,5 +148,46 @@ describe("pickActiveSection", () => {
   });
   it("ignora_ids_desconhecidos", () => {
     expect(pickActiveSection(GUIDE_SECTIONS, new Set(["x"]), "objetivo")).toBe("objetivo");
+  });
+});
+
+describe("pickActiveSection no fim da página e com hash", () => {
+  const last = GUIDE_SECTIONS[GUIDE_SECTIONS.length - 1]!.id;
+
+  it("no_fim_da_pagina_ativa_a_ultima_secao_mesmo_com_armadilhas_na_faixa", () => {
+    expect(last).toBe("fim");
+    expect(pickActiveSection(GUIDE_SECTIONS, new Set(["armadilhas"]), "armadilhas", { atBottom: true })).toBe("fim");
+  });
+
+  it("com_hash_e_pagina_sem_rolagem_suficiente_ativa_a_secao_do_hash", () => {
+    const hashId = sectionIdFromHash("#tutorial-fim");
+    expect(hashId).toBe("fim");
+    expect(pickActiveSection(GUIDE_SECTIONS, new Set(["armadilhas"]), "armadilhas", { atBottom: true, hashId })).toBe("fim");
+    expect(pickActiveSection(GUIDE_SECTIONS, new Set(["armadilhas"]), null, { atBottom: true, hashId: "armadilhas" })).toBe("armadilhas");
+  });
+
+  it("fora_do_fim_mantem_o_comportamento_da_faixa_de_leitura", () => {
+    expect(pickActiveSection(GUIDE_SECTIONS, new Set(["combate", "turno"]), null, { atBottom: false, hashId: "fim" })).toBe("turno");
+    expect(pickActiveSection(GUIDE_SECTIONS, new Set(), "monstros", { atBottom: false })).toBe("monstros");
+  });
+});
+
+describe("sectionIdFromHash", () => {
+  it("converte_ancora_valida_e_ignora_as_demais", () => {
+    expect(sectionIdFromHash("#tutorial-objetivo")).toBe("objetivo");
+    expect(sectionIdFromHash("#tutorial-inexistente")).toBeNull();
+    expect(sectionIdFromHash("#outra")).toBeNull();
+    expect(sectionIdFromHash("")).toBeNull();
+  });
+});
+
+describe("isScrolledToBottom", () => {
+  it("detecta_o_fim_da_rolagem_com_tolerancia", () => {
+    expect(isScrolledToBottom({ scrollTop: 1200, viewportHeight: 800, scrollHeight: 2000 })).toBe(true);
+    expect(isScrolledToBottom({ scrollTop: 1199.5, viewportHeight: 800, scrollHeight: 2000 })).toBe(true);
+    expect(isScrolledToBottom({ scrollTop: 1000, viewportHeight: 800, scrollHeight: 2000 })).toBe(false);
+  });
+  it("pagina_que_nao_rola_conta_como_fim", () => {
+    expect(isScrolledToBottom({ scrollTop: 0, viewportHeight: 800, scrollHeight: 800 })).toBe(true);
   });
 });
