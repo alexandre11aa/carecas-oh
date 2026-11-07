@@ -112,7 +112,7 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
   // Ícone decorativo estático (sem entrada do usuário): losango dourado sobre círculo roxo tracejado.
   lobbyEmptyIcon.innerHTML =
     '<svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="10" fill="var(--c-panel-2)" stroke="var(--c-gold)" stroke-width="1.5" stroke-dasharray="3 2.5"/><path d="M12 6.5 17 12 12 17.5 7 12Z" fill="none" stroke="var(--c-gold-light)" stroke-width="1.5" stroke-linejoin="round"/></svg>';
-  lobbyEmpty.append(lobbyEmptyIcon, el("span", undefined, "Nenhuma sala aberta no momento"));
+  lobbyEmpty.append(el("span", undefined, "Nenhuma sala aberta no momento..."), lobbyEmptyIcon);
   if (presetCode) {
     element.append(createPanel(null, joinButton, error));
   } else {
