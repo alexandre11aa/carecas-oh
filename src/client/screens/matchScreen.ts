@@ -118,7 +118,8 @@ export const createMatchScreen = (): Screen => {
   const endReason = el("p", "hint");
   const rematchButton = el("button", "primary");
   rematchButton.type = "button";
-  const rematchStatus = el("p", "hint");
+  const rematchStatus = el("p", "end-notice");
+  rematchStatus.hidden = true;
   const lobbyButton = el("button", undefined, "Voltar ao lobby");
   lobbyButton.type = "button";
   const deckPicker = createDeckPicker("Escolha seu deck para a revanche", (id) => {
@@ -407,6 +408,8 @@ export const createMatchScreen = (): Screen => {
       rematchButton.disabled = rematch.disabled;
       acceptRematch = rematch.accept;
       rematchStatus.textContent = rematch.status;
+      rematchStatus.hidden = rematch.statusKind === "none";
+      rematchStatus.className = `end-notice ${rematch.statusKind}`;
       endTitle.className = match.winner === match.viewer ? "victory" : "defeat";
       endOverlay.hidden = false;
     } else {
