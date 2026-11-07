@@ -57,3 +57,11 @@ export const FOOTER_LINKS: readonly FooterLink[] = footerRoutes.map(({ route, la
 
 /** Indica se o link do rodapé aponta para a página atual. */
 export const isCurrentFooterLink = (link: FooterLink, current: Route): boolean => link.route.page === current.page;
+
+/**
+ * Entrada automática pelo link de convite: só uma vez, com apelido salvo, conexão online e sem outra
+ * entrada em andamento (`busy`). Sem a checagem de `busy`, o clique em "Entrar" e a entrada automática
+ * enviavam `room:join` duas vezes e o segundo pedido deixava um erro residual (`ROOM_FULL`) na sala de espera.
+ */
+export const shouldAutoJoin = (input: { code: string | null; nickname: string; tried: boolean; online: boolean; busy: boolean }): boolean =>
+  Boolean(input.code) && input.nickname.trim().length > 0 && !input.tried && input.online && !input.busy;
