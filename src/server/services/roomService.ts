@@ -3,9 +3,11 @@ import { randomInt, randomUUID } from "node:crypto";
 import {
   applyAction,
   createMatch,
+  DECKS,
   eventView,
   playerView,
   type Action,
+  type AiLevel,
   type DeckId,
   type ErrorCode,
   type EventView,
@@ -31,6 +33,10 @@ export type PublicRoom = {
   /** Verdadeiro enquanto a sala guarda uma partida (em andamento ou encerrada); o cliente só descarta a sua quando é falso. */
   hasMatch: boolean;
   players: { nickname: string; connected: boolean; ready: boolean }[];
+  /** Presente (verdadeiro) só nas salas contra a IA; ausente nas demais. */
+  vsAi?: true;
+  /** Nível da IA; presente junto com `vsAi`. */
+  aiLevel?: AiLevel;
 };
 
 /** Item da lista de salas abertas do lobby: nada além do código e do apelido do anfitrião. */
@@ -96,6 +102,8 @@ export type RoomService = {
   /** Salas abertas: 1 jogador conectado e sem partida. */
   listOpenRooms: () => LobbyRoom[];
   createRoom: (input: { nickname: string; connectionId: string }) => RoomResult;
+  /** Cria uma sala contra a IA e já inicia a partida (deck da IA sorteado no servidor); devolve o estado inicial do humano. */
+  createAiRoom: (input: { nickname: string; level: AiLevel; deckId: DeckId; connectionId: string }) => RoomResult;
   joinRoom: (input: { code: string; nickname: string; connectionId: string }) => RoomResult;
   rejoinRoom: (input: { token: string; connectionId: string }) => RoomResult;
   /** Marca (com o deck escolhido) ou desmarca "pronto"; com os dois prontos cria a partida e devolve o estado inicial de cada jogador. */
@@ -118,11 +126,19 @@ export const toPublicRoom = (room: Room): PublicRoom => ({
   code: room.code,
   hasMatch: room.match !== null,
   players: room.players.map((p) => ({ nickname: p.nickname, connected: p.connectionId !== null, ready: p.ready })),
+  ...(room.ai ? { vsAi: true as const, aiLevel: room.ai.level } : {}),
 });
 
 /** Lado (P1/P2) controlado pelo token, ou null se o token não joga a partida. */
 const sideOf = (match: RoomMatch, token: string): PlayerId | null =>
   match.tokens.P1 === token ? "P1" : match.tokens.P2 === token ? "P2" : null;
+
+/** Verdadeiro quando quem deve agir agora (defensor com resposta pendente, ou o jogador do turno) é a IA da sala. */
+const botMustAct = (room: Room, match: RoomMatch): boolean => {
+  if (!room.ai) return false;
+  const actor = match.state.pendingResponse?.responder ?? match.state.currentPlayer;
+  return match.tokens[actor] === room.ai.botToken;
+};
 
 /** Fim de partida do ponto de vista do jogador do token, ou null se a partida não terminou. */
 const endFor = (match: RoomMatch, token: string): MatchEnd | null => {
@@ -195,9 +211,12 @@ export const createRoomService = (
   };
 
   /** Cancela o prazo anterior e, com a partida em andamento, abre um novo de `turnTimeMs`. Devolve a partida com `turnDeadline` atualizado. */
-  const armTurnTimer = (code: string, match: RoomMatch): RoomMatch => {
+  const armTurnTimer = (room: Room, match: RoomMatch): RoomMatch => {
+    const { code } = room;
     cancelTurnTimer(code);
     if (match.outcome) return { ...match, turnDeadline: null };
+    // Transitório (até a IA jogar, #210): o relógio do humano não corre nem expira pela vez da IA.
+    if (botMustAct(room, match)) return { ...match, turnDeadline: null };
     const turnDeadline = clock.now() + turnTimeMs;
     turnTimers.set(code, clock.setTimeout(() => expireTurn(code, turnDeadline), turnTimeMs));
     return { ...match, turnDeadline };
@@ -217,7 +236,7 @@ export const createRoomService = (
       events.push(...result.events);
       if (state.winner) break;
     }
-    const match = armTurnTimer(code, { ...room.match, state, outcome: outcomeOf(state), rematchVotes: [] });
+    const match = armTurnTimer(room, { ...room.match, state, outcome: outcomeOf(state), rematchVotes: [] });
     const updated: Room = { ...room, match };
     store.saveRoom(updated);
     expiryListener({ code, room: toPublicRoom(updated), deliveries: send(updated, match, events) });
@@ -232,8 +251,8 @@ export const createRoomService = (
   };
 
   /** A semente nasce no servidor e nunca é enviada aos jogadores; `decks` são as escolhas de cada lado. */
-  const newMatch = (code: string, tokens: RoomMatch["tokens"], decks: Record<PlayerId, DeckId>): RoomMatch =>
-    armTurnTimer(code, {
+  const newMatch = (room: Room, tokens: RoomMatch["tokens"], decks: Record<PlayerId, DeckId>): RoomMatch =>
+    armTurnTimer(room, {
       state: createMatch(randomInt(1, SEED_LIMIT), decks),
       tokens,
       outcome: null,
@@ -249,7 +268,7 @@ export const createRoomService = (
     listOpenRooms: () =>
       store.listRooms().flatMap((room) => {
         const [host] = room.players;
-        return room.players.length === 1 && host && host.connectionId !== null && room.match === null
+        return !room.ai && room.players.length === 1 && host && host.connectionId !== null && room.match === null
           ? [{ code: room.code, hostNickname: host.nickname }]
           : [];
       }),
@@ -265,10 +284,34 @@ export const createRoomService = (
       return { ok: true, room: toPublicRoom(room), token };
     },
 
+    createAiRoom: ({ nickname, level, deckId, connectionId }) => {
+      const token = randomUUID();
+      const botToken = randomUUID();
+      // O deck da IA é sorteado aqui, no servidor (a engine não tem aleatoriedade própria); o humano é o P1.
+      const aiDeckId = DECKS[randomInt(DECKS.length)]!.id;
+      const base: Room = {
+        code: generateCode(),
+        players: [{ token, nickname, connectionId, ready: false, deckId: null }],
+        match: null,
+        ai: { level, botToken },
+      };
+      const match = newMatch(base, { P1: token, P2: botToken }, { P1: deckId, P2: aiDeckId });
+      const room: Room = { ...base, match };
+      store.saveRoom(room);
+      return {
+        ok: true,
+        room: toPublicRoom(room),
+        token,
+        view: playerView(match.state, "P1"),
+        turnDeadline: match.turnDeadline,
+        serverNow: clock.now(),
+      };
+    },
+
     joinRoom: ({ code, nickname, connectionId }) => {
       const room = store.getRoom(code);
       if (!room) return { ok: false, code: "ROOM_NOT_FOUND" };
-      if (room.players.length >= MAX_PLAYERS) return { ok: false, code: "ROOM_FULL" };
+      if (room.ai || room.players.length >= MAX_PLAYERS) return { ok: false, code: "ROOM_FULL" };
       const token = randomUUID();
       // Quem entra numa sala cuja partida já terminou (o outro saiu) começa do zero: sem partida e sem "pronto".
       const reset = Boolean(room.match?.outcome);
@@ -325,7 +368,7 @@ export const createRoomService = (
       };
       const [first, second] = updated.players;
       if (first?.deckId && second?.deckId && updated.players.every((p) => p.ready && p.connectionId !== null)) {
-        const match = newMatch(room.code, { P1: first.token, P2: second.token }, { P1: first.deckId, P2: second.deckId });
+        const match = newMatch(room, { P1: first.token, P2: second.token }, { P1: first.deckId, P2: second.deckId });
         // A escolha vale só para esta partida: sai do store ao começar.
         updated = { ...updated, match, players: updated.players.map((p) => ({ ...p, deckId: null })) };
         store.saveRoom(updated);
@@ -345,7 +388,7 @@ export const createRoomService = (
       const result = applyAction(room.match.state, side, action);
       if (!result.ok) return { ok: false, code: result.code };
       // Ação válida: o prazo recomeça (ou some, se a partida terminou).
-      const match = armTurnTimer(room.code, {
+      const match = armTurnTimer(room, {
         ...room.match,
         state: result.state,
         outcome: outcomeOf(result.state),
@@ -377,7 +420,7 @@ export const createRoomService = (
       const deckP1 = players.find((p) => p.token === tokens.P1)?.deckId;
       const deckP2 = players.find((p) => p.token === tokens.P2)?.deckId;
       if (deckP1 && deckP2 && players.every((p) => votes.includes(p.token) && p.connectionId !== null)) {
-        const match = newMatch(room.code, tokens, { P1: deckP1, P2: deckP2 });
+        const match = newMatch(room, tokens, { P1: deckP1, P2: deckP2 });
         const updated: Room = { ...room, match, players: players.map((p) => ({ ...p, deckId: null })) };
         store.saveRoom(updated);
         return { ok: true, room: toPublicRoom(updated), deliveries: send(updated, match, []) };
