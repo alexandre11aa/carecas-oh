@@ -3,6 +3,7 @@
 import type { DeckId } from "../../engine/decks.js";
 import { deckOptions } from "./deckSelect.js";
 import { el } from "./dom.js";
+import { trackImage } from "./pageLoading.js";
 
 export type DeckPicker = {
   element: HTMLDivElement;
@@ -22,6 +23,7 @@ export const createDeckPicker = (ariaLabel: string, onPick: (id: DeckId) => void
     const image = el("img", "deck-image");
     image.alt = "";
     image.src = option.image;
+    trackImage(image);
     // Sem a imagem, o nome em texto continua identificando o deck.
     image.addEventListener("error", () => image.remove());
     button.append(image, el("span", "deck-name", option.name));

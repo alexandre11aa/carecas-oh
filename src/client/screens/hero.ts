@@ -1,21 +1,22 @@
 // src/client/screens/hero.ts
 import { CARD_BACK_PATH } from "../scene/texturePaths.js";
 import { el } from "./dom.js";
+import { trackImage } from "./pageLoading.js";
 
 const DECO_FRONT_PATH = "/cards/esquiva_da_gloria_divina.png";
 
-/** Carta decorativa inclinada. O fundo em CSS é o fallback: a imagem carrega sem bloquear e some se falhar. */
+/** Carta decorativa inclinada. O fundo em CSS é o fallback: a imagem segura o loading até carregar e some se falhar. */
 const createDecoCard = (className: string, src: string): HTMLElement => {
   const card = el("div", `deco-card ${className}`);
   card.setAttribute("aria-hidden", "true");
   const image = el("img");
   image.alt = "";
   image.setAttribute("aria-hidden", "true");
-  image.loading = "lazy";
   image.decoding = "async";
   image.draggable = false;
   image.addEventListener("error", () => image.remove());
   image.src = src;
+  trackImage(image);
   card.append(image);
   return card;
 };
