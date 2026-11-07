@@ -219,6 +219,8 @@ src/client/
     tableDesign.ts      lógica pura (testável): medidas, cores por tipo de zona e degradê do fundo padrão
     cardMesh.ts         criação e atualização das cartas
     textures.ts         loadTexture: carrega PNG com cache, redução e fallback (null)
+    blackHole.ts        vórtice decorativo atrás da mesa (planos com textura em canvas, rotação lenta, parado com prefers-reduced-motion)
+    blackHoleDesign.ts  lógica pura (testável): camadas, posição e ângulo do vórtice
     texturePaths.ts     caminhos das texturas e tamanho alvo (lógica pura, testável)
     monsterSprite.ts    arte do monstro em pé sobre a carta
   animations/           sequências GSAP: compra, invocação e ataque

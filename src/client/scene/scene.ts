@@ -18,6 +18,7 @@ import {
   WebGLRenderer,
 } from "three";
 import type { PlayerView } from "../../engine/playerView.js";
+import { createBlackHole } from "./blackHole.js";
 import { createCardMesh, updateCardMesh } from "./cardMesh.js";
 import { allSlots, layoutBoard, pickSlot, type Slot } from "./layout.js";
 import { backgroundCover, pickSurface } from "./surfaces.js";
@@ -70,6 +71,16 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
   const light = new DirectionalLight(0xfff6e6, 1.5);
   light.position.set(2, 10, 5);
   scene.add(light);
+  // Vórtice decorativo atrás da mesa; se o canvas falhar, vale o fundo atual.
+  const reducedMotion = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let blackHole: ReturnType<typeof createBlackHole> = null;
+  try {
+    blackHole = createBlackHole(reducedMotion);
+  } catch {
+    blackHole = null;
+  }
+  if (blackHole) scene.add(blackHole.group);
+  const startedAt = performance.now();
   const table = createTable();
   scene.add(table.group);
 
@@ -145,6 +156,7 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
   renderer.domElement.addEventListener("pointerleave", onPointerLeave);
   let frame = 0;
   const loop = () => {
+    blackHole?.update((performance.now() - startedAt) / 1000);
     renderer.render(scene, camera);
     frame = requestAnimationFrame(loop);
   };
@@ -198,6 +210,10 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
       markerGeometry.dispose();
       markerMaterial.dispose();
       table.dispose();
+      if (blackHole) {
+        scene.remove(blackHole.group);
+        blackHole.dispose();
+      }
       gradientTexture?.dispose();
       renderer.dispose();
       renderer.domElement.remove();
