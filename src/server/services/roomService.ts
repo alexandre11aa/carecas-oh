@@ -226,10 +226,10 @@ export const createRoomService = (
     }
   };
 
-  /** A semente nasce no servidor e nunca é enviada aos jogadores. */
+  /** A semente nasce no servidor e nunca é enviada aos jogadores. Decks provisórios até a escolha de deck existir. */
   const newMatch = (code: string, tokens: RoomMatch["tokens"]): RoomMatch =>
     armTurnTimer(code, {
-      state: createMatch(randomInt(1, SEED_LIMIT)),
+      state: createMatch(randomInt(1, SEED_LIMIT), { P1: "balanced", P2: "strategic" }),
       tokens,
       outcome: null,
       rematchVotes: [],
