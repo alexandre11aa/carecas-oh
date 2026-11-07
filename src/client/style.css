@@ -187,8 +187,9 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
    sem cortar o topo quando a janela é baixa (a página rola). */
 .home--lobby { gap: 0; margin-block: auto; }
 .home--lobby .screen { max-width: 44rem; width: 100%; display: flex; flex-direction: column; gap: 0.6rem; }
-.home--lobby .hero { padding: 0.25rem 0; }
-.home--lobby .game-title { font-size: clamp(1.8rem, 6vh, 3rem); }
+/* Guia e Cartas usam o mesmo tamanho e respiro vertical do título do menu, para a caixa ter a mesma altura (#155). */
+.home--lobby .hero, .tutorial-page > .hero { padding: 0.25rem 0; }
+.home--lobby .game-title, .tutorial-page .game-title { font-size: clamp(1.8rem, 6vh, 3rem); }
 /* Altura do bloco = altura natural de "Novo duelo" (sem espaço vazio embaixo). "Salas abertas" ocupa a mesma altura
    (estica na linha do grid) sem contribuir para ela: contain: size zera o tamanho intrínseco do conteúdo, e só a lista
    rola por dentro. minmax(0, 1fr) e min-width: 0 impedem que o conteúdo (inputs) alargue as colunas além do pai. */
