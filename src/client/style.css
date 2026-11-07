@@ -143,7 +143,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Tema de jogo da home, do carregamento e da sala de espera (escopado: não afeta a partida) */
 .home, .themed { font-family: var(--font-body); color: var(--c-text); }
-.home { position: relative; isolation: isolate; overflow-x: clip; }
+.home { position: relative; isolation: isolate; overflow-x: clip; margin-inline: -1rem; padding-inline: 1rem; }
 .home::before {
   content: "";
   position: fixed;
