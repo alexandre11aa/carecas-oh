@@ -162,7 +162,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 /* Home geral: uma tela só, sem scroll de página (a lista de salas rola por dentro). */
 #app:has(> .home--lobby) { box-sizing: border-box; height: 100dvh; padding-block: 0.75rem; overflow-y: auto; }
 .home--lobby { gap: 0; }
-.home--lobby .screen { max-width: 44rem; height: 100%; display: flex; flex-direction: column; gap: 0.6rem; }
+.home--lobby .screen { max-width: 44rem; flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; gap: 0.6rem; }
 .home--lobby .hero { padding: 0.25rem 0; }
 .home--lobby .game-title { font-size: clamp(1.8rem, 6vh, 3rem); }
 .lobby-block { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
@@ -343,3 +343,12 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .tutorial-back { align-self: flex-start; color: #ddd; text-decoration: none; }
 .tutorial-back:hover { color: #fff; text-decoration: underline; }
 .tutorial-page .tutorial-catalog { max-width: 70rem; }
+
+/* Rodapé de navegação: discreto, fora do fluxo de altura da home (ela segue em 100dvh sem scroll de página) */
+.site-footer { flex: none; width: 100%; padding: 0.3rem 0; text-align: center; font-size: 0.85rem; }
+.site-footer nav { display: flex; justify-content: center; gap: 1.25rem; }
+.site-footer a { padding: 0.2rem 0.4rem; color: var(--c-text-dim); text-decoration: none; border-bottom: 2px solid transparent; }
+.site-footer a:hover { color: var(--c-text); }
+.site-footer a[aria-current="page"] { color: var(--c-gold-light); border-bottom-color: var(--c-gold-light); }
+.site-footer a:focus-visible { outline: 3px solid var(--c-gold-light); outline-offset: 2px; }
+.tutorial-page .site-footer { margin-top: 1rem; }

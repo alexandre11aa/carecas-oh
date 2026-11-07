@@ -1,6 +1,7 @@
 // src/client/screens/tutorialScreen.ts
 import { el, linkTo } from "./dom.js";
 import type { Screen } from "./dom.js";
+import { createFooter } from "./footer.js";
 import { createCardView } from "./cardView.js";
 import {
   GUIDE_SECTIONS,
@@ -43,7 +44,7 @@ export const createTutorialLinks = (): HTMLElement => {
 const createPage = (title: string, content: HTMLElement[], destroy?: () => void): Screen => {
   const element = el("div", "home tutorial-page");
   const back = linkTo("/", "← Voltar ao menu", "tutorial-back");
-  element.append(back, el("h1", undefined, title), ...content);
+  element.append(back, el("h1", undefined, title), ...content, createFooter());
   return { element, update: () => undefined, destroy };
 };
 

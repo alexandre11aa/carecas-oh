@@ -3,6 +3,7 @@ import { CARD_BACK_PATH } from "../scene/texturePaths.js";
 import { createRoom, joinRoom, subscribeLobby, unsubscribeLobby } from "../network/socket.js";
 import { getState, loadNickname, saveNickname } from "../state.js";
 import { el, type Screen } from "./dom.js";
+import { createFooter } from "./footer.js";
 import { errorMessage } from "./errorMessages.js";
 import { NICKNAME_HINT, canSubmitNickname } from "./nickname.js";
 import { createTutorialLinks } from "./tutorialScreen.js";
@@ -160,6 +161,7 @@ export const createHomeScreen = (presetCode: string | null): Screen => {
   subscribeLobby();
   // Menu para guia e cartas: abaixo do bloco, só na home geral.
   element.append(createTutorialLinks());
+  home.append(createFooter());
   return {
     element: home,
     update,
