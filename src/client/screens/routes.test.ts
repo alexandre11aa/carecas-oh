@@ -1,6 +1,6 @@
 // src/client/screens/routes.test.ts
 import { describe, expect, it } from "vitest";
-import { FOOTER_LINKS, isCurrentFooterLink, pathAfterRoomExit, resolveRoute, routePath } from "./routes.js";
+import { FOOTER_LINKS, isCurrentFooterLink, pathAfterRoomExit, resolveRoute, routePath, shouldAutoJoin } from "./routes.js";
 
 describe("resolveRoute", () => {
   it("resolve_a_raiz_para_a_home", () => {
@@ -62,5 +62,24 @@ describe("FOOTER_LINKS", () => {
     expect(current("/guia")).toEqual(["Guia"]);
     expect(current("/cartas")).toEqual(["Cartas"]);
     expect(current("/sala/ABCD")).toEqual([]);
+  });
+});
+
+describe("shouldAutoJoin", () => {
+  const base = { code: "AB12", nickname: "Ana", tried: false, online: true, busy: false };
+
+  it("entra_sozinho_com_convite_apelido_salvo_e_conexao_online", () => {
+    expect(shouldAutoJoin(base)).toBe(true);
+  });
+
+  it("nao_entra_de_novo_enquanto_uma_entrada_esta_em_andamento", () => {
+    expect(shouldAutoJoin({ ...base, busy: true })).toBe(false);
+  });
+
+  it("nao_entra_sem_codigo_sem_apelido_offline_ou_se_ja_tentou", () => {
+    expect(shouldAutoJoin({ ...base, code: null })).toBe(false);
+    expect(shouldAutoJoin({ ...base, nickname: "  " })).toBe(false);
+    expect(shouldAutoJoin({ ...base, online: false })).toBe(false);
+    expect(shouldAutoJoin({ ...base, tried: true })).toBe(false);
   });
 });
