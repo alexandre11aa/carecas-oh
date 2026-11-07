@@ -184,6 +184,47 @@ describe("IA nivel dificil: combate", () => {
     expect(decide(s)).toEqual({ type: "NEXT_PHASE" });
   });
 
+  it("ia_dificil_nao_troca_monstros_quando_o_contra_ataque_seria_letal", () => {
+    // A troca de Morcego por Arqueiro é favorável (+valor), mas o Batedor adversário mataria com 1000 de vida.
+    const exposed = setup({
+      phase: "BATTLE",
+      mine: [field("crystal_bat")],
+      theirs: [field("wall_archer"), field("dune_scout")],
+      life: 1000,
+    });
+    expect(decide(exposed)).toEqual({ type: "NEXT_PHASE" });
+    // Com vida folgada a mesma troca é feita.
+    const safe = setup({
+      phase: "BATTLE",
+      mine: [field("crystal_bat")],
+      theirs: [field("wall_archer"), field("dune_scout")],
+      life: 8000,
+    });
+    expect(decide(safe)).toEqual({ type: "ATTACK", attackerCardId: "crystal_bat", targetZone: 0 });
+  });
+
+  it("ia_dificil_prefere_o_ataque_que_desfaz_o_letal_iminente", () => {
+    // 3 atacantes contra 2 bloqueadores: o Crystal Bat sobra e causa 1300 (letal com 1200 de vida).
+    // Destruir a Bruxa em defesa (maior valor) não muda isso; destruir um atacante sim.
+    const s = setup({
+      phase: "BATTLE",
+      mine: [field("storm_hawk"), field("bone_knight")],
+      theirs: [defense("frost_witch"), field("dune_scout"), field("bone_knight"), field("crystal_bat")],
+      life: 1200,
+    });
+    const action = decide(s);
+    expect(action).toMatchObject({ type: "ATTACK" });
+    expect(action).not.toMatchObject({ targetZone: 0 });
+    // Sem o letal iminente, o alvo de maior valor (a Bruxa) é o escolhido.
+    const calm = setup({
+      phase: "BATTLE",
+      mine: [field("storm_hawk"), field("bone_knight")],
+      theirs: [defense("frost_witch"), field("dune_scout"), field("bone_knight"), field("crystal_bat")],
+      life: 8000,
+    });
+    expect(decide(calm)).toEqual({ type: "ATTACK", attackerCardId: "storm_hawk", targetZone: 0 });
+  });
+
   it("ia_dificil_nao_ataca_monstro_virado_com_atk_baixo", () => {
     const s = setup({
       phase: "BATTLE",
@@ -445,8 +486,15 @@ describe("IA nivel dificil em partidas simuladas", () => {
   });
 
   it("ia_dificil_vence_o_medio_na_maioria_das_partidas_simuladas", () => {
-    const { hard, other } = duel("medium", 3000);
+    let hard = 0;
+    let other = 0;
+    for (const base of [3000, 5000, 7000]) {
+      const result = duel("medium", base);
+      hard += result.hard;
+      other += result.other;
+    }
     expect(hard).toBeGreaterThan(other);
+    expect(hard / (hard + other)).toBeGreaterThanOrEqual(0.6);
   });
 
   it("ia_dificil_vence_o_facil_na_maioria_das_partidas_simuladas", () => {

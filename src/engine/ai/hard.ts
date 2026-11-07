@@ -131,14 +131,14 @@ const evalAttack = (view: PlayerView, attacker: MonsterOnField, atk: number, tar
     (kill ? Math.max(0, atk - required) * WASTE_WEIGHT : 0);
   if (oppLeft === 0 && dmgToOpp + othersAtk >= oppLife) score += LETHAL_PLAN;
 
-  // Contra-ataque letal: penaliza se a jogada o cria e premia se o desfaz.
+  // Contra-ataque letal: premia a jogada que o desfaz e evita gastar um monstro (ou vida) enquanto continua exposto a ele.
   const oppAfter = view.opponent.monsters.flatMap((m, zone) => (m && !(kill && zone === targetZone) ? [unitOf(m)] : []));
   const mineAfter = ownMonsters(view)
     .filter((m) => !(lose && m.cardId === attacker.cardId))
     .map(unitOf);
   const riskBase = counterDamage(oppUnits(view), ownUnits(view)) >= myLife;
   const riskAfter = counterDamage(oppAfter, mineAfter) >= myLife - dmgToMe;
-  if (riskAfter && !riskBase) score -= RISK;
+  if (riskAfter && (lose || dmgToMe > 0)) score -= RISK;
   if (!riskAfter && riskBase) score += RISK;
   return score;
 };
