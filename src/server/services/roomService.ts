@@ -159,13 +159,14 @@ const botMustAct = (room: Room, match: RoomMatch): boolean => {
 };
 
 /** Fim de partida do ponto de vista do jogador do token, ou null se a partida não terminou. */
-const endFor = (match: RoomMatch, token: string): MatchEnd | null => {
+const endFor = (room: Room, match: RoomMatch, token: string): MatchEnd | null => {
   const side = sideOf(match, token);
   if (!match.outcome || !side) return null;
   const opponentToken = match.tokens[side === "P1" ? "P2" : "P1"];
   return {
     ...match.outcome,
-    rematch: { you: match.rematchVotes.includes(token), opponent: match.rematchVotes.includes(opponentToken) },
+    // Na sala contra a IA o bot sempre aceita a revanche.
+    rematch: { you: match.rematchVotes.includes(token), opponent: Boolean(room.ai) || match.rematchVotes.includes(opponentToken) },
   };
 };
 
@@ -179,7 +180,7 @@ const deliver = (room: Room, match: RoomMatch, events: GameEvent[], withState: b
         connectionId: p.connectionId,
         view: withState ? playerView(match.state, side) : null,
         events: events.map((event) => eventView(event, side)),
-        ended: endFor(match, p.token),
+        ended: endFor(room, match, p.token),
         turnDeadline: match.outcome ? null : match.turnDeadline,
         serverNow,
       },
@@ -456,7 +457,7 @@ export const createRoomService = (
       store.saveRoom(updated);
       const side = updated.match ? sideOf(updated.match, token) : null;
       const view = updated.match && side ? playerView(updated.match.state, side) : undefined;
-      const ended = updated.match ? endFor(updated.match, token) : null;
+      const ended = updated.match ? endFor(updated, updated.match, token) : null;
       const timing =
         view && updated.match
           ? { turnDeadline: updated.match.outcome ? null : updated.match.turnDeadline, serverNow: clock.now() }
@@ -526,6 +527,25 @@ export const createRoomService = (
       if (!room.match.outcome) return { ok: false, code: "MATCH_NOT_ENDED" };
       const player = room.players.find((p) => p.connectionId === connectionId);
       if (!player || !sideOf(room.match, player.token)) return { ok: false, code: "NOT_IN_ROOM" };
+      if (room.ai) {
+        // Sala contra a IA: o bot aceita sempre, então o voto do humano decide na hora; retirar só descarta o deck escolhido.
+        if (!input.accept) {
+          const cleared: Room = { ...room, players: room.players.map((p) => (p.token === player.token ? { ...p, deckId: null } : p)) };
+          store.saveRoom(cleared);
+          return { ok: true, room: toPublicRoom(cleared), deliveries: send(cleared, room.match, [], false) };
+        }
+        // Lados trocados como no PvP; novo deck aleatório da IA (sorteado aqui) e nível mantido.
+        dropAi(room.code);
+        const tokens = { P1: room.match.tokens.P2, P2: room.match.tokens.P1 };
+        const humanSide: PlayerId = tokens.P1 === player.token ? "P1" : "P2";
+        const aiDeckId = DECKS[randomInt(DECKS.length)]!.id;
+        const decks = humanSide === "P1" ? { P1: input.deckId, P2: aiDeckId } : { P1: aiDeckId, P2: input.deckId };
+        const match = newMatch(room, tokens, decks);
+        const updated: Room = { ...room, match, players: room.players.map((p) => ({ ...p, deckId: null })) };
+        store.saveRoom(updated);
+        scheduleAi(updated);
+        return { ok: true, room: toPublicRoom(updated), deliveries: send(updated, match, []) };
+      }
       // Sem o oponente na sala não há revanche possível.
       if (room.players.length < MAX_PLAYERS) return { ok: false, code: "REMATCH_UNAVAILABLE" };
       const others = room.match.rematchVotes.filter((t) => t !== player.token);
