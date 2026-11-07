@@ -38,7 +38,7 @@ type Setup = {
 
 /** Visão de P1 em que P1 é o jogador do turno. */
 const viewOf = ({ phase = "MAIN_1", turn = 3, mine = {}, theirs = {}, pendingResponse = null, winner = null }: Setup): PlayerView => {
-  const base = createMatch(123);
+  const base = createMatch(123, { P1: "balanced", P2: "strategic" });
   const state: MatchState = {
     ...base,
     turn,
@@ -323,7 +323,7 @@ describe("fase e turno", () => {
 describe("janela de resposta", () => {
   /** P1 é o defensor: o jogador do turno é P2. */
   const defender = (trigger: "ATTACK_DECLARED" | "SUMMON", setOnTurn = 1): PlayerView => {
-    const base = createMatch(123);
+    const base = createMatch(123, { P1: "balanced", P2: "strategic" });
     const state: MatchState = {
       ...base,
       turn: 4,

@@ -34,7 +34,7 @@ describe("buildCardDetail", () => {
 
 describe("slotCardId", () => {
   it("devolve_o_topo_do_cemiterio_e_oculta_monstro_virado_do_oponente", () => {
-    const view = playerView(createMatch(7), "P1");
+    const view = playerView(createMatch(7, { P1: "balanced", P2: "strategic" }), "P1");
     const slot = (side: "you" | "opponent", kind: "monster" | "graveyard") => allSlots().find((s) => s.side === side && s.kind === kind && s.zone === 0)!;
     const withCards = {
       ...view,

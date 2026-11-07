@@ -1,53 +1,62 @@
 // src/engine/decks.test.ts
 import { describe, expect, it } from "vitest";
 import { getCard } from "./cards.js";
-import { dealDecks } from "./decks.js";
+import { DECKS, DECK_SIZE, getDeck } from "./decks.js";
+import type { DeckId } from "./decks.js";
+
+const composition = (cardIds: readonly string[]) => {
+  const c = { monsters: 0, spells: 0, traps: 0 };
+  for (const id of cardIds) {
+    const card = getCard(id)!;
+    if (card.type === "MONSTER") c.monsters++;
+    else if (card.type === "SPELL") c.spells++;
+    else c.traps++;
+  }
+  return [c.monsters, c.spells, c.traps];
+};
 
 describe("decks", () => {
-  it("mesma_semente_gera_mesma_divisao", () => {
-    expect(dealDecks(123)).toEqual(dealDecks(123));
-  });
-
-  it("entrega_10_cartas_a_cada_jogador_sem_repeticao_entre_decks", () => {
-    const { decks } = dealDecks(99);
-    expect(decks.P1).toHaveLength(10);
-    expect(decks.P2).toHaveLength(10);
-    const all = [...decks.P1, ...decks.P2];
-    expect(new Set(all).size).toBe(20);
-  });
-
-  it("sementes_diferentes_geram_divisoes_diferentes", () => {
-    expect(dealDecks(1).decks).not.toEqual(dealDecks(2).decks);
-  });
-
-  it("divide_por_categoria_de_forma_balanceada_com_varias_sementes", () => {
-    const counts = (ids: string[]) => {
-      const c = { low: 0, mid: 0, high: 0, spell: 0, trap: 0 };
-      for (const id of ids) {
-        const card = getCard(id)!;
-        if (card.type === "SPELL") c.spell++;
-        else if (card.type === "TRAP") c.trap++;
-        else if (card.level <= 4) c.low++;
-        else if (card.level <= 6) c.mid++;
-        else c.high++;
-      }
-      return c;
-    };
-    for (let seed = 1; seed <= 200; seed++) {
-      const { decks } = dealDecks(seed);
-      const a = counts(decks.P1);
-      const b = counts(decks.P2);
-      expect(decks.P1).toHaveLength(10);
-      expect(decks.P2).toHaveLength(10);
-      expect(new Set([...decks.P1, ...decks.P2]).size).toBe(20);
-      // P1 recebe a carta extra na primeira categoria ímpar (nível 5-6), P2 na seguinte (magia)
-      expect(a).toEqual({ low: 3, mid: 2, high: 1, spell: 2, trap: 2 });
-      expect(b).toEqual({ low: 3, mid: 1, high: 1, spell: 3, trap: 2 });
-      const monstersA = a.low + a.mid + a.high;
-      const monstersB = b.low + b.mid + b.high;
-      expect(Math.abs(monstersA - monstersB)).toBeLessThanOrEqual(1);
-      expect(a.mid + a.high).toBeGreaterThanOrEqual(1);
-      expect(b.mid + b.high).toBeGreaterThanOrEqual(1);
+  it("define_6_decks_com_10_cartas_existentes", () => {
+    expect(DECKS.map((deck) => deck.id)).toEqual(["aggressive", "defensive", "magic", "control", "balanced", "strategic"]);
+    for (const deck of DECKS) {
+      expect(deck.cardIds).toHaveLength(DECK_SIZE);
+      expect(new Set(deck.cardIds).size).toBe(DECK_SIZE);
+      for (const id of deck.cardIds) expect(getCard(id), id).toBeDefined();
     }
+  });
+
+  it("respeita_a_composicao_de_monstros_magias_armadilhas_de_cada_deck", () => {
+    const expected: Record<DeckId, number[]> = {
+      aggressive: [6, 3, 1],
+      defensive: [5, 2, 3],
+      magic: [4, 5, 1],
+      control: [4, 3, 3],
+      balanced: [5, 3, 2],
+      strategic: [5, 4, 1],
+    };
+    for (const deck of DECKS) expect(composition(deck.cardIds), deck.id).toEqual(expected[deck.id]);
+  });
+
+  it("cada_carta_aparece_em_no_maximo_um_deck", () => {
+    const all = DECKS.flatMap((deck) => [...deck.cardIds]);
+    expect(new Set(all).size).toBe(all.length);
+  });
+
+  it("cada_deck_tem_uma_magia_de_efeito_exclusivo", () => {
+    const kindsOf = (cardIds: readonly string[]) =>
+      cardIds.flatMap((id) => {
+        const card = getCard(id)!;
+        return card.type === "SPELL" ? [card.effect.kind] : [];
+      });
+    for (const deck of DECKS) {
+      const others = new Set(DECKS.filter((d) => d.id !== deck.id).flatMap((d) => kindsOf(d.cardIds)));
+      expect(kindsOf(deck.cardIds).some((kind) => !others.has(kind)), deck.id).toBe(true);
+    }
+  });
+
+  it("controle_contem_as_cartas_pedidas", () => {
+    expect(getDeck("control").cardIds).toEqual(
+      expect.arrayContaining(["divine_glory_evasion", "spike_pit", "dark_veil", "power_surge"]),
+    );
   });
 });

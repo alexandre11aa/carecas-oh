@@ -6,7 +6,7 @@ import type { MatchState } from "../../engine/types.js";
 import { allSlots, CARD_HEIGHT, CARD_WIDTH, layoutBoard, pickSlot, slotPosition } from "./layout.js";
 import { zoneOuterSize } from "./tableDesign.js";
 
-const baseState = (): MatchState => createMatch(123);
+const baseState = (): MatchState => createMatch(123, { P1: "balanced", P2: "strategic" });
 
 describe("layout da mesa", () => {
   it("tem_5_zonas_de_monstro_5_de_magia_deck_e_cemiterio_por_jogador", () => {
