@@ -61,6 +61,9 @@ export const registerHandlers = (io: Server, service: RoomService, { abandonTime
   // O prazo do turno vence no servidor: ele joga por conta própria e entrega o novo estado aos jogadores.
   service.onTurnExpired(({ deliveries }) => sendDeliveries(deliveries));
 
+  // Na sala contra a IA, o servidor joga uma ação por vez (com atraso) e entrega cada uma ao humano.
+  service.onAiMove(({ deliveries }) => sendDeliveries(deliveries));
+
   io.on("connection", (socket: Socket) => {
     const fail = (event: string, code: string) => {
       socket.emit("app:error", { event, code });

@@ -2,6 +2,7 @@
 import { randomInt, randomUUID } from "node:crypto";
 import {
   applyAction,
+  chooseAiAction,
   createMatch,
   DECKS,
   eventView,
@@ -12,6 +13,7 @@ import {
   type ErrorCode,
   type EventView,
   type GameEvent,
+  MAX_AI_ACTIONS_PER_TURN,
   type MatchState,
   type PlayerId,
   type PlayerView,
@@ -21,6 +23,8 @@ import type { EndReason, MatchOutcome, Room, RoomMatch, RoomStore } from "../sto
 export const MAX_PLAYERS = 2;
 /** Tempo que o jogador do turno (ou o defensor, com resposta pendente) tem para agir. */
 export const TURN_TIME_MS = 30_000;
+/** Pausa padrão entre as ações da IA, para o humano animar uma por vez. */
+export const AI_DELAY_MS = 700;
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const CODE_LENGTH = 4;
 const SEED_LIMIT = 2 ** 31 - 1;
@@ -91,12 +95,22 @@ export type Clock = {
   clearTimeout: (handle: unknown) => void;
 };
 
-export type RoomServiceOptions = { clock?: Clock; turnTimeMs?: number };
+export type RoomServiceOptions = {
+  clock?: Clock;
+  turnTimeMs?: number;
+  /** Atraso (ms) entre as ações da IA; injetável nos testes. */
+  aiDelayMs?: number;
+};
 
 /** Resultado de um turno que expirou: entregas já filtradas por jogador. */
 export type TurnExpiry = { code: string; room: PublicRoom; deliveries: Delivery[] };
 
+/** Ação jogada pela IA: entregas já filtradas por jogador (uma ação por vez). */
+export type AiMove = { code: string; room: PublicRoom; deliveries: Delivery[] };
+
 export type RoomService = {
+  /** Registra quem recebe cada ação jogada pela IA (o servidor agenda e aplica; o cliente nunca decide). */
+  onAiMove: (listener: (move: AiMove) => void) => void;
   /** Registra quem recebe o resultado quando o prazo do turno expira (o servidor aplica a ação por conta própria). */
   onTurnExpired: (listener: (expiry: TurnExpiry) => void) => void;
   /** Salas abertas: 1 jogador conectado e sem partida. */
@@ -175,6 +189,10 @@ const outcomeOf = (state: MatchState): MatchOutcome | null => {
   return { winner: state.winner, reason: state.players[loser].lifePoints <= 0 ? "LIFE_ZERO" : "DECK_OUT" };
 };
 
+/** Semente própria da IA, derivada de forma determinística da semente do servidor (nunca enviada aos jogadores). */
+const deriveAiSeed = (serverSeed: number): number =>
+  ((Math.imul(serverSeed ^ 0x9e3779b9, 0x85ebca6b) ^ 0xc2b2ae35) >>> 0) % SEED_LIMIT || 1;
+
 const realClock: Clock = {
   now: () => Date.now(),
   setTimeout: (callback, ms) => {
@@ -187,13 +205,97 @@ const realClock: Clock = {
 
 export const createRoomService = (
   store: RoomStore,
-  { clock = realClock, turnTimeMs = TURN_TIME_MS }: RoomServiceOptions = {},
+  { clock = realClock, turnTimeMs = TURN_TIME_MS, aiDelayMs = AI_DELAY_MS }: RoomServiceOptions = {},
 ): RoomService => {
   const turnTimers = new Map<string, unknown>();
+  const aiTimers = new Map<string, unknown>();
+  /** Estado interno da IA por sala: semente própria (derivada da do servidor, nunca enviada) e contagem de ações no turno. */
+  const aiRuns = new Map<string, { seed: number; turn: number; count: number }>();
   let expiryListener: (expiry: TurnExpiry) => void = () => {};
+  let aiListener: (move: AiMove) => void = () => {};
 
   const send = (room: Room, match: RoomMatch, events: GameEvent[], withState = true): Delivery[] =>
     deliver(room, match, events, withState, clock.now());
+
+  const cancelAi = (code: string) => {
+    if (aiTimers.has(code)) clock.clearTimeout(aiTimers.get(code));
+    aiTimers.delete(code);
+  };
+
+  /** Cancela o agendamento da IA e esquece o seu estado (sala removida, humano saiu ou partida encerrada). */
+  const dropAi = (code: string) => {
+    cancelAi(code);
+    aiRuns.delete(code);
+  };
+
+  /** Ações de segurança, em ordem, quando a IA não escolhe nada ou bate no limite do turno. */
+  const forcedActions = (state: MatchState): Action[] =>
+    state.pendingResponse
+      ? [{ type: "PASS_RESPONSE" }]
+      : state.phase === "DRAW"
+        ? [{ type: "NEXT_PHASE" }]
+        : [{ type: "END_TURN" }, { type: "NEXT_PHASE" }];
+
+  /** Agenda a próxima ação da IA se for a vez dela; senão cancela. Chamada após toda mudança de estado da partida. */
+  const scheduleAi = (room: Room) => {
+    const { code } = room;
+    cancelAi(code);
+    const match = room.match;
+    if (!room.ai || !match || match.outcome || !botMustAct(room, match)) return;
+    aiTimers.set(code, clock.setTimeout(() => aiStep(code), aiDelayMs));
+  };
+
+  /** Joga uma única ação da IA (passando por `applyAction`) e entrega o resultado ao humano. */
+  const aiStep = (code: string) => {
+    aiTimers.delete(code);
+    const room = store.getRoom(code);
+    const match = room?.match;
+    if (!room || !room.ai || !match || match.outcome || !botMustAct(room, match)) return;
+    const side: PlayerId = match.tokens.P1 === room.ai.botToken ? "P1" : "P2";
+    const state = match.state;
+    const run = aiRuns.get(code) ?? { seed: deriveAiSeed(state.seed), turn: state.turn, count: 0 };
+    if (run.turn !== state.turn) {
+      run.turn = state.turn;
+      run.count = 0;
+    }
+    // Perto do limite de ações do turno, só as ações de fechamento valem (sem loop infinito).
+    const forced = run.count >= MAX_AI_ACTIONS_PER_TURN - 2;
+    let action: Action | null = null;
+    if (!forced) {
+      const decision = chooseAiAction({ state, side, level: room.ai.level, seed: run.seed });
+      run.seed = decision.seed;
+      action = decision.action;
+    }
+    let result = action ? applyAction(state, side, action) : null;
+    if (!result?.ok) {
+      if (action) console.error(`IA recusada pela engine na sala ${code}: ${action.type}`);
+      result = null;
+      for (const candidate of forcedActions(state)) {
+        const attempt = applyAction(state, side, candidate);
+        if (attempt.ok) {
+          result = attempt;
+          break;
+        }
+      }
+    }
+    aiRuns.set(code, run);
+    if (!result?.ok) {
+      // Não deveria ocorrer: registra e para de agendar para não travar o servidor em laço.
+      console.error(`IA sem ação válida na sala ${code}`);
+      return;
+    }
+    run.count += 1;
+    const next = armTurnTimer(room, {
+      ...match,
+      state: result.state,
+      outcome: outcomeOf(result.state),
+      rematchVotes: [],
+    });
+    const updated: Room = { ...room, match: next };
+    store.saveRoom(updated);
+    scheduleAi(updated);
+    aiListener({ code, room: toPublicRoom(updated), deliveries: send(updated, next, result.events) });
+  };
 
   const cancelTurnTimer = (code: string) => {
     if (turnTimers.has(code)) clock.clearTimeout(turnTimers.get(code));
@@ -215,7 +317,7 @@ export const createRoomService = (
     const { code } = room;
     cancelTurnTimer(code);
     if (match.outcome) return { ...match, turnDeadline: null };
-    // Transitório (até a IA jogar, #210): o relógio do humano não corre nem expira pela vez da IA.
+    // O relógio de 30 s vale só para o humano: não corre nem expira na vez da IA.
     if (botMustAct(room, match)) return { ...match, turnDeadline: null };
     const turnDeadline = clock.now() + turnTimeMs;
     turnTimers.set(code, clock.setTimeout(() => expireTurn(code, turnDeadline), turnTimeMs));
@@ -239,6 +341,7 @@ export const createRoomService = (
     const match = armTurnTimer(room, { ...room.match, state, outcome: outcomeOf(state), rematchVotes: [] });
     const updated: Room = { ...room, match };
     store.saveRoom(updated);
+    scheduleAi(updated);
     expiryListener({ code, room: toPublicRoom(updated), deliveries: send(updated, match, events) });
   };
 
@@ -263,6 +366,10 @@ export const createRoomService = (
   return {
     onTurnExpired: (listener) => {
       expiryListener = listener;
+    },
+
+    onAiMove: (listener) => {
+      aiListener = listener;
     },
 
     listOpenRooms: () =>
@@ -298,6 +405,7 @@ export const createRoomService = (
       const match = newMatch(base, { P1: token, P2: botToken }, { P1: deckId, P2: aiDeckId });
       const room: Room = { ...base, match };
       store.saveRoom(room);
+      scheduleAi(room);
       return {
         ok: true,
         room: toPublicRoom(room),
@@ -396,6 +504,7 @@ export const createRoomService = (
       });
       const updated: Room = { ...room, match };
       store.saveRoom(updated);
+      scheduleAi(updated);
       return { ok: true, room: toPublicRoom(updated), deliveries: send(updated, match, result.events) };
     },
 
@@ -459,6 +568,7 @@ export const createRoomService = (
       const players = room.players.filter((p) => p.connectionId !== connectionId);
       if (players.length === 0) {
         cancelTurnTimer(room.code);
+        dropAi(room.code);
         store.removeRoom(room.code);
         return { code: room.code, room: null };
       }
@@ -479,6 +589,7 @@ export const createRoomService = (
         match = { ...match, rematchVotes: [] };
       }
       cancelTurnTimer(room.code);
+      dropAi(room.code);
       if (match) match = { ...match, turnDeadline: null };
       const updated: Room = { ...room, players: players.map((p) => ({ ...p, ready: false, deckId: null })), match };
       store.saveRoom(updated);
@@ -490,6 +601,7 @@ export const createRoomService = (
       const room = store.getRoom(code);
       if (!room || room.players.some((p) => p.connectionId !== null)) return false;
       cancelTurnTimer(code);
+      dropAi(code);
       store.removeRoom(code);
       return true;
     },
