@@ -5,6 +5,7 @@ import type { DeckId } from "../../engine/decks.js";
 import type { PlayerView } from "../../engine/playerView.js";
 import type { Action } from "../../engine/types.js";
 import { asDeckId } from "../screens/deckSelect.js";
+import { rematchPayload } from "../screens/matchEnd.js";
 import { createTurnClock, turnNotice } from "../screens/turnTimer.js";
 import { clearToken, getState, loadToken, lobbyRoomsFromPayload, matchForRoom, saveToken, setState, type MatchEnded, type PublicRoom } from "../state.js";
 
@@ -114,7 +115,10 @@ export const sendAction = (action: Action): void => {
   socket.emit("match:action", action);
 };
 
-/** Vota por revanche (`accept: true`) ou retira o voto (`accept: false`). */
-export const sendRematch = (accept: boolean): void => {
-  socket.emit("match:rematch", { accept });
+/** Vota por revanche com o deck escolhido ou retira o voto (limpando a escolha). Sem deck, não envia voto. */
+export const sendRematch = (accept: boolean, deckId: DeckId | null): void => {
+  const payload = rematchPayload(accept, deckId);
+  if (!payload) return;
+  setState({ deckId: accept ? deckId : null });
+  socket.emit("match:rematch", payload);
 };

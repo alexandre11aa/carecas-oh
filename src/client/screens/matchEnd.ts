@@ -1,5 +1,6 @@
 // src/client/screens/matchEnd.ts
 // Lógica pura da tela de fim: textos de resultado e estado do botão de revanche.
+import type { DeckId } from "../../engine/decks.js";
 import type { PlayerId } from "../../engine/types.js";
 import type { MatchEnded } from "../state.js";
 
@@ -15,11 +16,12 @@ export const endSummary = (viewer: PlayerId, winner: PlayerId, ended: MatchEnded
   reason: ended ? REASONS[ended.reason] : "",
 });
 
-/** Revanche: precisa do oponente na sala; o botão alterna entre votar e retirar o voto. */
+/** Revanche: precisa do oponente na sala e de um deck escolhido para votar; o botão alterna entre votar e retirar o voto. */
 export const rematchState = (
   ended: MatchEnded | null,
   opponentInRoom: boolean,
-): { label: string; accept: boolean; disabled: boolean; status: string } => {
+  deckId: DeckId | null,
+): { label: string; accept: boolean; disabled: boolean; status: string; decksLocked: boolean } => {
   const voted = ended?.rematch.you === true;
   const status = !opponentInRoom
     ? "O oponente saiu: não há revanche."
@@ -27,14 +29,21 @@ export const rematchState = (
       ? "O oponente quer jogar novamente."
       : voted
         ? "Aguardando o oponente..."
-        : "";
+        : deckId === null
+          ? "Escolha um deck para jogar novamente."
+          : "";
   return {
     label: voted ? "Cancelar revanche" : "Jogar novamente",
     accept: !voted,
-    disabled: !opponentInRoom || ended === null,
+    disabled: !opponentInRoom || ended === null || (!voted && deckId === null),
     status,
+    decksLocked: voted || !opponentInRoom,
   };
 };
+
+/** Payload de `match:rematch`: votar leva o deck; retirar o voto não leva nada. Sem deck, não há voto. */
+export const rematchPayload = (accept: boolean, deckId: DeckId | null): { deckId: DeckId } | { accept: false } | null =>
+  !accept ? { accept: false } : deckId ? { deckId } : null;
 
 /** O botão "Desistir" só existe com a partida em andamento: sem vencedor e sem resultado. */
 export const canSurrender = (winner: PlayerId | null, ended: MatchEnded | null): boolean => winner === null && ended === null;
