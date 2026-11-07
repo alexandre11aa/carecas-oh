@@ -1,6 +1,7 @@
 // src/client/screens/matchScreen.ts
 import { floatDelta, flashCounter, playNotice, snapLife, tweenLife } from "../animations/hudEffects.js";
 import { getCard } from "../../engine/cards.js";
+import type { DeckId } from "../../engine/decks.js";
 import type { Phase } from "../../engine/types.js";
 import type { PlayerView } from "../../engine/playerView.js";
 import { leaveRoom, sendAction, sendRematch } from "../network/socket.js";
@@ -26,6 +27,8 @@ import { buildCardDetail, slotCardId } from "./cardDetail.js";
 import { applyCardArt } from "./cardArtImage.js";
 import { reusableHandSlots } from "./handReconcile.js";
 import { createCardView } from "./cardView.js";
+import { createDeckPicker } from "./deckPicker.js";
+import { asDeckId, selectDeck } from "./deckSelect.js";
 import { canSurrender, endSummary, rematchState } from "./matchEnd.js";
 import { actingPlayer, opponentNickname, secondsRemaining, timerLevel, turnBannerText } from "./turnTimer.js";
 
@@ -104,8 +107,12 @@ export const createMatchScreen = (): Screen => {
   const rematchStatus = el("p", "hint");
   const lobbyButton = el("button", undefined, "Voltar ao lobby");
   lobbyButton.type = "button";
+  const deckPicker = createDeckPicker("Escolha seu deck para a revanche", (id) => {
+    selectedDeck = selectDeck(selectedDeck, id, decksLocked);
+    update();
+  });
   const endBox = el("div", "end-box");
-  endBox.append(endTitle, endReason, rematchButton, rematchStatus, lobbyButton);
+  endBox.append(endTitle, endReason, deckPicker.element, rematchButton, rematchStatus, lobbyButton);
   const endOverlay = el("div", "end-overlay");
   endOverlay.hidden = true;
   endOverlay.append(endBox);
@@ -144,6 +151,8 @@ export const createMatchScreen = (): Screen => {
   let selection: Selection | null = null;
   let lastMatch: PlayerView | null = null;
   let acceptRematch = true;
+  let decksLocked = false;
+  let selectedDeck: DeckId | null = asDeckId(getState().deckId); // escolha anterior pré-selecionada, editável
   let shownNoticeSeq = getState().turnNotice?.seq ?? 0; // aviso já existente ao abrir a tela (ex.: reconexão) não reaparece
   let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -209,7 +218,10 @@ export const createMatchScreen = (): Screen => {
     pumpNotices();
   };
 
-  rematchButton.addEventListener("click", () => sendRematch(acceptRematch));
+  rematchButton.addEventListener("click", () => {
+    sendRematch(acceptRematch, selectedDeck);
+    if (!acceptRematch) selectedDeck = null;
+  });
   lobbyButton.addEventListener("click", () => leaveRoom());
   // Desistir exige confirmação: o clique no botão só abre o diálogo; apenas "Desistir" nele envia `room:leave`.
   surrenderButton.addEventListener("click", () => (surrenderOverlay.hidden = false));
@@ -370,7 +382,10 @@ export const createMatchScreen = (): Screen => {
 
     if (match.winner && !playing && noticeQueue.length === 0) {
       const summary = endSummary(match.viewer, match.winner, ended);
-      const rematch = rematchState(ended, opponentInRoom(room?.players ?? []));
+      selectedDeck ??= asDeckId(getState().deckId);
+      const rematch = rematchState(ended, opponentInRoom(room?.players ?? []), selectedDeck);
+      decksLocked = rematch.decksLocked;
+      deckPicker.update(selectedDeck, decksLocked);
       endTitle.textContent = summary.title;
       endReason.textContent = summary.reason;
       rematchButton.textContent = rematch.label;
