@@ -1,5 +1,6 @@
 // src/engine/rules/traps.ts
 // Armadilhas: janela de resposta do defensor e efeitos como dados. Uma resposta por janela (sem cadeia). Funções puras.
+import { removeOne } from "./hand.js";
 import { getCard } from "../cards.js";
 import type {
   Action,
@@ -103,15 +104,18 @@ export const resolveTrapEffect = (
     case "NEGATE_SUMMON": {
       if (pending.type !== "SUMMON_CARD") return { state, events, resume: true };
       events.push({ type: "SUMMON_NEGATED", player: actor, cardId: pending.cardId });
-      const hand = data.hand.filter((id) => id !== pending.cardId);
+      const hand = removeOne(data.hand, pending.cardId);
       const next = toGraveyard(actor, { ...data, hand, normalSummonUsed: true }, pending.cardId, events);
       return { state: withPlayer(state, actor, next), events, resume: false };
     }
     case "NEGATE_SPELL": {
       if (pending.type !== "ACTIVATE_SPELL") return { state, events, resume: true };
       events.push({ type: "SPELL_NEGATED", player: actor, cardId: pending.cardId });
-      const hand = data.hand.filter((id) => id !== pending.cardId);
-      const spellTraps = data.spellTraps.map((s) => (s?.cardId === pending.cardId ? null : s));
+      // Como em activateSpell: a cópia da mão tem preferência; só uma ocorrência sai.
+      const inHand = data.hand.includes(pending.cardId);
+      const hand = inHand ? removeOne(data.hand, pending.cardId) : data.hand;
+      const fieldZone = inHand ? -1 : data.spellTraps.findIndex((s) => s?.cardId === pending.cardId);
+      const spellTraps = data.spellTraps.map((s, i) => (i === fieldZone ? null : s));
       const next = toGraveyard(actor, { ...data, hand, spellTraps }, pending.cardId, events);
       return { state: withPlayer(state, actor, next), events, resume: false };
     }

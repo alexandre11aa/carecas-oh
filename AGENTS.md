@@ -153,6 +153,7 @@ src/engine/
 
 ### Cartas
 
+- Cópias repetidas: mão, deck e cemitério são listas de `cardId` e podem repetir o mesmo id; cada ação remove exatamente uma ocorrência (`removeOne` em `rules/hand.ts`) e as ações/eventos continuam identificando a carta por `cardId`. Cópias no campo ficam para outra tarefa.
 - Cartas são dados tipados em `cards.ts`. Não crie uma classe nem um arquivo de código para cada carta.
 - Efeitos de magia são dados tipados (`effect` em `SpellCard`, união `SpellEffect` em `types.ts`: `BOOST_ATTACK`, `HEAL`, `DAMAGE`, `DESTROY_MONSTER`, `DRAW`, `BOOST_ALL_ATTACK`, `HEAL_PER_MONSTER`, `REVIVE_MONSTER`, `DESTROY_SPELL_TRAP`, `DRAIN`, `BOUNCE_MONSTER`), interpretados por `rules/spells.ts`. Efeito novo = novo `kind` na união e um caso no interpretador, nunca código por carta.
 - Balanceamento (régua): a composição de cada deck é fixa e testada em `decks.test.ts` (monstros/magias/armadilhas), sem sorteio por categoria. `DESTROY_MONSTER` e `DESTROY_ATTACKER` aceitam `maxAttack` opcional (ATK com bônus). `arcane_draw` continua "compre 1 carta": o risco de deck vazio antes da hora é decisão consciente.
