@@ -119,6 +119,7 @@ src/engine/
   cards.ts              definições das cartas, tipadas
   decks.ts              os 6 decks fixos de 10 cartas (`DECKS`, `DeckId`, `getDeck`)
   types.ts              tipos de cartas, ações e estado da partida
+  rng.ts                gerador pseudoaleatório determinístico (`nextRandom`), usado no sorteio e na IA
   rules/                turnos, invocação e combate, um arquivo por assunto
   ai/                   IA (decisão pura): types.ts, candidates.ts, easy.ts, medium.ts, hard.ts, choose.ts (`chooseAiAction`, `playAiTurn`), index.ts
   createMatch.ts        cria o estado inicial a partir dos decks e da semente
@@ -185,6 +186,7 @@ src/server/
     roomService.ts      criar sala, entrar, reconectar e jogar
   store/
     roomStore.ts        salas e partidas em memória
+  dist.smoke.ts         smoke test do servidor compilado (`npm run smoke`; fora de `npm test`)
 ```
 
 ### Padrão de código
@@ -235,6 +237,15 @@ src/client/
   network/
     socket.ts           conexão, envio e recebimento de eventos
   screens/              telas em HTML: início, sala de espera e interface da partida
+    homeScreen.ts       DOM da tela inicial: apelido, criar/entrar em sala e duelo contra a IA
+    waitingRoomScreen.ts DOM da sala de espera: código, link, jogadores, escolha de deck e "Pronto"
+    matchScreen.ts      DOM da interface da partida (HUD, mão, avisos, fim) sobre a cena 3D; fila de avisos e animações
+    dom.ts              helper `el` para criar elementos e o tipo `Screen`
+    errorMessages.ts    `code` de erro => mensagem em português
+    nickname.ts         lógica pura: validação do apelido (`canSubmitNickname`)
+    turnTimer.ts        lógica pura: relógio do turno a partir de `turnDeadline` (segundos restantes, nível de alerta, quem age)
+    handReconcile.ts    lógica pura: quais botões da mão podem ser reaproveitados entre atualizações
+    cardArtImage.ts     DOM: aplica o PNG de frente a uma carta HTML, com fallback de texto
     matchActions.ts     lógica pura (testável): PlayerView + seleção => comandos e `match:action` a enviar
     matchEnd.ts         lógica pura: textos de resultado, estado do botão de revanche (exige deck escolhido) e payload de `match:rematch`; com `vsAi` a revanche só exige o deck (sem voto nem espera pelo oponente)
     deckSelect.ts       lógica pura (testável): decks para exibir (id, nome, imagem), deck da partida (`deckOptionFor`), seleção, botão "Pronto" e payload de `room:ready`
@@ -265,8 +276,10 @@ src/client/
     blackHole.ts        vórtice decorativo atrás da mesa (planos com textura em canvas, rotação lenta, parado com prefers-reduced-motion)
     blackHoleDesign.ts  lógica pura (testável): camadas, posição e ângulo do vórtice
     texturePaths.ts     caminhos das texturas e tamanho alvo (lógica pura, testável)
-    monsterSprite.ts    arte do monstro em pé sobre a carta
-  animations/           sequências GSAP: compra, invocação e ataque
+    cardArt.ts          lógica pura: URL do PNG de frente de uma carta (nunca de carta oculta) e escolha imagem x visual provisório
+    framing.ts          lógica pura: enquadramento da câmera conforme o aspecto da tela
+    surfaces.ts         lógica pura: textura x cor do fundo e da mesa, opacidade das zonas e enquadramento do fundo
+  animations/           animações GSAP
     hudEffects.ts       GSAP do HUD: aviso de evento, variação flutuante e barra de vida
 ```
 
@@ -346,6 +359,10 @@ package.json
 package-lock.json
 tsconfig.json
 vite.config.ts
+vitest.smoke.config.ts  config do Vitest só do smoke test (`npm run smoke`)
+.github/workflows/ci.yml  CI: check, testes e build em PRs e em `integration-v*`
+.gitignore
+README.md               apresentação do projeto
 ```
 
 ### Docker
