@@ -368,7 +368,7 @@ export const createMatchScreen = (): Screen => {
   };
   const countdownInterval = setInterval(renderCountdown, 250);
 
-  const update = () => {
+  const render = () => {
     const { match, connection, ended, room, turnNotice, matchEvents } = getState();
     if (!match) return;
     // Nova visão do servidor: a seleção anterior pode não valer mais.
@@ -444,10 +444,11 @@ export const createMatchScreen = (): Screen => {
     // não é recriada nem recarregada, e o foco do teclado não se perde); só a seleção é atualizada.
     const reuse = reusableHandSlots(handCardIds, you.hand);
     const buttons = you.hand.map((cardId, index) => {
-      const selected = selection?.kind === "hand" && selection.cardId === cardId;
+      const selected = selection?.kind === "hand" && selection.handIndex === index && selection.cardId === cardId;
       const existing = reuse[index] ? handButtons[index] : undefined;
       if (existing) {
         existing.classList.toggle("selected", selected);
+        existing.setAttribute("aria-pressed", String(selected));
         return existing;
       }
       const { kind, title, detail } = handCardLabel(cardId);
@@ -456,6 +457,7 @@ export const createMatchScreen = (): Screen => {
       card.type = "button";
       card.append(el("b", undefined, title), el("span", undefined, detail));
       card.setAttribute("aria-label", `${title}. ${detail}`);
+      card.setAttribute("aria-pressed", String(selected));
       applyCardArt(card, cardId, title);
       card.addEventListener("pointerenter", () => showDetail(cardId));
       card.addEventListener("focus", () => { pointerPosition = null; showDetail(cardId); });
@@ -464,7 +466,7 @@ export const createMatchScreen = (): Screen => {
       card.addEventListener("click", () => {
         if (!lastMatch) return;
         showDetail(cardId);
-        selection = handClick(lastMatch, selection, cardId); // sempre o estado mais recente, nunca o de quando o botão foi criado
+        selection = handClick(lastMatch, selection, index); // sempre o estado mais recente, nunca o de quando o botão foi criado
         update();
       });
       return card;
@@ -505,6 +507,26 @@ export const createMatchScreen = (): Screen => {
     }
   };
 
+  // Uma imagem já em cache pode resolver trackImage de forma síncrona durante a
+  // reconciliação da mão. O loading só pede outra passagem depois do render atual.
+  let updating = false;
+  let updatePending = false;
+  let destroyed = false;
+  const update = () => {
+    if (destroyed) return;
+    if (updating) { updatePending = true; return; }
+    updating = true;
+    try {
+      render();
+    } finally {
+      updating = false;
+      if (updatePending) {
+        updatePending = false;
+        queueMicrotask(update);
+      }
+    }
+  };
+
   update();
   const stopWaitingLoading = pageLoading.subscribe(() => {
     if (pageLoading.isReady()) update();
@@ -515,6 +537,7 @@ export const createMatchScreen = (): Screen => {
     element,
     update,
     destroy: () => {
+      destroyed = true;
       stopWaitingLoading();
       document.removeEventListener("visibilitychange", onVisibilityChange);
       clearInterval(countdownInterval);
