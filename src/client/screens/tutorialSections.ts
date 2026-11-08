@@ -170,6 +170,33 @@ export const GUIDE_SECTIONS: readonly TutorialSection[] = [
     ],
   },
   {
+    id: "ia",
+    title: "Duelar com IA",
+    summary: "Jogue sozinho contra o computador, sem sala de espera nem outro jogador.",
+    details: [
+      {
+        kind: "list",
+        items: [
+          "Na página inicial, toque em \"Duelar com IA\", escolha o nível e o seu deck e inicie o duelo: a partida começa na hora.",
+          "A IA joga no servidor, uma ação por vez e com uma pequena pausa, para você acompanhar cada jogada.",
+          "A IA joga com um deck aleatório, sorteado entre os 6 decks fixos.",
+          "O limite de 30 segundos vale só para você: na vez da IA não há relógio.",
+          "Revanche: a IA sempre aceita. Você escolhe o deck de novo, os lados são trocados, o nível é mantido e a IA recebe outro deck aleatório.",
+          "Sair da sala no meio da partida é desistência e encerra o duelo; perder a conexão não conta, você pode voltar.",
+        ],
+      },
+      {
+        kind: "table",
+        headers: ["Nível", "Como a IA joga"],
+        rows: [
+          ["Fácil", "Joga sem pressa e comete erros. Bom para aprender."],
+          ["Médio", "Joga com bom senso, mas ainda pode ser surpreendida."],
+          ["Difícil", "Calcula as jogadas e aproveita cada brecha."],
+        ],
+      },
+    ],
+  },
+  {
     id: "fim",
     title: "Fim de jogo e revanche",
     summary: "A partida termina quando alguém vence; depois é possível jogar de novo.",
