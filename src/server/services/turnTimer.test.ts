@@ -216,8 +216,8 @@ describe("prazo do turno", () => {
 
   it("partida_encerrada_pela_expiracao_nao_rearma_o_prazo", () => {
     const { expiries, match } = setup();
-    // Decks de 5 cartas: a compra falha em algum turno e a expiração encerra a partida.
-    vi.advanceTimersByTime(TURN_TIME_MS * 20);
+    // Decks de 20 cartas (16 no deck): a compra falha em algum turno e a expiração encerra a partida.
+    vi.advanceTimersByTime(TURN_TIME_MS * 80);
     const outcome = match().outcome;
     expect(outcome?.reason).toBe("DECK_OUT");
     expect(match().turnDeadline).toBeNull();

@@ -21,7 +21,7 @@ describe("applyAction - turnos", () => {
     if (!result.ok) throw new Error("esperado ok");
     expect(result.state.phase).toBe("MAIN_1");
     expect(result.state.players[p].hand).toHaveLength(5);
-    expect(result.state.players[p].deck).toHaveLength(5);
+    expect(result.state.players[p].deck).toHaveLength(15);
     expect(result.state.players[p].hand[4]).toBe(initial.players[p].deck[0]);
     expect(result.events[0]).toEqual({ type: "CARD_DRAWN", player: p, cardId: initial.players[p].deck[0] });
   });
@@ -63,7 +63,7 @@ describe("applyAction - turnos", () => {
     expect(r.state.turn).toBe(2);
     expect(r.state.phase).toBe("MAIN_1");
     expect(r.state.players[other].hand).toHaveLength(5);
-    expect(r.state.players[other].deck).toHaveLength(5);
+    expect(r.state.players[other].deck).toHaveLength(15);
     expect(r.events.map((e) => e.type)).toEqual(["TURN_STARTED", "CARD_DRAWN", "PHASE_CHANGED"]);
   });
 

@@ -21,8 +21,8 @@ const createPlayer = (id: PlayerId, deckId: DeckId, cards: string[]): PlayerStat
 });
 
 /**
- * Cria o estado inicial: 4000 LP, deck fixo de cada jogador embaralhado com a semente, 4 cartas na mão e
- * 5 no deck. Os dois jogadores podem escolher o mesmo deck. O jogador inicial sai da semente.
+ * Cria o estado inicial: 4000 LP, deck fixo de 20 cartas de cada jogador embaralhado com a semente, 4 cartas na mão e
+ * 16 no deck. Os dois jogadores podem escolher o mesmo deck. O jogador inicial sai da semente.
  * O estado começa na fase de compra do turno 1; a compra é executada ao avançar a fase (NEXT_PHASE).
  */
 export const createMatch = (seed: number, decks: Record<PlayerId, DeckId>): MatchState => {

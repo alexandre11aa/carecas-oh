@@ -6,12 +6,12 @@ import { getDeck } from "./decks.js";
 const DECKS_IN_USE = { P1: "aggressive", P2: "defensive" } as const;
 
 describe("createMatch", () => {
-  it("cria_jogadores_com_4000_lp_4_cartas_na_mao_e_6_no_deck", () => {
+  it("cria_jogadores_com_4000_lp_4_cartas_na_mao_e_16_no_deck", () => {
     const state = createMatch(42, { P1: "balanced", P2: "strategic" });
     for (const id of ["P1", "P2"] as const) {
       expect(state.players[id].lifePoints).toBe(4000);
       expect(state.players[id].hand).toHaveLength(4);
-      expect(state.players[id].deck).toHaveLength(6);
+      expect(state.players[id].deck).toHaveLength(16);
     }
     expect(state.turn).toBe(1);
     expect(state.phase).toBe("DRAW");

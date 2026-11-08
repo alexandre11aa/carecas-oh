@@ -114,7 +114,7 @@ describe("room:ready", () => {
       expect(view.phase).toBe("DRAW");
       expect(view.you.lifePoints).toBe(4000);
       expect(view.you.hand).toHaveLength(4);
-      expect(view.you.deckCount).toBe(6);
+      expect(view.you.deckCount).toBe(16);
       expect(view.opponent.handCount).toBe(4);
     }
     expect(viewA.you.hand.filter((id) => viewB.you.hand.includes(id))).toEqual([]);

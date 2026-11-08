@@ -10,7 +10,7 @@ import type { AiDecision } from "./types.js";
 
 /** Vida considerada baixa: cura, mantém defensores e prefere defesa. */
 export const HARD_LOW_LIFE = INITIAL_LIFE_POINTS / 2;
-/** Com o deck abaixo disso o Difícil não usa `DRAW` (evita perder por deck vazio). */
+/** Com o deck abaixo disso (de 20 cartas, 4 na mão e 16 no deck) o Difícil não usa `DRAW` (evita perder por deck vazio). */
 export const HARD_DRAW_MIN_DECK = 5;
 /** Estimativas para monstros virados do oponente (a identidade nunca é lida). */
 export const HARD_HIDDEN_ATK = 1200;

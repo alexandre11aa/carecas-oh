@@ -127,7 +127,7 @@ describe("match:rematch", () => {
     expect(newA.turn).toBe(1);
     expect(newA.you.lifePoints).toBe(4000);
     expect(newA.you.hand).toHaveLength(4);
-    expect(newA.you.deckCount).toBe(6);
+    expect(newA.you.deckCount).toBe(16);
     expect(eventsA).toEqual([]);
     expect(newA.viewer).not.toBe(newB.viewer);
     // Lados trocados: quem era P1 agora é P2.
