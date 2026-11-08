@@ -27,7 +27,7 @@ export const GUIDE_SECTIONS: readonly TutorialSection[] = [
       {
         kind: "list",
         items: [
-          "Cada jogador começa com 8000 pontos de vida.",
+          "Cada jogador começa com 4000 pontos de vida.",
           "Vence quem zerar os pontos de vida do oponente.",
           "Perde quem não puder comprar quando for obrigado a comprar.",
         ],
@@ -46,7 +46,7 @@ export const GUIDE_SECTIONS: readonly TutorialSection[] = [
           "Os decks são fixos: não dá para editar nem trocar cartas.",
           "Os dois jogadores podem escolher o mesmo deck.",
           "A escolha é secreta: o oponente só descobre o seu deck quando a partida começa.",
-          "O deck é embaralhado com a semente da partida: a mão inicial tem 5 cartas aleatórias e as outras 5 ficam no deck, compradas em ordem aleatória.",
+          "O deck é embaralhado com a semente da partida: a mão inicial tem 4 cartas aleatórias e as outras 6 ficam no deck, compradas em ordem aleatória.",
           "A mão e a ordem do deck do oponente não aparecem para você.",
         ],
       },
@@ -81,7 +81,7 @@ export const GUIDE_SECTIONS: readonly TutorialSection[] = [
         kind: "list",
         items: [
           "Quem começa a partida não pode atacar no primeiro turno.",
-          "Cada turno tem limite de 30 segundos; o tempo reinicia a cada ação válida.",
+          "Cada turno tem limite de 100 segundos; o tempo reinicia a cada ação válida.",
           "Se o tempo acabar, o servidor encerra o turno por você (ou passa a resposta de armadilha pendente).",
         ],
       },
@@ -180,7 +180,7 @@ export const GUIDE_SECTIONS: readonly TutorialSection[] = [
           "Na página inicial, toque em \"Duelar com IA\", escolha o nível e o seu deck e inicie o duelo: a partida começa na hora.",
           "A IA joga no servidor, uma ação por vez e com uma pequena pausa, para você acompanhar cada jogada.",
           "A IA joga com um deck aleatório, sorteado entre os 6 decks fixos.",
-          "O limite de 30 segundos vale só para você: na vez da IA não há relógio.",
+          "O limite de 100 segundos vale só para você: na vez da IA não há relógio.",
           "Revanche: a IA sempre aceita. Você escolhe o deck de novo, os lados são trocados, o nível é mantido e a IA recebe outro deck aleatório.",
           "Sair da sala no meio da partida é desistência e encerra o duelo; perder a conexão não conta, você pode voltar.",
         ],
@@ -206,7 +206,7 @@ export const GUIDE_SECTIONS: readonly TutorialSection[] = [
         items: [
           "A partida termina quando a vida de um jogador chega a zero ou quando alguém não pode comprar.",
           "Sair da sala no meio da partida é desistência: o outro jogador vence. Perder a conexão não conta como desistência.",
-          "Revanche: precisa dos dois jogadores; os lados são trocados, cada jogador escolhe o deck de novo e a vida volta a 8000.",
+          "Revanche: precisa dos dois jogadores; os lados são trocados, cada jogador escolhe o deck de novo e a vida volta a 4000.",
           "Se preferir, volte ao lobby.",
         ],
       },
