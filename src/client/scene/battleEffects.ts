@@ -10,7 +10,9 @@ export const createBattleEffects = (scene: Scene, reducedMotion: boolean) => {
   const sphereGeometry = new SphereGeometry(1, 16, 10);
   const active = new Set<{ timeline: gsap.core.Timeline; clean: () => void }>();
 
-  const play = (effects: readonly BoardEffect[]) => {
+  const play = (effects: readonly BoardEffect[], done: () => void = () => {}) => {
+    if (effects.length === 0) { done(); return; }
+    let remaining = effects.length;
     for (const effect of effects) {
       const group = new Group();
       const ownedMaterials: MeshBasicMaterial[] = [];
@@ -25,18 +27,18 @@ export const createBattleEffects = (scene: Scene, reducedMotion: boolean) => {
         ownedMaterials.forEach((value) => value.dispose());
         active.delete(record);
       };
-      const timeline = gsap.timeline({ onComplete: clean });
+      const timeline = gsap.timeline({ onComplete: () => { clean(); remaining--; if (remaining === 0) done(); } });
       record = { timeline, clean };
       active.add(record);
       scene.add(group);
       const duration = reducedMotion ? 0.18 : 0.45;
       if (effect.kind === "graveyard" && !reducedMotion) {
         const card = createCardMesh();
-        updateCardMesh(card, { key: "effect", cardId: effect.cardId, faceDown: false, yaw: 0, ...effect.from });
+        updateCardMesh(card, { key: "effect", cardId: effect.cardId, faceDown: false, yaw: effect.yaw ?? 0, ...effect.from });
         group.add(card);
         timeline.to(card.position, { y: 0.9, duration: 0.15, ease: "power2.out" }, 0);
         timeline.to(card.position, { x: effect.to.x, z: effect.to.z, duration: 0.45, ease: "power2.inOut" }, 0);
-        timeline.to(card.rotation, { y: Math.PI, duration: 0.45 }, 0);
+        timeline.to(card.rotation, { y: (effect.yaw ?? 0) + Math.PI, duration: 0.45 }, 0);
         timeline.to(card.position, { y: 0.05, duration: 0.3 }, 0.15);
         timeline.to(card.scale, { x: 0.1, y: 0.1, z: 0.1, duration: 0.2 }, 0.25);
         const glow = new Mesh(ringGeometry, material(0xb87bff));
