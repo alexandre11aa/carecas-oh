@@ -39,7 +39,7 @@ describe("GUIDE_SECTIONS", () => {
     expect(table).toMatchObject({ rows: [["1 a 4", "Nenhum"], ["5 a 6", expect.any(String)], ["7 ou mais", expect.any(String)]] });
   });
 
-  it("explica_os_decks_fixos_e_nao_menciona_sorteio_de_20_cartas", () => {
+  it("explica_os_decks_fixos_de_20_cartas_com_copias", () => {
     const decks = GUIDE_SECTIONS.find((s) => s.id === "decks");
     const text = JSON.stringify(decks);
     expect(text).toContain("inclusive na revanche");
@@ -50,13 +50,15 @@ describe("GUIDE_SECTIONS", () => {
     const table = decks?.details.find((b) => b.kind === "table");
     expect(table).toMatchObject({
       rows: [
-        ["Agressivo", "6", "3", "1"], ["Defensivo", "5", "2", "3"], ["Mágico", "4", "5", "1"],
-        ["Controle", "4", "3", "3"], ["Equilibrado", "5", "3", "2"], ["Estratégico", "5", "4", "1"],
+        ["Agressivo", "12", "6", "2"], ["Defensivo", "10", "4", "6"], ["Mágico", "8", "10", "2"],
+        ["Controle", "8", "6", "6"], ["Equilibrado", "10", "6", "4"], ["Estratégico", "10", "8", "2"],
       ],
     });
     expect(table && "rows" in table ? table.rows.length : 0).toBe(DECKS.length);
     const all = JSON.stringify(GUIDE_SECTIONS);
-    expect(all).not.toContain("20 cartas");
+    expect(text).toContain("20 cartas");
+    expect(text).toContain("16 ficam no deck");
+    expect(text).toContain("de 1 a 3 vezes");
     expect(all).not.toContain("sorteadas");
     expect(all).not.toContain("10 delas");
   });
@@ -95,18 +97,20 @@ describe("GUIDE_SECTIONS", () => {
 describe("groupCardsByDeck", () => {
   const groups = groupCardsByDeck();
 
-  it("tem_6_grupos_na_ordem_dos_decks_com_10_cartas_cada", () => {
+  it("tem_6_grupos_na_ordem_dos_decks_com_10_cartas_distintas_e_20_copias", () => {
     expect(groups.map((g) => g.id)).toEqual(DECKS.map((d) => d.id));
     expect(groups.length).toBe(6);
     for (const group of groups) {
       expect(group.cards.length).toBe(10);
+      expect(group.cards.reduce((sum, card) => sum + card.copies, 0)).toBe(20);
       expect(group.image).toBe(`/decks/${group.id}.png`);
     }
   });
 
   it("cartas_de_cada_grupo_sao_as_do_deck_com_textos_preenchidos", () => {
     for (const group of groups) {
-      expect(group.cards.map((c) => c.id)).toEqual(DECKS.find((d) => d.id === group.id)?.cardIds);
+      expect(group.cards.map((c) => c.id)).toEqual(DECKS.find((d) => d.id === group.id)?.entries.map((e) => e.cardId));
+      expect(group.cards.map((c) => c.copies)).toEqual(DECKS.find((d) => d.id === group.id)?.entries.map((e) => e.copies));
       for (const card of group.cards) {
         expect(card.effect).not.toBe("");
         expect(card.mechanic).not.toBe("");
@@ -116,12 +120,12 @@ describe("groupCardsByDeck", () => {
 
   it("composicao_confere_com_o_guia", () => {
     expect(groups.map((g) => [g.composition.monsters, g.composition.spells, g.composition.traps])).toEqual([
-      [6, 3, 1],
-      [5, 2, 3],
-      [4, 5, 1],
-      [4, 3, 3],
-      [5, 3, 2],
-      [5, 4, 1],
+      [12, 6, 2],
+      [10, 4, 6],
+      [8, 10, 2],
+      [8, 6, 6],
+      [10, 6, 4],
+      [10, 8, 2],
     ]);
   });
 

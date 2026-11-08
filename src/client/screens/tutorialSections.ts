@@ -37,16 +37,17 @@ export const GUIDE_SECTIONS: readonly TutorialSection[] = [
   {
     id: "decks",
     title: "Decks e mão inicial",
-    summary: "Antes de cada partida, cada jogador escolhe um dos 6 decks fixos de 10 cartas.",
+    summary: "Antes de cada partida, cada jogador escolhe um dos 6 decks fixos de 20 cartas.",
     details: [
       {
         kind: "list",
         items: [
           "A escolha do deck vale para cada partida, inclusive na revanche.",
           "Os decks são fixos: não dá para editar nem trocar cartas.",
+          "Cada deck tem 20 cartas, formadas por repetição das cartas dele: a magia exclusiva entra 1 vez e cada uma das outras entra de 1 a 3 vezes.",
           "Os dois jogadores podem escolher o mesmo deck.",
           "A escolha é secreta: o oponente só descobre o seu deck quando a partida começa.",
-          "O deck é embaralhado com a semente da partida: a mão inicial tem 4 cartas aleatórias e as outras 6 ficam no deck, compradas em ordem aleatória.",
+          "O deck é embaralhado com a semente da partida: a mão inicial tem 4 cartas aleatórias e as outras 16 ficam no deck, compradas em ordem aleatória.",
           "A mão e a ordem do deck do oponente não aparecem para você.",
         ],
       },
@@ -222,8 +223,8 @@ export type DeckCatalogGroup = {
   /** Imagem do deck (`public/decks/<id>.png`). */
   image: string;
   composition: DeckComposition;
-  /** Todas as cartas do deck, na ordem de `DECKS`. */
-  cards: readonly CardDetail[];
+  /** Cartas distintas do deck, na ordem de `DECKS`, cada uma com a quantidade de cópias. */
+  cards: readonly (CardDetail & { copies: number })[];
   /** Magia de efeito único (nenhuma outra carta do jogo tem o mesmo `kind`), destacada na página; `null` se não houver. */
   signatureSpell: CardDetail | null;
 };
@@ -241,9 +242,13 @@ const effectKindCounts = (): Map<string, number> => {
 export const groupCardsByDeck = (): readonly DeckCatalogGroup[] => {
   const kindCounts = effectKindCounts();
   return DECKS.map((deck) => {
-    const cards = deck.cardIds.map((id) => buildCardDetail(id)).filter((d): d is CardDetail => d !== null);
-    const count = (kind: CardKind): number => cards.filter((card) => card.kind === kind).length;
-    const signature = deck.cardIds.find((id) => {
+    const cards = deck.entries.flatMap((entry) => {
+      const detail = buildCardDetail(entry.cardId);
+      return detail ? [{ ...detail, copies: entry.copies }] : [];
+    });
+    const count = (kind: CardKind): number =>
+      cards.filter((card) => card.kind === kind).reduce((sum, card) => sum + card.copies, 0);
+    const signature = deck.entries.map((entry) => entry.cardId).find((id) => {
       const card = getCard(id);
       return card?.type === "SPELL" && kindCounts.get(card.effect.kind) === 1;
     });

@@ -149,7 +149,7 @@ export const createCardsPage = (): Screen => {
     const info = el("div", "deck-catalog-info");
     info.append(
       el("h3", "tutorial-group-title", `Deck ${group.name}`),
-      el("p", "tutorial-summary", `${monsters} monstros · ${spells} magias · ${traps} armadilhas`),
+      el("p", "tutorial-summary", `${monsters} monstros · ${spells} magias · ${traps} armadilhas (20 cartas)`),
     );
     if (group.signatureSpell) {
       info.append(el("p", "deck-signature", `Magia exclusiva: ${group.signatureSpell.name} — ${group.signatureSpell.effect}`));
@@ -159,7 +159,9 @@ export const createCardsPage = (): Screen => {
     for (const card of group.cards) {
       const view = createCardView(card);
       if (card.id === group.signatureSpell?.id) view.classList.add("signature");
-      grid.append(view);
+      const slot = el("div", "tutorial-card-slot");
+      slot.append(view, el("span", "card-copies", `×${card.copies}`));
+      grid.append(slot);
     }
     const section = el("section", "deck-catalog");
     section.append(header, grid);

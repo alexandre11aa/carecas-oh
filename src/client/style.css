@@ -116,6 +116,8 @@ html:has(.match) { scrollbar-gutter: auto; }
 .deck-catalog-image { width: 5rem; height: 5rem; object-fit: contain; flex: none; }
 .deck-catalog-info .tutorial-group-title { margin: 0 0 0.25rem; }
 .deck-catalog-info .tutorial-summary { margin: 0.15rem 0; }
+.tutorial-card-slot { position: relative; }
+.card-copies { position: absolute; top: 0.4rem; right: 0.4rem; padding: 0.1rem 0.5rem; border-radius: 999px; background: var(--c-ink); color: var(--c-gold-light); font-weight: 700; font-size: 0.9rem; border: 1px solid var(--c-gold-light); }
 .deck-signature { margin: 0.35rem 0 0; color: var(--c-gold-light); font-size: 0.9rem; }
 .card-view.signature { outline: 2px solid var(--c-gold-light); box-shadow: 0 0 12px var(--c-gold); }
 .tutorial-section > :last-child { margin-bottom: 0; }
