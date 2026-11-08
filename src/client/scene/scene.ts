@@ -20,7 +20,7 @@ import {
 import type { PlayerView } from "../../engine/playerView.js";
 import { createBlackHole } from "./blackHole.js";
 import { createCardMesh, updateCardMesh } from "./cardMesh.js";
-import { allSlots, layoutBoard, pickSlot, type Slot } from "./layout.js";
+import { allSlots, layoutBoard, pickSlot, type CardPlacement, type Slot } from "./layout.js";
 import { backgroundCover, pickSurface } from "./surfaces.js";
 import { createTable } from "./table.js";
 import { CAMERA_TARGET, cameraDistanceScale, cameraPosition } from "./framing.js";
@@ -31,8 +31,10 @@ import { createBattleEffects } from "./battleEffects.js";
 import type { BoardEffect } from "../animations/matchFeedback.js";
 
 export type MatchScene = {
-  playEffects: (effects: readonly BoardEffect[]) => void;
+  playEffects: (effects: readonly BoardEffect[], done?: () => void) => void;
   clearEffects: () => void;
+  setPlacements: (placements: readonly CardPlacement[]) => void;
+  cardAt: (slot: Slot) => string | null;
   refreshHover: () => void;
   /** Reflete exatamente o estado recebido (cartas ausentes saem da mesa). */
   setView: (view: PlayerView) => void;
@@ -125,6 +127,7 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
   frameCamera(1);
 
   const meshes = new Map<string, Mesh>();
+  let shownPlacements: readonly CardPlacement[] = [];
 
   // Marcadores de destaque: um por slot, criados uma vez e só alternados entre visível/oculto.
   const markerGeometry = new PlaneGeometry(zoneOuterSize().width, zoneOuterSize().height).rotateX(-Math.PI / 2);
@@ -177,12 +180,8 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
   };
   loop();
 
-  return {
-    playEffects: battleEffects.play,
-    clearEffects: battleEffects.clear,
-    refreshHover: () => { if (pointer) hoverHandler?.(slotAt(pointer)); },
-    setView: (view) => {
-      const placements = layoutBoard(view);
+  const setPlacements = (placements: readonly CardPlacement[]) => {
+      shownPlacements = placements;
       const keep = new Set(placements.map((p) => p.key));
       for (const [key, mesh] of meshes) {
         if (!keep.has(key)) {
@@ -201,7 +200,15 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
         mesh.userData.slotKey = placement.key;
       }
       if (pointer) hoverHandler?.(slotAt(pointer));
-    },
+  };
+
+  return {
+    playEffects: battleEffects.play,
+    clearEffects: battleEffects.clear,
+    setPlacements,
+    cardAt: (slot) => shownPlacements.find((placement) => placement.key === slot.key)?.cardId ?? null,
+    refreshHover: () => { if (pointer) hoverHandler?.(slotAt(pointer)); },
+    setView: (view) => setPlacements(layoutBoard(view)),
     setHighlights: (keys) => {
       const active = new Set(keys);
       for (const [key, marker] of markers) marker.visible = active.has(key);

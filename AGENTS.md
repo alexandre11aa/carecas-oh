@@ -285,6 +285,7 @@ src/client/
   animations/           animações GSAP
     hudEffects.ts       GSAP do HUD: aviso de evento, variação flutuante e barra de vida
     matchFeedback.ts    lógica pura: eventos filtrados + visões anterior/atual => passos de som, aviso e efeito, sem inferir informação oculta
+    boardPresentation.ts lógica pura: retém a mesa anterior e aplica saídas/chegadas ao cemitério em sincronia com os efeitos; o fim coincide com a visão do servidor
     matchAudio.ts       Web Audio por tela: cache após gesto, botão de som persistente, limite de vozes e descarte
 ```
 

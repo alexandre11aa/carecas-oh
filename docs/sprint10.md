@@ -35,3 +35,11 @@ A reconciliação também protege a tela contra chamadas recursivas do loading: 
 Verificação automatizada: check, 812 testes aprovados (um relatório previamente ignorado), build e dois smoke aprovados.
 
 Verificação no Chrome: primeira e segunda cópias ficam selecionadas individualmente ao clicar; repetir o clique limpa a seleção; Enter seleciona a segunda e Espaço a desmarca. Remover a primeira cópia com cache quente limpa o destaque sem recursão; comprar outra cópia e selecioná-la destaca somente seu novo índice. `aria-pressed` acompanha os estados. Nenhuma exceção JavaScript ou erro ao destruir a tela.
+
+## Correção #262 — cemitério sincronizado
+
+A mesa passa a ser uma projeção visual (`animations/boardPresentation.ts`): ao iniciar cada passo da fila, a carta que sai é retirada da origem e o topo anterior do cemitério permanece; a nova carta só entra no cemitério quando o efeito de voo termina. Assim não há teletransporte prévio, reaparecimento nem duplicação. A origem carrega a rotação (`yaw`) da zona. Cópias públicas iguais enviadas no mesmo lote saem juntas, sem parear uma delas com um evento; origens ocultas ambíguas usam o efeito neutro.
+
+O último passo termina exatamente em `layoutBoard` da visão recebida. Reconexão, saída, revanche, aba oculta, cancelamento e excesso de fila restauram direto o estado atual. Movimento reduzido mantém a transição simples. Enquanto a apresentação roda, ações e cliques na mesa ficam desabilitados e o detalhe por hover usa as cartas realmente desenhadas (`cardAt`). Sem mudança em regras, eventos Socket.IO ou informação oculta.
+
+Verificação: check, 819 testes, build e smoke aprovados.

@@ -11,7 +11,7 @@ type Point = { x: number; z: number };
 export type BoardEffect =
   | { kind: "attack"; from: Point; to: Point }
   | { kind: "impact" | "defend"; at: Point }
-  | { kind: "graveyard"; from: Point; to: Point; cardId: string }
+  | { kind: "graveyard"; from: Point; to: Point; cardId: string; yaw?: number }
   | { kind: "damage" | "heal"; side: Side };
 export type FeedbackStep = { sound: SoundName | null; effects: BoardEffect[]; notice: Notice | null };
 

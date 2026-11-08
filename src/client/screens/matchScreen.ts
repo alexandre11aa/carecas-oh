@@ -24,7 +24,7 @@ import {
   type Selection,
 } from "./matchActions.js";
 import { buildNotices, deltaText, lifePercent, lifeSides, MAX_LIFE, type NoticeSide } from "./matchNotices.js";
-import { buildCardDetail, slotCardId } from "./cardDetail.js";
+import { buildCardDetail } from "./cardDetail.js";
 import { applyCardArt } from "./cardArtImage.js";
 import { reusableHandSlots } from "./handReconcile.js";
 import { createCardView } from "./cardView.js";
@@ -33,7 +33,8 @@ import { asDeckId, deckOptionFor, selectDeck } from "./deckSelect.js";
 import { aiOpponentLabel } from "./aiDuel.js";
 import { canSurrender, endSummary, rematchState } from "./matchEnd.js";
 import { actingPlayer, opponentNickname, secondsRemaining, timerLevel, turnBannerText } from "./turnTimer.js";
-import { buildFeedback, type FeedbackStep } from "../animations/matchFeedback.js";
+import { arrivePresentationStep, beginPresentationStep, buildPresentationSteps, finishPresentationStep, type PresentationStep } from "../animations/boardPresentation.js";
+import { layoutBoard, type CardPlacement } from "../scene/layout.js";
 import { createMatchAudio } from "../animations/matchAudio.js";
 import { playDamageFlash } from "../animations/hudEffects.js";
 
@@ -217,7 +218,14 @@ export const createMatchScreen = (): Screen => {
 
   // Fila de avisos dos eventos. A vida dos lados com dano/cura fica "retida" até o aviso aparecer; ao esvaziar a fila tudo volta ao estado do servidor.
   let shownEventSeq = getState().matchEvents?.seq ?? 0; // eventos já existentes ao abrir a tela não reaparecem
-  const noticeQueue: FeedbackStep[] = [];
+  const noticeQueue: PresentationStep[] = [];
+  let shownBoard: CardPlacement[] = [];
+  let presentationGeneration = 0;
+  const presentBoard = (placements: CardPlacement[]) => {
+    shownBoard = placements;
+    scene?.setPlacements(placements);
+  };
+  const presentationBusy = () => playing || noticeQueue.length > 0;
   const heldLife = new Set<NoticeSide>();
   const lifeShown: Record<NoticeSide, { value: number }> = { you: { value: MAX_LIFE }, opponent: { value: MAX_LIFE } };
   const lifeTargets: Record<NoticeSide, number> = { you: MAX_LIFE, opponent: MAX_LIFE };
@@ -237,6 +245,7 @@ export const createMatchScreen = (): Screen => {
   });
 
   const stopNotices = () => {
+    presentationGeneration++;
     noticeQueue.length = 0;
     heldLife.clear();
     playing = false;
@@ -248,32 +257,60 @@ export const createMatchScreen = (): Screen => {
     damageFlash.style.opacity = "0";
     audio.stop();
     scene?.clearEffects();
+    if (lastMatch) presentBoard(layoutBoard(lastMatch));
     stopHudEffects(element);
     snapAllLife();
     eventNotice.hidden = true;
   };
 
   const pumpNotices = () => {
-    if (playing) return;
+    if (playing || !pageLoading.isReady()) return;
     const step = noticeQueue.shift();
     if (!step) {
       heldLife.clear();
       snapAllLife();
+      if (lastMatch) presentBoard(layoutBoard(lastMatch));
       eventNotice.hidden = true;
       update(); // libera a tela de fim, se houver
       return;
     }
     playing = true;
-    audio.play(step.sound);
-    scene?.playEffects(step.effects);
-    if (step.effects.some((effect) => effect.kind === "damage" && effect.side === "you")) {
+    presentBoard(beginPresentationStep(shownBoard, step));
+    const feedback = step.feedback;
+    const generation = presentationGeneration;
+    let effectsDone = false;
+    let noticeDone = false;
+    let finished = false;
+    const finish = () => {
+      if (generation !== presentationGeneration || finished || !effectsDone || !noticeDone) return;
+      finished = true;
+      if (step.finish) presentBoard(finishPresentationStep(shownBoard, step));
+      playing = false;
+      pumpNotices();
+      update();
+    };
+    const effectsFinished = () => {
+      if (generation !== presentationGeneration) return;
+      if (step.arrivals.length) presentBoard(arrivePresentationStep(shownBoard, step));
+      effectsDone = true;
+      finish();
+    };
+    audio.play(feedback.sound);
+    if (scene) scene.playEffects(feedback.effects, effectsFinished);
+    else effectsFinished();
+    if (feedback.effects.some((effect) => effect.kind === "damage" && effect.side === "you")) {
       damageTimeline?.kill();
       damageTimeline = playDamageFlash(damageFlash);
     }
-    const notice = step.notice;
+    const notice = feedback.notice;
     if (!notice) {
       eventNotice.hidden = true;
-      effectTimer = setTimeout(() => { effectTimer = null; playing = false; pumpNotices(); }, step.effects.length ? 450 : 180);
+      if (feedback.sound && feedback.effects.length === 0) {
+        effectTimer = setTimeout(() => { effectTimer = null; noticeDone = true; finish(); }, 180);
+      } else {
+        noticeDone = true;
+        finish();
+      }
       return;
     }
     eventNotice.textContent = notice.kind === "DAMAGE" || notice.kind === "HEAL" ? `${notice.text} (${deltaText(notice)})` : notice.text;
@@ -288,15 +325,15 @@ export const createMatchScreen = (): Screen => {
     }
     const isEnd = notice.kind === "END";
     noticeTimeline = playNotice(eventNotice, isEnd ? END_HOLD : noticeQueue.length > 8 ? 0.05 : Math.min(NOTICE_HOLD, 0.35), !isEnd, () => {
-      playing = false;
-      pumpNotices();
+      noticeDone = true;
+      finish();
     });
   };
 
   /** Recebe o lote de eventos novo: avisos entram na fila; sem eventos (reconexão) a fila é descartada e o estado é exibido direto. */
   const receiveEvents = (match: PlayerView, batch: NonNullable<ReturnType<typeof getState>["matchEvents"]>, previous: PlayerView | null) => {
     if (batch.events.length === 0 || document.hidden) { stopNotices(); return; }
-    const steps = buildFeedback(previous, match, batch.events);
+    const steps = buildPresentationSteps(previous, match, batch.events);
     const notices = buildNotices(batch.events, match.viewer);
     // Uma aba lenta não acumula dezenas de segundos de efeitos antigos.
     if (noticeQueue.length + steps.length > 32) { stopNotices(); snapAllLife(); return; }
@@ -338,6 +375,7 @@ export const createMatchScreen = (): Screen => {
     observer = new ResizeObserver(resize);
     observer.observe(canvasBox);
     scene.onPick((slot) => {
+      if (presentationBusy()) return;
       const view = getState().match;
       if (!view) return;
       const outcome = slotClick(view, selection, slot);
@@ -346,8 +384,7 @@ export const createMatchScreen = (): Screen => {
       update();
     });
     scene.onHover((slot) => {
-      const view = getState().match;
-      const cardId = view && slot ? slotCardId(view, slot) : null;
+      const cardId = slot ? scene?.cardAt(slot) ?? null : null;
       if (cardId !== detailCardId) showDetail(cardId);
     });
   } catch {
@@ -377,15 +414,17 @@ export const createMatchScreen = (): Screen => {
       if (lastMatch && (match.viewer !== lastMatch.viewer || match.turn < lastMatch.turn || (lastMatch.winner && !match.winner))) stopNotices();
       lastMatch = match;
       selection = null;
-      scene?.setView(match);
     }
-    scene?.setHighlights(highlightKeys(match, selection));
     // Enquanto o loading cobre a tela, avisos e toasts esperam (as animações só começam depois dele).
     const ready = pageLoading.isReady();
-    if (ready && matchEvents && matchEvents.seq !== shownEventSeq) {
+    if (matchEvents && matchEvents.seq !== shownEventSeq) {
       shownEventSeq = matchEvents.seq;
       receiveEvents(match, matchEvents, previousMatch);
     }
+    if (ready && noticeQueue.length > 0) pumpNotices();
+    if (match !== previousMatch && !presentationBusy()) presentBoard(layoutBoard(match));
+    const busy = presentationBusy();
+    scene?.setHighlights(busy ? [] : highlightKeys(match, selection));
 
     const { you, opponent } = match;
     const aiLabel = aiOpponentLabel(room);
@@ -424,7 +463,7 @@ export const createMatchScreen = (): Screen => {
       : `Turno ${match.turn} · ${mine ? "Seu turno" : "Turno do oponente"}`;
     phaseLine.textContent = `Fase: ${PHASE_LABELS[match.phase]}`;
     noticeLine.textContent = connectionNotice(connection);
-    hintLine.textContent = selectionHint(match, selection);
+    hintLine.textContent = busy ? "Aguarde a animação da jogada." : selectionHint(match, selection);
 
     const commands = [
       ...selectionCommands(match, selection),
@@ -435,6 +474,7 @@ export const createMatchScreen = (): Screen => {
       ...commands.map((command) => {
         const button = el("button", undefined, command.label);
         button.type = "button";
+        button.disabled = busy;
         button.addEventListener("click", () => runCommand(command));
         return button;
       }),
@@ -447,6 +487,7 @@ export const createMatchScreen = (): Screen => {
       const selected = selection?.kind === "hand" && selection.handIndex === index && selection.cardId === cardId;
       const existing = reuse[index] ? handButtons[index] : undefined;
       if (existing) {
+        existing.disabled = busy;
         existing.classList.toggle("selected", selected);
         existing.setAttribute("aria-pressed", String(selected));
         return existing;
@@ -455,6 +496,7 @@ export const createMatchScreen = (): Screen => {
       const card = el("button", `hand-card ${kind}${selected ? " selected" : ""}`);
       card.dataset.cardId = cardId;
       card.type = "button";
+      card.disabled = busy;
       card.append(el("b", undefined, title), el("span", undefined, detail));
       card.setAttribute("aria-label", `${title}. ${detail}`);
       card.setAttribute("aria-pressed", String(selected));
