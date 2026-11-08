@@ -17,3 +17,9 @@ Não houve alteração nas regras, efeitos das cartas, eventos Socket.IO ou perm
 - Inspeção visual do WebP em resolução completa: texto e arte preservados. A avaliação dos sons foi por identificação/duração e testes de integração; não houve audição humana.
 
 O Vite continua emitindo aviso de bundle JavaScript acima de 500 kB por conter Three.js; isso não impede o build. Os originais não entram no contexto Docker, e os testes só exigem os arquivos públicos que também existem nesse contexto.
+
+## Correção #260 — botão de som
+
+O controle de som usa somente um ícone SVG próprio de alto-falante: ondas quando ligado, risco diagonal quando silenciado. Compartilha a altura de Desistir e mantém nome acessível, estado `aria-pressed`, foco de teclado e a preferência persistida de áudio.
+
+Verificação: check, 809 testes (um relatório previamente ignorado), build e dois smoke aprovados. Conferência em Chrome headless nas larguras 1280 e 390 px, nos dois estados: som e Desistir medem 33,59375 px de altura; o botão não tem texto visível, o SVG muda corretamente, e nome acessível/estado alternam. Screenshot de 390 px silenciado inspecionada visualmente. Nenhuma exceção JavaScript, inclusive ao destruir a tela.

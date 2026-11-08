@@ -110,10 +110,15 @@ export const createMatchScreen = (): Screen => {
   const audio = createMatchAudio();
   const soundButton = el("button", "sound-button");
   soundButton.type = "button";
+  const soundIcon = el("span", "sound-icon");
+  soundIcon.setAttribute("aria-hidden", "true");
+  // Ícone próprio e estático: alto-falante com ondas, ou com risco quando silenciado.
+  soundIcon.innerHTML = '<svg viewBox="0 0 24 24" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4Z"/><path class="sound-waves" d="M16 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/><path class="sound-slash" d="m3 3 18 18"/></svg>';
+  soundButton.append(soundIcon);
   const renderSound = () => {
-    soundButton.textContent = audio.isEnabled() ? "Som: ligado" : "Som: desligado";
     soundButton.setAttribute("aria-pressed", String(audio.isEnabled()));
     soundButton.setAttribute("aria-label", audio.isEnabled() ? "Desativar sons da partida" : "Ativar sons da partida");
+    soundButton.title = audio.isEnabled() ? "Som ligado: desativar sons" : "Som desligado: ativar sons";
   };
   soundButton.addEventListener("click", () => { audio.setEnabled(!audio.isEnabled()); renderSound(); });
   renderSound();
