@@ -4,19 +4,19 @@ Jogo de cartas 1x1 para navegador, em 3D simples, rápido de jogar e inspirado n
 
 ## Como se joga
 
-- Dois jogadores, cada um com 8000 pontos de vida.
+- Dois jogadores, cada um com 4000 pontos de vida.
 - Existem 6 decks fixos de 10 cartas: Agressivo, Defensivo, Mágico, Controle, Equilibrado e Estratégico. Cada jogador escolhe o seu deck em segredo a cada partida; os decks só são revelados quando a partida começa (os dois podem escolher o mesmo).
-- Mão inicial de 5 cartas; as outras 5 ficam no deck. Perde quem não puder comprar quando for obrigado a comprar, ou quem tiver a vida zerada.
+- Mão inicial de 4 cartas; as outras 6 ficam no deck. Perde quem não puder comprar quando for obrigado a comprar, ou quem tiver a vida zerada.
 - Turno em fases: Compra, Principal 1, Batalha, Principal 2 e Fim. No primeiro turno da partida ninguém ataca.
 - **Monstros:** 5 zonas por jogador e 1 invocação normal por turno (ou baixar 1 monstro em defesa virada). Níveis 1 a 4 não exigem tributo, 5 e 6 exigem 1 tributo, 7 ou mais exigem 2 tributos (monstros do próprio campo, enviados ao cemitério). Cada monstro pode mudar de posição uma vez por turno e atacar uma vez por turno; ataque direto só quando o oponente não tem monstros.
 - **Magias** são ativadas da mão nas fases Principais. **Armadilhas** são baixadas viradas e ativadas no turno do oponente, a partir do turno seguinte ao que foram baixadas.
 - **Janela de resposta:** invocação, ataque e ativação de magia podem ser respondidos com uma armadilha, que resolve antes da ação original (uma resposta por janela).
-- Cada turno tem 30 segundos para o jogador da vez (ou para o defensor, se houver janela de resposta aberta). Ao expirar, o servidor passa a resposta ou encerra o turno.
+- Cada turno tem 100 segundos para o jogador da vez (ou para o defensor, se houver janela de resposta aberta). Ao expirar, o servidor passa a resposta ou encerra o turno.
 - Ao fim da partida, o resultado é exibido e os jogadores podem pedir **revanche** (precisa dos dois votos; os lados são trocados e cada um escolhe o deck de novo) ou voltar ao lobby.
 
 ### Duelar com a IA
 
-Na home, o botão "Duelar com IA" pede o apelido, o nível (Fácil, Médio ou Difícil) e o seu deck. A partida começa na hora, sem sala de espera, e a IA recebe um deck sorteado. As regras são as mesmas; o limite de 30 segundos vale só para o humano. A IA joga no servidor, usando apenas a visão do próprio lado (nunca vê a sua mão).
+Na home, o botão "Duelar com IA" pede o apelido, o nível (Fácil, Médio ou Difícil) e o seu deck. A partida começa na hora, sem sala de espera, e a IA recebe um deck sorteado. As regras são as mesmas; o limite de 100 segundos vale só para o humano. A IA joga no servidor, usando apenas a visão do próprio lado (nunca vê a sua mão).
 
 As regras completas estão em [AGENTS.md](AGENTS.md).
 

@@ -59,11 +59,11 @@ Seguem as regras do Yu-Gi-Oh, com monstros, magias, armadilhas e tributo.
 
 ### Pontos de vida e decks
 
-- Dois jogadores, cada um com 8000 pontos de vida.
+- Dois jogadores, cada um com 4000 pontos de vida.
 - Existem 6 decks fixos de 10 cartas (`DECKS` em `decks.ts`): Agressivo 6/3/1, Defensivo 5/2/3, Mágico 4/5/1, Controle 4/3/3, Equilibrado 5/3/2 e Estratégico 5/4/1 (monstros/magias/armadilhas). Cada carta pertence a um só deck e cada deck tem ao menos uma magia de efeito exclusivo. Cada jogador usa um deck (os dois podem usar o mesmo), embaralhado com a semente do estado.
-- Mão inicial de 5 cartas; as outras 5 ficam no deck.
+- Mão inicial de 4 cartas; as outras 6 ficam no deck.
 - Perde quem não puder comprar quando for obrigado a comprar.
-- Cada turno tem limite de 30 segundos para o jogador da vez (ou o defensor, se houver janela de resposta aberta). O prazo recomeça a cada ação válida. Ao expirar, o servidor passa a resposta pendente ou encerra o turno. O relógio vive no servidor (`roomService`), nunca na engine. Contra a IA o relógio vale só para o humano: na vez da IA (inclusive na janela de resposta dela) não há prazo.
+- Cada turno tem limite de 100 segundos para o jogador da vez (ou o defensor, se houver janela de resposta aberta). O prazo recomeça a cada ação válida. Ao expirar, o servidor passa a resposta pendente ou encerra o turno. O relógio vive no servidor (`roomService`), nunca na engine. Contra a IA o relógio vale só para o humano: na vez da IA (inclusive na janela de resposta dela) não há prazo.
 - Vence também quem zerar os pontos de vida do oponente.
 
 ### Fases do turno
@@ -95,7 +95,7 @@ Seguem as regras do Yu-Gi-Oh, com monstros, magias, armadilhas e tributo.
 2. **Sala:** os dois jogadores ficam na sala de espera.
 3. **Pronto:** cada jogador escolhe um dos 6 decks fixos e marca "pronto"; a partida começa quando ambos estiverem prontos. A escolha é secreta até o início (ver Backend).
 4. **Partida 3D:** jogada conforme as regras acima, na cena 3D com interface em HTML.
-5. **Fim:** exibe o resultado e oferece **revanche** (reembaralha o deck de cada jogador com nova semente, troca os lados e reinicia a vida em 8000) ou **voltar ao lobby**.
+5. **Fim:** exibe o resultado e oferece **revanche** (reembaralha o deck de cada jogador com nova semente, troca os lados e reinicia a vida em 4000) ou **voltar ao lobby**.
 
 ### Modo contra a IA
 
@@ -106,7 +106,7 @@ Alternativa ao PvP, escolhida na home pelo botão "Duelar com IA". As regras do 
 3. **Deck da IA:** sorteado entre os 6 decks no servidor e nunca enviado antes da partida; depois do início ele é público, como em qualquer partida (`opponent.deckId`).
 4. **Níveis:** Fácil joga ações válidas com pouca estratégia (invoca o que consegue, usa magia e ataque ao acaso, ativa armadilha por sorteio); Médio aplica heurísticas simples e determinísticas (ataca só quando vence, cura com vida baixa); Difícil pontua cada ação uma jogada à frente e busca o dano letal. Detalhes na seção "IA".
 5. **A IA joga no servidor:** uma ação por vez, com atraso de 700 ms (`aiDelayMs`) entre as ações para o humano acompanhar, sempre por `applyAction`. Ela decide lendo só o `playerView` do próprio lado: nunca vê a mão do humano, a ordem do deck nem a semente.
-6. **Tempo:** o limite de 30 s vale só para o humano; na vez da IA (`turnDeadline: null`) não corre prazo.
+6. **Tempo:** o limite de 100 s vale só para o humano; na vez da IA (`turnDeadline: null`) não corre prazo.
 7. **Fim:** a vitória ou derrota segue as regras normais. A IA aceita sempre a revanche: o humano escolhe o deck de novo, os lados são trocados, o nível é mantido e a IA recebe um novo deck sorteado.
 8. **Saída:** sair da sala (no meio da partida ou depois do fim) é desistência e remove a sala. Perder a conexão não é: o lugar é mantido para a reconexão por token.
 
@@ -206,7 +206,7 @@ src/server/
 - A partida (estado completo) fica em `Room.match` no store; o lado (P1/P2) de cada jogador vem do token, nunca da mensagem.
 - Erros enviados ao cliente têm um `code` estável, e a interface escolhe a mensagem em português.
 - O estado das partidas fica apenas em `store/`.
-- Sala contra a IA (`room:createAi`): `Room.ai` (`{ level, botToken }`) guarda o bot, que não é um `RoomPlayer` (sem conexão) mas ocupa um lado em `match.tokens` (humano P1, IA P2). A partida começa na hora; o deck da IA é sorteado no servidor (`randomInt`, nunca na engine) e quem começa sai da semente. A sala fica fora de `listOpenRooms`/`lobby:rooms`, `joinRoom` devolve `ROOM_FULL` e `PublicRoom` traz `vsAi`/`aiLevel`. Enquanto o turno for da IA não há prazo (`turnDeadline: null`); o relógio de 30 s só vale para o humano. O `roomService` agenda a jogada da IA (`aiDelayMs`, padrão 700 ms, injetável via `Clock`): uma ação por vez, escolhida por `chooseAiAction` com semente própria derivada da do servidor (guardada só em memória no service) e sempre aplicada por `applyAction`; a engine recusando força `PASS_RESPONSE`/`END_TURN`/`NEXT_PHASE`, e perto do limite (`aiMaxActionsPerTurn`, padrão `MAX_AI_ACTIONS_PER_TURN`) só valem as ações de fechamento. Cada ação é entregue ao humano pelo listener `onAiMove` (o handler reaproveita `sendDeliveries`). O agendamento é cancelado ao sair, remover a sala ou terminar a partida.
+- Sala contra a IA (`room:createAi`): `Room.ai` (`{ level, botToken }`) guarda o bot, que não é um `RoomPlayer` (sem conexão) mas ocupa um lado em `match.tokens` (humano P1, IA P2). A partida começa na hora; o deck da IA é sorteado no servidor (`randomInt`, nunca na engine) e quem começa sai da semente. A sala fica fora de `listOpenRooms`/`lobby:rooms`, `joinRoom` devolve `ROOM_FULL` e `PublicRoom` traz `vsAi`/`aiLevel`. Enquanto o turno for da IA não há prazo (`turnDeadline: null`); o relógio de 100 s só vale para o humano. O `roomService` agenda a jogada da IA (`aiDelayMs`, padrão 700 ms, injetável via `Clock`): uma ação por vez, escolhida por `chooseAiAction` com semente própria derivada da do servidor (guardada só em memória no service) e sempre aplicada por `applyAction`; a engine recusando força `PASS_RESPONSE`/`END_TURN`/`NEXT_PHASE`, e perto do limite (`aiMaxActionsPerTurn`, padrão `MAX_AI_ACTIONS_PER_TURN`) só valem as ações de fechamento. Cada ação é entregue ao humano pelo listener `onAiMove` (o handler reaproveita `sendDeliveries`). O agendamento é cancelado ao sair, remover a sala ou terminar a partida.
 - Fim de partida: `Room.match` guarda `outcome` (vencedor e motivo) e `rematchVotes`; a partida encerrada continua na sala até a revanche (`match:rematch`, precisa dos dois votos, troca os lados e reembaralha o deck escolhido por cada jogador) ou a saída. `room:leave` no meio da partida é desistência (o outro vence com `OPPONENT_LEFT`); perder a conexão não é. Detalhes em `docs/events.md`.
 - Sala contra a IA (`Room.ai`): o fim de partida segue o PvP com estas diferenças. A IA aceita sempre a revanche (`match:ended` traz `rematch.opponent: true`): `match:rematch` com `deckId` inicia na hora, com lados trocados, nível mantido, novo deck aleatório da IA sorteado no servidor e deck do humano escolhido de novo; `accept: false` só descarta a escolha. `room:leave` (no meio da partida ou depois do fim) remove a sala e cancela a IA (`dropAi`); perder a conexão não é desistência e a IA continua jogando até o abandono (`removeAbandonedRoom`). A sala de IA nunca aceita segundo jogador (`ROOM_FULL`).
 
