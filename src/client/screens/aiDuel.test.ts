@@ -1,6 +1,6 @@
 // src/client/screens/aiDuel.test.ts
 import { describe, expect, it } from "vitest";
-import { DEFAULT_AI_LEVEL, aiLevelOptions, aiRoomPayload, asAiLevel, canStartAiDuel, isAiNicknameValid } from "./aiDuel.js";
+import { DEFAULT_AI_LEVEL, aiLevelOptions, aiOpponentLabel, aiRoomPayload, asAiLevel, canStartAiDuel, isAiNicknameValid } from "./aiDuel.js";
 
 describe("aiLevelOptions", () => {
   it("lista_os_tres_niveis_em_ordem_com_nome_e_descricao", () => {
@@ -61,5 +61,19 @@ describe("aiRoomPayload", () => {
     expect(aiRoomPayload({ nickname: "Ana", level: "easy", deckId: null })).toBeNull();
     expect(aiRoomPayload({ nickname: "", level: "easy", deckId: "magic" })).toBeNull();
     expect(aiRoomPayload({ nickname: "Ana", level: null, deckId: "magic" })).toBeNull();
+  });
+});
+
+describe("aiOpponentLabel", () => {
+  it("mostra_a_ia_com_o_nivel", () => {
+    expect(aiOpponentLabel({ vsAi: true, aiLevel: "hard" })).toBe("IA (Difícil)");
+    expect(aiOpponentLabel({ vsAi: true, aiLevel: "medium" })).toBe("IA (Médio)");
+    expect(aiOpponentLabel({ vsAi: true, aiLevel: "easy" })).toBe("IA (Fácil)");
+  });
+
+  it("sem_sala_de_ia_nao_ha_rotulo", () => {
+    expect(aiOpponentLabel(null)).toBeNull();
+    expect(aiOpponentLabel({})).toBeNull();
+    expect(aiOpponentLabel({ vsAi: true })).toBeNull();
   });
 });

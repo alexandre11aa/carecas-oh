@@ -30,6 +30,7 @@ import { reusableHandSlots } from "./handReconcile.js";
 import { createCardView } from "./cardView.js";
 import { createDeckPicker } from "./deckPicker.js";
 import { asDeckId, deckOptionFor, selectDeck } from "./deckSelect.js";
+import { aiOpponentLabel } from "./aiDuel.js";
 import { canSurrender, endSummary, rematchState } from "./matchEnd.js";
 import { actingPlayer, opponentNickname, secondsRemaining, timerLevel, turnBannerText } from "./turnTimer.js";
 
@@ -317,7 +318,8 @@ export const createMatchScreen = (): Screen => {
     }
 
     const { you, opponent } = match;
-    infoBoxes.opponent.rest.textContent = ` Oponente · Mão ${opponent.handCount} · Deck ${opponent.deckCount} · `;
+    const aiLabel = aiOpponentLabel(room);
+    infoBoxes.opponent.rest.textContent = ` ${aiLabel ?? "Oponente"} · Mão ${opponent.handCount} · Deck ${opponent.deckCount} · `;
     infoBoxes.opponent.graveyard.textContent = `Cemitério ${opponent.graveyard.length}`;
     infoBoxes.you.rest.textContent = ` Você · Deck ${you.deckCount} · `;
     infoBoxes.you.graveyard.textContent = `Cemitério ${you.graveyard.length}`;
@@ -331,7 +333,7 @@ export const createMatchScreen = (): Screen => {
     const actingMine = acting === match.viewer;
     turnBanner.className = `turn-banner ${match.winner ? "over" : actingMine ? "mine" : "theirs"}`;
     turnBanner.hidden = !!match.winner;
-    (turnBanner.firstElementChild as HTMLElement).textContent = `${turnBannerText(match.viewer, acting, opponentNickname(room?.players ?? [], loadNickname()))} · ${PHASE_LABELS[match.phase]}`;
+    (turnBanner.firstElementChild as HTMLElement).textContent = `${turnBannerText(match.viewer, acting, aiLabel ?? opponentNickname(room?.players ?? [], loadNickname()))} · ${PHASE_LABELS[match.phase]}`;
     renderCountdown();
     if (ready && turnNotice && turnNotice.seq !== shownNoticeSeq) {
       shownNoticeSeq = turnNotice.seq;
@@ -406,7 +408,7 @@ export const createMatchScreen = (): Screen => {
     if (match.winner && !playing && noticeQueue.length === 0) {
       const summary = endSummary(match.viewer, match.winner, ended);
       selectedDeck ??= asDeckId(getState().deckId);
-      const rematch = rematchState(ended, opponentInRoom(room?.players ?? []), selectedDeck);
+      const rematch = rematchState(ended, opponentInRoom(room?.players ?? []), selectedDeck, room?.vsAi === true);
       decksLocked = rematch.decksLocked;
       deckPicker.update(selectedDeck, decksLocked);
       endTitle.textContent = summary.title;
