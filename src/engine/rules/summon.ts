@@ -36,16 +36,17 @@ export const summonMonster = (state: MatchState, player: PlayerId, action: Summo
   if (!card || card.type !== "MONSTER") return fail("NOT_A_MONSTER");
   if (current.normalSummonUsed) return fail("NORMAL_SUMMON_ALREADY_USED");
 
-  const tributeIds = action.tributeCardIds;
+  const tributeZones = action.tributeZones;
   const needed = requiredTributes(card.level);
-  if (tributeIds.length < needed) return fail("NOT_ENOUGH_TRIBUTES");
-  const unique = new Set(tributeIds);
-  const onField = (cardId: string): boolean => current.monsters.some((m) => m?.cardId === cardId);
-  if (tributeIds.length > needed || unique.size !== tributeIds.length || !tributeIds.every(onField)) {
+  if (tributeZones.length < needed) return fail("NOT_ENOUGH_TRIBUTES");
+  const unique = new Set(tributeZones);
+  const onField = (z: number): boolean => Number.isInteger(z) && current.monsters[z] != null;
+  if (tributeZones.length > needed || unique.size !== tributeZones.length || !tributeZones.every(onField)) {
     return fail("INVALID_TRIBUTES");
   }
+  const tributeIds = tributeZones.map((z) => current.monsters[z]?.cardId ?? "");
 
-  const monsters = current.monsters.map((m) => (m && unique.has(m.cardId) ? null : m));
+  const monsters = current.monsters.map((m, i) => (unique.has(i) ? null : m));
   if (!monsters.includes(null)) return fail("FIELD_FULL");
   const { zone } = action;
   if (!Number.isInteger(zone) || zone < 0 || zone >= monsters.length) return fail("INVALID_ZONE");
@@ -80,11 +81,9 @@ export const summonMonster = (state: MatchState, player: PlayerId, action: Summo
 
 type PositionCheck = { monster: MonsterOnField; zone: number } | Failure;
 
-const checkPositionChange = (state: MatchState, player: PlayerId, cardId: string): PositionCheck => {
+const checkPositionChange = (state: MatchState, player: PlayerId, zone: number): PositionCheck => {
   if (!isMainPhase(state)) return fail("INVALID_PHASE");
-  const monsters = state.players[player].monsters;
-  const zone = monsters.findIndex((m) => m?.cardId === cardId);
-  const monster = monsters[zone];
+  const monster = Number.isInteger(zone) ? state.players[player].monsters[zone] : null;
   if (!monster) return fail("MONSTER_NOT_ON_FIELD");
   if (monster.summonedOnTurn === state.turn || monster.hasAttacked) return fail("CANNOT_CHANGE_POSITION");
   if (monster.changedPositionOnTurn === state.turn) return fail("ALREADY_CHANGED_POSITION");
@@ -103,7 +102,7 @@ export const changePosition = (
   player: PlayerId,
   action: Extract<Action, { type: "CHANGE_POSITION" }>,
 ): ActionResult => {
-  const check = checkPositionChange(state, player, action.cardId);
+  const check = checkPositionChange(state, player, action.zone);
   if ("ok" in check) return check;
   const { monster, zone } = check;
   const position = monster.position === "ATTACK" ? "DEFENSE" : "ATTACK";
@@ -116,7 +115,7 @@ export const changePosition = (
   return {
     ok: true,
     state: replaceMonster(state, player, zone, updated),
-    events: [{ type: "POSITION_CHANGED", player, cardId: action.cardId, position, faceDown: updated.faceDown }],
+    events: [{ type: "POSITION_CHANGED", player, cardId: monster.cardId, position, faceDown: updated.faceDown }],
   };
 };
 
@@ -126,7 +125,7 @@ export const flipSummon = (
   player: PlayerId,
   action: Extract<Action, { type: "FLIP_SUMMON" }>,
 ): ActionResult => {
-  const check = checkPositionChange(state, player, action.cardId);
+  const check = checkPositionChange(state, player, action.zone);
   if ("ok" in check) return check;
   const { monster, zone } = check;
   if (!monster.faceDown) return fail("NOT_FACE_DOWN");
@@ -139,6 +138,6 @@ export const flipSummon = (
   return {
     ok: true,
     state: replaceMonster(state, player, zone, updated),
-    events: [{ type: "MONSTER_FLIPPED", player, cardId: action.cardId }],
+    events: [{ type: "MONSTER_FLIPPED", player, cardId: monster.cardId }],
   };
 };

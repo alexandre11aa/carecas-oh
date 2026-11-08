@@ -11,8 +11,8 @@ export type Selection =
   | { kind: "hand"; cardId: string }
   | { kind: "field"; cardId: string }
   | { kind: "monster"; zone: number }
-  | { kind: "summon"; cardId: string; set: boolean; tributes: readonly string[] }
-  | { kind: "attack"; attackerCardId: string }
+  | { kind: "summon"; cardId: string; set: boolean; tributes: readonly number[] }
+  | { kind: "attack"; attackerZone: number }
   | { kind: "spellTarget"; cardId: string; side: "you" | "opponent"; slotKind?: "spellTrap" };
 
 /** Botão da interface: ou envia uma ação, ou muda a seleção (`null` limpa). */
@@ -68,15 +68,15 @@ const monsterCommands = (view: PlayerView, zone: number): Command[] => {
     const locked =
       monster.summonedOnTurn === view.turn || monster.hasAttacked || monster.changedPositionOnTurn === view.turn;
     if (!locked) {
-      if (monster.faceDown) commands.push({ label: "Virar para ataque", action: { type: "FLIP_SUMMON", cardId: monster.cardId } });
+      if (monster.faceDown) commands.push({ label: "Virar para ataque", action: { type: "FLIP_SUMMON", zone } });
       else {
         const label = monster.position === "ATTACK" ? "Mudar para defesa" : "Mudar para ataque";
-        commands.push({ label, action: { type: "CHANGE_POSITION", cardId: monster.cardId } });
+        commands.push({ label, action: { type: "CHANGE_POSITION", zone } });
       }
     }
   }
   if (view.phase === "BATTLE" && monster.position === "ATTACK" && !monster.faceDown && !monster.hasAttacked) {
-    commands.push({ label: "Atacar", select: { kind: "attack", attackerCardId: monster.cardId } });
+    commands.push({ label: "Atacar", select: { kind: "attack", attackerZone: zone } });
   }
   return commands;
 };
@@ -110,7 +110,7 @@ export const selectionCommands = (view: PlayerView, selection: Selection | null)
     case "attack":
       return opponentHasMonsters(view)
         ? [cancel]
-        : [{ label: "Ataque direto", action: { type: "ATTACK", attackerCardId: selection.attackerCardId, targetZone: null } }, cancel];
+        : [{ label: "Ataque direto", action: { type: "ATTACK", attackerZone: selection.attackerZone, targetZone: null } }, cancel];
     case "summon":
     case "spellTarget":
       return [cancel];
@@ -130,11 +130,11 @@ export const responseCommands = (view: PlayerView): Command[] => {
   const pending = view.pendingResponse;
   if (!pending?.canRespond || view.winner !== null) return [];
   const commands: Command[] = [];
-  for (const slot of view.you.spellTraps) {
+  for (const [zone, slot] of view.you.spellTraps.entries()) {
     if (!slot) continue;
     const card = getCard(slot.cardId);
     if (card?.type !== "TRAP" || card.trigger !== pending.trigger || slot.setOnTurn >= view.turn) continue;
-    commands.push({ label: `Ativar ${card.name}`, action: { type: "ACTIVATE_TRAP", cardId: card.id } });
+    commands.push({ label: `Ativar ${card.name}`, action: { type: "ACTIVATE_TRAP", zone } });
   }
   commands.push({ label: "Passar", action: { type: "PASS_RESPONSE" } });
   return commands;
@@ -147,10 +147,10 @@ export const handClick = (view: PlayerView, selection: Selection | null, cardId:
 };
 
 /** Zonas do seu campo onde o monstro em invocação pode entrar (livres ou liberadas pelos tributos). */
-export const summonZones = (view: PlayerView, tributes: readonly string[]): number[] =>
+export const summonZones = (view: PlayerView, tributes: readonly number[]): number[] =>
   Array.from({ length: ZONE_COUNT }, (_, zone) => zone).filter((zone) => {
     const monster = view.you.monsters[zone];
-    return monster === null || monster === undefined || tributes.includes(monster.cardId);
+    return monster === null || monster === undefined || tributes.includes(zone);
   });
 
 const summonNeeded = (cardId: string): number => {
@@ -168,9 +168,9 @@ export const slotClick = (view: PlayerView, selection: Selection | null, slot: S
     const needed = summonNeeded(selection.cardId);
     if (selection.tributes.length < needed) {
       if (!ownMonster) return { selection };
-      const picked = selection.tributes.includes(ownMonster.cardId)
-        ? selection.tributes.filter((id) => id !== ownMonster.cardId)
-        : [...selection.tributes, ownMonster.cardId];
+      const picked = selection.tributes.includes(slot.zone)
+        ? selection.tributes.filter((z) => z !== slot.zone)
+        : [...selection.tributes, slot.zone];
       return { selection: { ...selection, tributes: picked } };
     }
     if (!summonZones(view, selection.tributes).includes(slot.zone)) return { selection };
@@ -179,7 +179,7 @@ export const slotClick = (view: PlayerView, selection: Selection | null, slot: S
       action: {
         type: selection.set ? "SET_MONSTER" : "SUMMON_CARD",
         cardId: selection.cardId,
-        tributeCardIds: [...selection.tributes],
+        tributeZones: [...selection.tributes],
         zone: slot.zone,
       },
     };
@@ -187,7 +187,7 @@ export const slotClick = (view: PlayerView, selection: Selection | null, slot: S
 
   if (selection?.kind === "attack" && slot.side === "opponent" && slot.kind === "monster") {
     if (!view.opponent.monsters[slot.zone]) return { selection };
-    return { selection: null, action: { type: "ATTACK", attackerCardId: selection.attackerCardId, targetZone: slot.zone } };
+    return { selection: null, action: { type: "ATTACK", attackerZone: selection.attackerZone, targetZone: slot.zone } };
   }
 
   if (selection?.kind === "spellTarget" && slot.side === selection.side && slot.kind === (selection.slotKind ?? "monster")) {

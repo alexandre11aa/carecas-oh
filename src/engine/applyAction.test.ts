@@ -127,7 +127,7 @@ describe("applyAction - turnos", () => {
 
   it("responder_sem_janela_aberta_retorna_no_response_window", () => {
     const state = start();
-    expect(applyAction(state, state.currentPlayer, { type: "ACTIVATE_TRAP", cardId: "x" })).toEqual({
+    expect(applyAction(state, state.currentPlayer, { type: "ACTIVATE_TRAP", zone: 0 })).toEqual({
       ok: false,
       code: "NO_RESPONSE_WINDOW",
     });

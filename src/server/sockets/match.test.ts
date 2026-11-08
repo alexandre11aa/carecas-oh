@@ -167,10 +167,18 @@ describe("match:action", () => {
   it("rejeita_payload_invalido_e_campo_de_jogador_enviado_pelo_cliente", async () => {
     const m = await startMatch();
     const payloads = [undefined, { type: "VOAR" }, { type: "NEXT_PHASE", player: "P1" }, { type: "SUMMON_CARD", cardId: "x" },
-      { type: "ATTACK", attackerCardId: "x", targetCardId: "y" },
-      { type: "ATTACK", attackerCardId: "x", targetZone: 5 },
-      { type: "ATTACK", attackerCardId: "x", targetZone: -1 },
-      { type: "ATTACK", attackerCardId: "x", targetZone: 1.5 },
+      { type: "ATTACK", attackerCardId: "x", targetZone: 0 },
+      { type: "ATTACK", attackerZone: 0, targetCardId: "y" },
+      { type: "ATTACK", attackerZone: 0, targetZone: 5 },
+      { type: "ATTACK", attackerZone: 0, targetZone: -1 },
+      { type: "ATTACK", attackerZone: 0, targetZone: 1.5 },
+      { type: "ATTACK", attackerZone: 5, targetZone: null },
+      { type: "ATTACK", attackerZone: "0", targetZone: null },
+      { type: "CHANGE_POSITION", cardId: "x" },
+      { type: "FLIP_SUMMON", zone: -1 },
+      { type: "ACTIVATE_TRAP", cardId: "x" },
+      { type: "SUMMON_CARD", cardId: "x", tributeCardIds: [], zone: 0 },
+      { type: "SUMMON_CARD", cardId: "x", tributeZones: [7], zone: 0 },
       { type: "ACTIVATE_SPELL", cardId: "x", targetZone: 9 },
     ];
     for (const payload of payloads) {
@@ -237,13 +245,13 @@ describe("informacao oculta", () => {
     // Turno do primeiro: compra, baixa um monstro virado e uma magia/armadilha, encerra.
     let round = await act(m, first, { type: "NEXT_PHASE" });
     const monster = lowMonster(handOf(round, first));
-    if (monster) round = await act(m, first, { type: "SET_MONSTER", cardId: monster, tributeCardIds: [], zone: 0 });
+    if (monster) round = await act(m, first, { type: "SET_MONSTER", cardId: monster, tributeZones: [], zone: 0 });
     const spellTrap = handOf(round, first).find((id) => getCard(id)?.type !== "MONSTER");
     if (spellTrap) round = await act(m, first, { type: "SET_SPELL_TRAP", cardId: spellTrap });
     round = await act(m, first, { type: "END_TURN" });
     // Turno do segundo: a compra é automática ao começar; baixa um monstro virado.
     const monster2 = lowMonster(handOf(round, second));
-    if (monster2) round = await act(m, second, { type: "SET_MONSTER", cardId: monster2, tributeCardIds: [], zone: 0 });
+    if (monster2) round = await act(m, second, { type: "SET_MONSTER", cardId: monster2, tributeZones: [], zone: 0 });
 
     // Ids que cada jogador guarda em segredo: a própria mão e as cartas viradas no campo.
     const secretsOf = (socket: Socket): string[] => {

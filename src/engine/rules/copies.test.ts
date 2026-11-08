@@ -58,21 +58,21 @@ describe("removeOne", () => {
 describe("cópias repetidas na mão", () => {
   it("invocar_remove_uma_copia_e_mantem_as_outras", () => {
     const { state, p } = setup({ hand: ["tide_imp", "tide_imp", "tide_imp", "fire_bolt"] });
-    const r = ok(state, p, { type: "SUMMON_CARD", cardId: "tide_imp", tributeCardIds: [], zone: 0 });
+    const r = ok(state, p, { type: "SUMMON_CARD", cardId: "tide_imp", tributeZones: [], zone: 0 });
     expect(r.state.players[p].hand).toEqual(["tide_imp", "tide_imp", "fire_bolt"]);
     expect(r.state.players[p].monsters[0]?.cardId).toBe("tide_imp");
   });
 
   it("baixar_monstro_remove_uma_copia", () => {
     const { state, p } = setup({ hand: ["tide_imp", "tide_imp"] });
-    const r = ok(state, p, { type: "SET_MONSTER", cardId: "tide_imp", tributeCardIds: [], zone: 2 });
+    const r = ok(state, p, { type: "SET_MONSTER", cardId: "tide_imp", tributeZones: [], zone: 2 });
     expect(r.state.players[p].hand).toEqual(["tide_imp"]);
     expect(r.state.players[p].monsters[2]?.faceDown).toBe(true);
   });
 
   it("invocar_sem_a_carta_na_mao_continua_invalido", () => {
     const { state, p } = setup({ hand: ["tide_imp", "tide_imp"] });
-    const r = applyAction(state, p, { type: "SUMMON_CARD", cardId: "dune_scout", tributeCardIds: [], zone: 0 });
+    const r = applyAction(state, p, { type: "SUMMON_CARD", cardId: "dune_scout", tributeZones: [], zone: 0 });
     expect(r).toEqual({ ok: false, code: "CARD_NOT_IN_HAND" });
   });
 
@@ -100,7 +100,7 @@ describe("cópias repetidas na mão", () => {
       { spellTraps: pad([{ cardId: "dark_veil", faceDown: true, setOnTurn: 4 }]) },
     );
     const open = ok(state, p, { type: "ACTIVATE_SPELL", cardId: "fire_bolt" });
-    const r = ok(open.state, o, { type: "ACTIVATE_TRAP", cardId: "dark_veil" });
+    const r = ok(open.state, o, { type: "ACTIVATE_TRAP", zone: 0 });
     expect(r.state.players[p].hand).toEqual(["fire_bolt"]);
     expect(r.state.players[p].spellTraps[0]?.cardId).toBe("fire_bolt");
     expect(r.state.players[p].graveyard).toEqual(["fire_bolt"]);
@@ -111,8 +111,8 @@ describe("cópias repetidas na mão", () => {
       { hand: ["tide_imp", "tide_imp"] },
       { spellTraps: pad([{ cardId: "hidden_snare", faceDown: true, setOnTurn: 4 }]) },
     );
-    const open = ok(state, p, { type: "SUMMON_CARD", cardId: "tide_imp", tributeCardIds: [], zone: 0 });
-    const r = ok(open.state, o, { type: "ACTIVATE_TRAP", cardId: "hidden_snare" });
+    const open = ok(state, p, { type: "SUMMON_CARD", cardId: "tide_imp", tributeZones: [], zone: 0 });
+    const r = ok(open.state, o, { type: "ACTIVATE_TRAP", zone: 0 });
     expect(r.state.players[p].hand).toEqual(["tide_imp"]);
     expect(r.state.players[p].graveyard).toEqual(["tide_imp"]);
   });

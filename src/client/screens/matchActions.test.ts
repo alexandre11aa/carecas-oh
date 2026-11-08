@@ -116,14 +116,14 @@ describe("invocacao por clique", () => {
     const out = slotClick(view, { kind: "summon", cardId: "ash_sprite", set: false, tributes: [] }, slot("you", "monster", 2));
     expect(out).toEqual({
       selection: null,
-      action: { type: "SUMMON_CARD", cardId: "ash_sprite", tributeCardIds: [], zone: 2 },
+      action: { type: "SUMMON_CARD", cardId: "ash_sprite", tributeZones: [], zone: 2 },
     });
   });
 
   it("baixar_em_defesa_envia_SET_MONSTER", () => {
     const view = viewOf({ mine: { hand: ["ash_sprite"] } });
     const out = slotClick(view, { kind: "summon", cardId: "ash_sprite", set: true, tributes: [] }, slot("you", "monster", 0));
-    expect(out.action).toEqual({ type: "SET_MONSTER", cardId: "ash_sprite", tributeCardIds: [], zone: 0 });
+    expect(out.action).toEqual({ type: "SET_MONSTER", cardId: "ash_sprite", tributeZones: [], zone: 0 });
   });
 
   it("nao_envia_nada_ao_clicar_fora_das_zonas_de_monstro_proprias", () => {
@@ -139,10 +139,10 @@ describe("invocacao por clique", () => {
     expect(selectionHint(view, start)).toBe("Clique em 1 monstro(s) seu(s) para tributar.");
 
     const picked = slotClick(view, start, slot("you", "monster", 1));
-    expect(picked).toEqual({ selection: { ...start, tributes: ["ash_sprite"] } });
+    expect(picked).toEqual({ selection: { ...start, tributes: [1] } });
 
     const zone = slotClick(view, picked.selection, slot("you", "monster", 1));
-    expect(zone.action).toEqual({ type: "SUMMON_CARD", cardId: "storm_hawk", tributeCardIds: ["ash_sprite"], zone: 1 });
+    expect(zone.action).toEqual({ type: "SUMMON_CARD", cardId: "storm_hawk", tributeZones: [1], zone: 1 });
   });
 
   it("clicar_em_zona_vazia_antes_de_escolher_tributos_nao_faz_nada", () => {
@@ -153,9 +153,9 @@ describe("invocacao por clique", () => {
 
   it("nao_permite_escolher_zona_ocupada_que_nao_e_tributo", () => {
     const view = viewOf({ mine: { hand: ["storm_hawk"], monsters: field(monster("tide_imp"), monster("ash_sprite")) } });
-    const sel = { kind: "summon", cardId: "storm_hawk", set: false, tributes: ["ash_sprite"] } as const;
+    const sel = { kind: "summon", cardId: "storm_hawk", set: false, tributes: [1] } as const;
     expect(slotClick(view, sel, slot("you", "monster", 0))).toEqual({ selection: sel });
-    expect(summonZones(view, ["ash_sprite"])).toEqual([1, 2, 3, 4]);
+    expect(summonZones(view, [1])).toEqual([1, 2, 3, 4]);
   });
 
   it("nivel_8_exige_dois_tributos", () => {
@@ -165,7 +165,7 @@ describe("invocacao por clique", () => {
     expect(one.action).toBeUndefined();
     const two = slotClick(view, one.selection, slot("you", "monster", 1));
     expect(two.action).toBeUndefined();
-    expect(two.selection).toEqual({ ...start, tributes: ["tide_imp", "ash_sprite"] });
+    expect(two.selection).toEqual({ ...start, tributes: [0, 1] });
     expect(highlightKeys(view, two.selection)).toEqual([0, 1, 2, 3, 4].map((z) => `you:monster:${z}`));
   });
 });
@@ -177,12 +177,12 @@ describe("monstro em campo", () => {
     expect(out.selection).toEqual({ kind: "monster", zone: 0 });
     const commands = selectionCommands(view, out.selection);
     expect(labels(commands)).toEqual(["Mudar para defesa", "Cancelar"]);
-    expect(commands[0].action).toEqual({ type: "CHANGE_POSITION", cardId: "ash_sprite" });
+    expect(commands[0].action).toEqual({ type: "CHANGE_POSITION", zone: 0 });
   });
 
   it("monstro_virado_oferece_virar_para_ataque", () => {
     const view = viewOf({ mine: { monsters: field(monster("ash_sprite", { faceDown: true, position: "DEFENSE" })) } });
-    expect(selectionCommands(view, { kind: "monster", zone: 0 })[0].action).toEqual({ type: "FLIP_SUMMON", cardId: "ash_sprite" });
+    expect(selectionCommands(view, { kind: "monster", zone: 0 })[0].action).toEqual({ type: "FLIP_SUMMON", zone: 0 });
   });
 
   it("monstro_invocado_neste_turno_nao_oferece_mudar_de_posicao", () => {
@@ -194,7 +194,7 @@ describe("monstro em campo", () => {
     const ready = viewOf({ phase: "BATTLE", mine: { monsters: field(monster("ash_sprite")) } });
     expect(selectionCommands(ready, { kind: "monster", zone: 0 })[0]).toEqual({
       label: "Atacar",
-      select: { kind: "attack", attackerCardId: "ash_sprite" },
+      select: { kind: "attack", attackerZone: 0 },
     });
     const done = viewOf({ phase: "BATTLE", mine: { monsters: field(monster("ash_sprite", { hasAttacked: true })) } });
     expect(labels(selectionCommands(done, { kind: "monster", zone: 0 }))).toEqual(["Cancelar"]);
@@ -202,7 +202,7 @@ describe("monstro em campo", () => {
 });
 
 describe("ataque com selecao de alvo por zona", () => {
-  const attack = { kind: "attack", attackerCardId: "ash_sprite" } as const;
+  const attack = { kind: "attack", attackerZone: 0 } as const;
   const withTarget = () =>
     viewOf({
       phase: "BATTLE",
@@ -214,7 +214,7 @@ describe("ataque com selecao de alvo por zona", () => {
     const view = withTarget();
     expect(slotClick(view, attack, slot("opponent", "monster", 2))).toEqual({
       selection: null,
-      action: { type: "ATTACK", attackerCardId: "ash_sprite", targetZone: 2 },
+      action: { type: "ATTACK", attackerZone: 0, targetZone: 2 },
     });
     expect(highlightKeys(view, attack)).toEqual(["opponent:monster:2"]);
   });
@@ -227,7 +227,7 @@ describe("ataque com selecao de alvo por zona", () => {
     const view = viewOf({ phase: "BATTLE", mine: { monsters: field(monster("ash_sprite")) } });
     expect(selectionCommands(view, attack)[0]).toEqual({
       label: "Ataque direto",
-      action: { type: "ATTACK", attackerCardId: "ash_sprite", targetZone: null },
+      action: { type: "ATTACK", attackerZone: 0, targetZone: null },
     });
   });
 
@@ -348,7 +348,7 @@ describe("janela de resposta", () => {
 
   it("oferece_so_as_armadilhas_do_gatilho_e_passar", () => {
     expect(responseCommands(defender("ATTACK_DECLARED"))).toEqual([
-      { label: "Ativar Esquiva da Glória Divina", action: { type: "ACTIVATE_TRAP", cardId: "divine_glory_evasion" } },
+      { label: "Ativar Esquiva da Glória Divina", action: { type: "ACTIVATE_TRAP", zone: 0 } },
       { label: "Passar", action: { type: "PASS_RESPONSE" } },
     ]);
     expect(labels(responseCommands(defender("SUMMON")))).toEqual(["Ativar Laço Escondido", "Passar"]);
@@ -390,5 +390,49 @@ describe("mão com cópias repetidas", () => {
     const selection = handClick(view, null, "tide_imp");
     expect(selection).toEqual({ kind: "hand", cardId: "tide_imp" });
     expect(selectionCommands(view, selection).map((c) => c.label)).toContain("Invocar");
+  });
+});
+
+describe("cartas iguais no campo", () => {
+  const twins = () =>
+    viewOf({
+      phase: "BATTLE",
+      mine: { monsters: field(monster("ash_sprite"), monster("ash_sprite"), monster("ash_sprite")) },
+      theirs: { monsters: field(monster("moss_golem"), monster("moss_golem")) },
+    });
+
+  it("atacar_com_a_segunda_copia_envia_a_zona_dela", () => {
+    const view = twins();
+    const picked = slotClick(view, null, slot("you", "monster", 1));
+    const attackCmd = selectionCommands(view, picked.selection).find((c) => c.label === "Atacar");
+    expect(attackCmd?.select).toEqual({ kind: "attack", attackerZone: 1 });
+    expect(slotClick(view, attackCmd?.select ?? null, slot("opponent", "monster", 1))).toEqual({
+      selection: null,
+      action: { type: "ATTACK", attackerZone: 1, targetZone: 1 },
+    });
+  });
+
+  it("mudar_posicao_da_terceira_copia_envia_a_zona_dela", () => {
+    const view = viewOf({
+      phase: "MAIN_1",
+      mine: { monsters: field(monster("ash_sprite"), monster("ash_sprite"), monster("ash_sprite")) },
+    });
+    expect(selectionCommands(view, { kind: "monster", zone: 2 })[0].action).toEqual({ type: "CHANGE_POSITION", zone: 2 });
+  });
+
+  it("tributar_uma_de_tres_copias_iguais_envia_so_a_zona_clicada", () => {
+    const view = viewOf({
+      mine: { hand: ["storm_hawk"], monsters: field(monster("ash_sprite"), monster("ash_sprite"), monster("ash_sprite")) },
+    });
+    const start = { kind: "summon", cardId: "storm_hawk", set: false, tributes: [] } as const;
+    const first = slotClick(view, start, slot("you", "monster", 2));
+    expect(first.selection).toEqual({ ...start, tributes: [2] });
+    expect(summonZones(view, [2])).toEqual([2, 3, 4]);
+    expect(slotClick(view, first.selection, slot("you", "monster", 2)).action).toEqual({
+      type: "SUMMON_CARD",
+      cardId: "storm_hawk",
+      tributeZones: [2],
+      zone: 2,
+    });
   });
 });
