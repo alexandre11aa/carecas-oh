@@ -390,12 +390,13 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 
 /* Detalhe da carta (painel em HTML sobre a partida; também usado no tutorial) */
-/* Abaixo do HUD superior (oponente, turno/fase/contagem) e acima da mão/comandos; o conteúdo longo rola dentro do painel */
-/* Painel de detalhe da carta: canto inferior esquerdo, acima da barra de vida (--detail-bottom). Sem capturar cliques. */
-.card-detail { --detail-bottom: 4.75rem; --detail-width: clamp(11rem, 18vw, 18rem); --detail-free: calc(100vh - var(--detail-bottom) - 9rem); position: absolute; bottom: var(--detail-bottom); left: 0.75rem; width: var(--detail-width); max-height: max(8rem, var(--detail-free)); overflow-y: auto; pointer-events: none; }
-@supports (height: 100dvh) { .card-detail { --detail-free: calc(100dvh - var(--detail-bottom) - 9rem); } }
-@media (max-width: 70rem) { .card-detail { --detail-width: clamp(9rem, 17vw, 12rem); } }
-@media (max-width: 40rem) { .card-detail { --detail-bottom: 15.5rem; --detail-width: min(9.5rem, 38vw); } }
+/* Painel de detalhe da carta, dentro de .hand-row (logo acima da barra de vida, sem números fixos).
+   Telas largas: ancorado ao canto inferior esquerdo da linha da mão, na lateral livre ao lado das cartas.
+   Até 70rem (a mão ocupa quase a largura toda): entra no fluxo, acima da mão, empurrando-a só o necessário. Nunca captura cliques. */
+.hand-row { position: relative; }
+.card-detail { --detail-width: clamp(11rem, 18vw, 18rem); --detail-free: calc(100vh - 14rem); position: absolute; left: 0; bottom: 0; width: var(--detail-width); max-height: max(8rem, var(--detail-free)); overflow-y: auto; pointer-events: none; }
+@supports (height: 100dvh) { .card-detail { --detail-free: calc(100dvh - 14rem); } }
+@media (max-width: 70rem) { .card-detail { position: static; --detail-width: min(10rem, 45vw); --detail-free: 11rem; margin-bottom: 0.4rem; } }
 .card-detail .card-view.has-art .card-art { width: auto; max-width: 100%; height: max(6rem, var(--detail-free)); max-height: calc(var(--detail-width) * 1500 / 1030); object-fit: contain; }
 .card-detail[hidden] { display: none; }
 .card-view { box-sizing: border-box; padding: 0.7rem 0.8rem; border-radius: var(--radius-md); background: linear-gradient(180deg, var(--c-parchment), var(--c-parchment-dark)); color: var(--c-ink); border: 4px double var(--c-monster); box-shadow: var(--shadow-panel); font-size: 0.85rem; overflow-wrap: anywhere; word-break: break-word; }

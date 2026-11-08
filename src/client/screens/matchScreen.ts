@@ -109,11 +109,16 @@ export const createMatchScreen = (): Screen => {
   const youInfo = infoBoxes.you.box;
   const hintLine = el("p", "hud-hint");
   const commandsBox = el("div", "hud-commands");
+  const detailPanel = el("aside", "card-detail");
+  detailPanel.hidden = true;
   const hand = el("div", "hand");
   let handButtons: HTMLButtonElement[] = [];
   let handCardIds: string[] = [];
   const bottom = el("div");
-  bottom.append(hintLine, commandsBox, hand, youInfo);
+  // O painel de detalhe da carta fica na linha da mão: acima da barra de vida pela própria estrutura do DOM.
+  const handRow = el("div", "hand-row");
+  handRow.append(detailPanel, hand);
+  bottom.append(hintLine, commandsBox, handRow, youInfo);
   youInfo.style.marginTop = "0.5rem";
 
   hud.append(top, bottom);
@@ -150,12 +155,10 @@ export const createMatchScreen = (): Screen => {
   turnToast.hidden = true;
   const eventNotice = el("div", "event-notice");
   eventNotice.hidden = true;
-  const detailPanel = el("aside", "card-detail");
-  detailPanel.hidden = true;
   // Contêiner flex central: empilha toast (acima) e evento (abaixo) sem depender de transform (o GSAP anima scale/y do aviso).
   const toasts = el("div", "match-toasts");
   toasts.append(turnToast, eventNotice);
-  element.append(canvasBox, hud, detailPanel, toasts, endOverlay, surrenderOverlay);
+  element.append(canvasBox, hud, toasts, endOverlay, surrenderOverlay);
 
   // Detalhe da carta sob o ponteiro (mão ou mesa). Guarda só o id; cartas ocultas (null) não mostram nada.
   let detailCardId: string | null = null;
