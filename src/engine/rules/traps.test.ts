@@ -86,7 +86,7 @@ describe("armadilha: gatilho de declaracao de ataque", () => {
     const { state, p, o } = battle([]);
     const r = ok(state, p, attackWith(0, 0));
     expect(r.state.pendingResponse).toBeNull();
-    expect(r.state.players[o].lifePoints).toBe(3800);
+    expect(r.state.players[o].lifePoints).toBe(3400);
   });
 
   it("armadilha_de_outro_gatilho_nao_abre_janela_no_ataque", () => {
@@ -148,7 +148,7 @@ describe("armadilha: gatilho de declaracao de ataque", () => {
     expect(r.events[0]).toEqual({ type: "RESPONSE_PASSED", player: o });
     expect(r.events[1]).toEqual({ type: "ATTACK_DECLARED", player: p, attackerCardId: "dune_scout", targetZone: 0 });
     expect(r.state.pendingResponse).toBeNull();
-    expect(r.state.players[o].lifePoints).toBe(3800);
+    expect(r.state.players[o].lifePoints).toBe(3400);
     expect(r.state.players[o].monsters[0]).toBeNull();
     expect(r.state.players[o].spellTraps[0]?.cardId).toBe("divine_glory_evasion");
   });
@@ -182,7 +182,7 @@ describe("armadilha: maxAttack do spike_pit", () => {
     const r = ok(opened.state, o, activate(0));
     expect(r.state.players[p].monsters[0]?.cardId).toBe("storm_hawk");
     expect(r.state.players[o].graveyard).toEqual(["spike_pit", "bone_knight"]);
-    expect(r.state.players[o].lifePoints).toBe(3400);
+    expect(r.state.players[o].lifePoints).toBe(3300);
   });
 
   it("maxAttack_considera_o_bonus_do_atacante", () => {
