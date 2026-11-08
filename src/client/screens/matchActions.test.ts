@@ -382,3 +382,13 @@ describe("connectionNotice e opponentInRoom", () => {
     expect(opponentInRoom([{}, {}])).toBe(true);
   });
 });
+
+describe("mão com cópias repetidas", () => {
+  it("seleciona_a_carta_e_oferece_os_comandos_mesmo_com_tres_copias", () => {
+    const view = viewOf({ mine: { hand: ["tide_imp", "tide_imp", "tide_imp"] } });
+    expect(view.you.hand).toEqual(["tide_imp", "tide_imp", "tide_imp"]);
+    const selection = handClick(view, null, "tide_imp");
+    expect(selection).toEqual({ kind: "hand", cardId: "tide_imp" });
+    expect(selectionCommands(view, selection).map((c) => c.label)).toContain("Invocar");
+  });
+});

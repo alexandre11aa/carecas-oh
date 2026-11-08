@@ -1,5 +1,6 @@
 // src/engine/rules/spells.ts
 // Baixar magia/armadilha e ativar magia; os efeitos vêm de dados em cards.ts. Funções puras.
+import { removeOne } from "./hand.js";
 import { getCard } from "../cards.js";
 import type {
   Action,
@@ -42,7 +43,7 @@ export const setSpellTrap = (
       ...state,
       players: {
         ...state.players,
-        [player]: { ...current, hand: current.hand.filter((id) => id !== action.cardId), spellTraps },
+        [player]: { ...current, hand: removeOne(current.hand, action.cardId), spellTraps },
       },
     },
     events: [{ type: "SPELL_TRAP_SET", player, cardId: action.cardId, zone }],
@@ -222,7 +223,7 @@ export const activateSpell = (
   const enemyId = opponentOf(player);
   const targetZone = action.targetZone ?? null;
   const base: PlayerState = inHand
-    ? { ...current, hand: current.hand.filter((id) => id !== action.cardId) }
+    ? { ...current, hand: removeOne(current.hand, action.cardId) }
     : { ...current, spellTraps: current.spellTraps.map((s, i) => (i === zone ? null : s)) };
 
   const resolved = resolveEffect(card.effect, player, base, state.players[enemyId], targetZone, state.turn);

@@ -1,5 +1,6 @@
 // src/engine/rules/summon.ts
 // Invocação normal, baixar em defesa virada, tributo, mudança de posição e invocação por virada. Funções puras.
+import { removeOne } from "./hand.js";
 import { getCard } from "../cards.js";
 import type {
   Action,
@@ -68,7 +69,7 @@ export const summonMonster = (state: MatchState, player: PlayerId, action: Summo
     ok: true,
     state: withPlayer(state, player, {
       ...current,
-      hand: current.hand.filter((id) => id !== action.cardId),
+      hand: removeOne(current.hand, action.cardId),
       monsters,
       graveyard: [...current.graveyard, ...tributeIds],
       normalSummonUsed: true,
