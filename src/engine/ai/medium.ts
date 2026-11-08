@@ -45,8 +45,7 @@ const targetStrength = (target: OppMonster): number => {
 
 const beats = (atk: number, target: OppMonster): boolean => target !== null && atk > targetStrength(target);
 
-const ownByCard = (view: PlayerView, cardId: string): MonsterOnField | undefined =>
-  view.you.monsters.find((m) => m?.cardId === cardId) ?? undefined;
+const ownAt = (view: PlayerView, zone: number): MonsterOnField | undefined => view.you.monsters[zone] ?? undefined;
 
 const spellEffect = (cardId: string): SpellEffect | null => {
   const card = getCard(cardId);
@@ -66,9 +65,9 @@ const spells = (valid: Action[], kinds: Kind[]): Extract<Action, { type: "ACTIVA
   });
 
 /** Soma do ATK dos monstros próprios usados como tributo. */
-const tributeCost = (view: PlayerView, tributes: string[]): number =>
-  tributes.reduce((sum, id) => {
-    const m = ownByCard(view, id);
+const tributeCost = (view: PlayerView, tributeZones: number[]): number =>
+  tributeZones.reduce((sum, zone) => {
+    const m = ownAt(view, zone);
     return sum + (m ? attackOf(m) : 0);
   }, 0);
 
@@ -78,15 +77,15 @@ const chooseSummon = (view: PlayerView, valid: Action[]): Action | null => {
   for (const a of valid) {
     if (a.type !== "SUMMON_CARD") continue;
     const current = best.get(a.cardId);
-    if (!current || tributeCost(view, a.tributeCardIds) < tributeCost(view, current.tributeCardIds)) best.set(a.cardId, a);
+    if (!current || tributeCost(view, a.tributeZones) < tributeCost(view, current.tributeZones)) best.set(a.cardId, a);
   }
   const worthIt = [...best.values()].filter(
-    (a) => a.tributeCardIds.length === 0 || cardAttack(a.cardId) > tributeCost(view, a.tributeCardIds),
+    (a) => a.tributeZones.length === 0 || cardAttack(a.cardId) > tributeCost(view, a.tributeZones),
   );
   const strongest = maxBy(worthIt, (a) => cardAttack(a.cardId));
   if (strongest && cardAttack(strongest.cardId) > strongestOppAttack(view)) return strongest;
   // Sem vantagem para atacar: baixa em defesa virada (sem tributo) o monstro de maior DEF.
-  const sets = valid.filter((a) => a.type === "SET_MONSTER" && a.tributeCardIds.length === 0);
+  const sets = valid.filter((a) => a.type === "SET_MONSTER" && a.tributeZones.length === 0);
   return maxBy(sets, (a) => (a.type === "SET_MONSTER" ? (monsterCard(a.cardId)?.defense ?? 0) : 0)) ?? null;
 };
 
@@ -95,7 +94,7 @@ const choosePosition = (view: PlayerView, valid: Action[]): Action | null => {
   const hasOpp = visibleOpp(view).length > 0;
   for (const action of valid) {
     if (action.type !== "CHANGE_POSITION" && action.type !== "FLIP_SUMMON") continue;
-    const m = ownByCard(view, action.cardId);
+    const m = ownAt(view, action.zone);
     if (!m || (m.faceDown && action.type === "CHANGE_POSITION")) continue;
     const atk = attackOf(m);
     if (action.type === "FLIP_SUMMON") {
@@ -149,7 +148,7 @@ const chooseMain = (view: PlayerView, valid: Action[]): Action | null =>
 const chooseAttack = (view: PlayerView, valid: Action[]): Action | null => {
   const wins = valid.flatMap((a) => {
     if (a.type !== "ATTACK") return [];
-    const m = ownByCard(view, a.attackerCardId);
+    const m = ownAt(view, a.attackerZone);
     if (!m) return [];
     if (a.targetZone === null) return [{ a, atk: attackOf(m), strength: 0 }];
     const target = view.opponent.monsters[a.targetZone] ?? null;
@@ -163,9 +162,10 @@ const chooseAttack = (view: PlayerView, valid: Action[]): Action | null => {
 const chooseResponse = (view: PlayerView, valid: Action[]): Action | null => {
   const pending = view.pendingResponse;
   if (!pending?.canRespond || pending.trigger !== "ATTACK_DECLARED" || pending.action.type !== "ATTACK") return null;
-  const { attackerCardId, targetZone } = pending.action;
-  const attacker = visibleOpp(view).find((m) => m.cardId === attackerCardId);
-  if (!attacker) return null;
+  const { attackerZone, targetZone } = pending.action;
+  const seen = view.opponent.monsters[attackerZone];
+  if (!seen || seen.cardId === null) return null;
+  const attacker = seen as MonsterOnField;
   const atk = attackOf(attacker);
   const target = targetZone === null ? null : view.you.monsters[targetZone];
   const bestDefender = Math.max(
@@ -176,7 +176,8 @@ const chooseResponse = (view: PlayerView, valid: Action[]): Action | null => {
   if (atk <= bestDefender && damage < MEDIUM_BIG_DAMAGE) return null;
   const traps = valid.filter((a) => a.type === "ACTIVATE_TRAP");
   const effectOf = (a: Action) => {
-    const card = a.type === "ACTIVATE_TRAP" ? getCard(a.cardId) : undefined;
+    const slot = a.type === "ACTIVATE_TRAP" ? view.you.spellTraps[a.zone] : null;
+    const card = slot ? getCard(slot.cardId) : undefined;
     return card?.type === "TRAP" ? card.effect : null;
   };
   const kill = traps.find((a) => {
