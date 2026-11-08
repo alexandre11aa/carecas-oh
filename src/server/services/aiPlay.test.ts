@@ -128,7 +128,7 @@ describe("IA joga no servidor", () => {
     }
   });
 
-  it("joga_o_turno_inteiro_e_devolve_a_vez_ao_humano_com_prazo_de_30s_nos_3_niveis", () => {
+  it("joga_o_turno_inteiro_e_devolve_a_vez_ao_humano_com_prazo_de_100s_nos_3_niveis", () => {
     for (const level of ["easy", "medium", "hard"] as const) {
       const ctx = setup(level);
       const created = createStartedBy(ctx, "bot");
@@ -151,16 +151,16 @@ describe("IA joga no servidor", () => {
       expect(last.turnDeadline).toBe(last.serverNow + TURN_TIME_MS);
       expect(match.turnDeadline).toBe(last.serverNow + TURN_TIME_MS);
       expect(last.events.some((e) => e.type === "TURN_STARTED")).toBe(true);
-      // Sem agendamento da IA na vez do humano; só o prazo de 30 s.
+      // Sem agendamento da IA na vez do humano; só o prazo de 100 s.
       expect(ctx.fake.pendingCount()).toBe(1);
     }
   });
 
-  it("o_prazo_de_30s_nao_expira_na_vez_da_IA_e_expira_na_do_humano", () => {
+  it("o_prazo_de_100s_nao_expira_na_vez_da_IA_e_expira_na_do_humano", () => {
     const ctx = setup();
     const created = createStartedBy(ctx, "bot");
     const code = created.room.code;
-    // Toda a vez da IA dura bem menos que 30 s: nenhuma expiração enquanto ela joga.
+    // Toda a vez da IA dura bem menos que 100 s: nenhuma expiração enquanto ela joga.
     for (let i = 0; i < 60 && ctx.room(code).match!.state.currentPlayer === "P2"; i++) {
       expect(ctx.room(code).match!.turnDeadline).toBeNull();
       ctx.fake.advance(AI_DELAY_MS);
@@ -238,7 +238,7 @@ describe("IA joga no servidor", () => {
     expect(ctx.moves).toHaveLength(1);
     expect(ctx.moves[0]!.deliveries[0]!.events.some((e) => e.type === "TRAP_ACTIVATED")).toBe(true);
     expect(ctx.room(code).match!.state.pendingResponse).toBeNull();
-    expect(ctx.room(code).match!.state.players.P2.lifePoints).toBe(8000);
+    expect(ctx.room(code).match!.state.players.P2.lifePoints).toBe(4000);
   });
 });
 

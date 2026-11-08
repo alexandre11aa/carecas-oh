@@ -78,7 +78,7 @@ describe("armadilha: gatilho de declaracao de ataque", () => {
       responder: o,
       action: attackWith(0, 0),
     });
-    expect(r.state.players[o].lifePoints).toBe(8000);
+    expect(r.state.players[o].lifePoints).toBe(4000);
     expect(r.state.players[p].monsters[0]?.hasAttacked).toBe(false);
   });
 
@@ -86,7 +86,7 @@ describe("armadilha: gatilho de declaracao de ataque", () => {
     const { state, p, o } = battle([]);
     const r = ok(state, p, attackWith(0, 0));
     expect(r.state.pendingResponse).toBeNull();
-    expect(r.state.players[o].lifePoints).toBe(7800);
+    expect(r.state.players[o].lifePoints).toBe(3400);
   });
 
   it("armadilha_de_outro_gatilho_nao_abre_janela_no_ataque", () => {
@@ -118,8 +118,8 @@ describe("armadilha: gatilho de declaracao de ataque", () => {
       { type: "ATTACK_NEGATED", player: p, attackerCardId: "dune_scout" },
     ]);
     expect(r.state.pendingResponse).toBeNull();
-    expect(r.state.players[o].lifePoints).toBe(8000);
-    expect(r.state.players[p].lifePoints).toBe(8000);
+    expect(r.state.players[o].lifePoints).toBe(4000);
+    expect(r.state.players[p].lifePoints).toBe(4000);
     expect(r.state.players[o].monsters[0]?.cardId).toBe("bone_knight");
     expect(r.state.players[p].monsters[0]).toMatchObject({ cardId: "dune_scout", hasAttacked: true });
     expect(r.state.players[o].spellTraps.every((s) => s === null)).toBe(true);
@@ -137,7 +137,7 @@ describe("armadilha: gatilho de declaracao de ataque", () => {
     ]);
     expect(r.state.players[p].monsters[0]).toBeNull();
     expect(r.state.players[p].graveyard).toEqual(["dune_scout"]);
-    expect(r.state.players[o].lifePoints).toBe(8000);
+    expect(r.state.players[o].lifePoints).toBe(4000);
     expect(r.state.players[o].monsters[0]?.cardId).toBe("bone_knight");
   });
 
@@ -148,7 +148,7 @@ describe("armadilha: gatilho de declaracao de ataque", () => {
     expect(r.events[0]).toEqual({ type: "RESPONSE_PASSED", player: o });
     expect(r.events[1]).toEqual({ type: "ATTACK_DECLARED", player: p, attackerCardId: "dune_scout", targetZone: 0 });
     expect(r.state.pendingResponse).toBeNull();
-    expect(r.state.players[o].lifePoints).toBe(7800);
+    expect(r.state.players[o].lifePoints).toBe(3400);
     expect(r.state.players[o].monsters[0]).toBeNull();
     expect(r.state.players[o].spellTraps[0]?.cardId).toBe("divine_glory_evasion");
   });
@@ -169,7 +169,7 @@ describe("armadilha: maxAttack do spike_pit", () => {
     const r = ok(opened.state, o, activate(0));
     expect(r.state.players[p].monsters[0]).toBeNull();
     expect(r.state.players[p].graveyard).toEqual(["dune_scout"]);
-    expect(r.state.players[o].lifePoints).toBe(8000);
+    expect(r.state.players[o].lifePoints).toBe(4000);
   });
 
   it("nao_destroi_atacante_com_ataque_acima_do_limite_e_o_ataque_segue", () => {
@@ -182,7 +182,7 @@ describe("armadilha: maxAttack do spike_pit", () => {
     const r = ok(opened.state, o, activate(0));
     expect(r.state.players[p].monsters[0]?.cardId).toBe("storm_hawk");
     expect(r.state.players[o].graveyard).toEqual(["spike_pit", "bone_knight"]);
-    expect(r.state.players[o].lifePoints).toBe(7400);
+    expect(r.state.players[o].lifePoints).toBe(3300);
   });
 
   it("maxAttack_considera_o_bonus_do_atacante", () => {
@@ -273,7 +273,7 @@ describe("armadilha: gatilho de ativacao de magia", () => {
       "SPELL_NEGATED",
       "CARD_SENT_TO_GRAVEYARD",
     ]);
-    expect(r.state.players[o].lifePoints).toBe(8000);
+    expect(r.state.players[o].lifePoints).toBe(4000);
     expect(r.state.players[p].hand).toEqual([]);
     expect(r.state.players[p].graveyard).toEqual(["fire_bolt"]);
   });
@@ -282,7 +282,7 @@ describe("armadilha: gatilho de ativacao de magia", () => {
     const { state, p, o } = spellSetup();
     const open = ok(state, p, cast).state;
     const r = ok(open, o, pass);
-    expect(r.state.players[o].lifePoints).toBe(7200);
+    expect(r.state.players[o].lifePoints).toBe(3200);
     expect(r.state.players[p].graveyard).toEqual(["fire_bolt"]);
   });
 });
@@ -295,7 +295,7 @@ describe("armadilha: efeito de dano", () => {
     const out = resolveTrapEffect({ kind: "DAMAGE", amount: 500 }, state, p, attackPending);
     expect(out.resume).toBe(true);
     expect(out.events).toEqual([{ type: "DAMAGE_DEALT", player: p, amount: 500 }]);
-    expect(out.state.players[p].lifePoints).toBe(7500);
+    expect(out.state.players[p].lifePoints).toBe(3500);
   });
 
   it("dano_letal_encerra_a_partida_e_nao_retoma_a_acao", () => {
@@ -419,7 +419,7 @@ describe("armadilha: cartas iguais no campo", () => {
     const r = ok(open, o, activate(0));
     expect(r.state.players[p].monsters[0]).toEqual(field("dune_scout"));
     expect(r.state.players[p].monsters[1]).toEqual(field("dune_scout", { hasAttacked: true }));
-    expect(r.state.players[o].lifePoints).toBe(8000);
+    expect(r.state.players[o].lifePoints).toBe(4000);
   });
 
   it("destruir_atacante_remove_so_a_copia_que_atacou", () => {

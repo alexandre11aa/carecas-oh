@@ -69,7 +69,7 @@ describe("createAiRoom", () => {
     if (!result.view) throw new Error("sem view");
     expect(result.view.viewer).toBe("P1");
     expect(result.view.you.hand).toEqual(room.match!.state.players.P1.hand);
-    expect(result.view.opponent.handCount).toBe(5);
+    expect(result.view.opponent.handCount).toBe(4);
     expect(result.view.opponent).not.toHaveProperty("hand");
     expect(room.players[0]!.deckId).toBeNull();
     const dump = JSON.stringify(result);
@@ -154,7 +154,7 @@ describe("prazo do turno contra a IA", () => {
     expect(ctx.expiries).toHaveLength(1);
     const after = ctx.store.getRoom(room.code)!.match!;
     expect(after.state.currentPlayer).toBe("P2");
-    // O turno passou à IA: sem prazo; o relógio de 30 s não expira por ela.
+    // O turno passou à IA: sem prazo; o relógio de 100 s não expira por ela.
     expect(after.turnDeadline).toBeNull();
   });
 

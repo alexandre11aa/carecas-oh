@@ -196,9 +196,9 @@ describe("IA nivel medio: posicao", () => {
 
 describe("IA nivel medio: magias", () => {
   it("ia_medio_cura_so_com_vida_abaixo_de_50_por_cento", () => {
-    const baixa = setup({ hand: ["healing_spring"], life: 3999 });
+    const baixa = setup({ hand: ["healing_spring"], life: 1999 });
     expect(decide(baixa)).toEqual({ type: "ACTIVATE_SPELL", cardId: "healing_spring" });
-    const meio = setup({ hand: ["healing_spring"], life: 4000 });
+    const meio = setup({ hand: ["healing_spring"], life: 2000 });
     expect(decide(meio)).toEqual({ type: "NEXT_PHASE" });
   });
 
@@ -210,7 +210,7 @@ describe("IA nivel medio: magias", () => {
   });
 
   it("ia_medio_nao_reforca_quando_o_reforco_nao_basta_ou_nao_e_preciso", () => {
-    const naoBasta = setup({ hand: ["power_surge"], mine: [field("dune_scout")], theirs: [defense("granite_giant")] });
+    const naoBasta = setup({ hand: ["power_surge"], mine: [field("bone_knight")], theirs: [defense("granite_giant")] });
     expect(decide(naoBasta)).toEqual({ type: "NEXT_PHASE" });
     const jaVence = setup({ hand: ["power_surge"], mine: [field("dune_scout")], theirs: [field("bone_knight")] });
     expect(decide(jaVence)).toEqual({ type: "NEXT_PHASE" });

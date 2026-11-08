@@ -87,7 +87,7 @@ describe("playerView", () => {
     expect(you.hand).toEqual(["healing_spring", "storm_hawk"]);
     expect(you.monsters[0]).toEqual(state.players[a].monsters[0]);
     expect(you.monsters[1]).toEqual(state.players[a].monsters[1]);
-    expect(you.lifePoints).toBe(8000);
+    expect(you.lifePoints).toBe(4000);
   });
 
   it("mostra_contagem_da_mao_e_campo_publico_do_oponente", () => {

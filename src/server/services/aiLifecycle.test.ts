@@ -64,8 +64,8 @@ describe("revanche contra a IA", () => {
     expect(after.match!.outcome).toBeNull();
     expect(after.match!.rematchVotes).toEqual([]);
     expect(after.match!.state.players.P2.deckId).toBe("magic");
-    expect(after.match!.state.players.P1.lifePoints).toBe(8000);
-    expect(after.match!.state.players.P2.lifePoints).toBe(8000);
+    expect(after.match!.state.players.P1.lifePoints).toBe(4000);
+    expect(after.match!.state.players.P2.lifePoints).toBe(4000);
     expect(after.players[0]!.deckId).toBeNull();
     expect(result.deliveries).toHaveLength(1);
     expect(result.deliveries[0]).toMatchObject({ connectionId: "a", ended: null });

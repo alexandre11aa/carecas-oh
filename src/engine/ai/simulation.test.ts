@@ -116,7 +116,7 @@ describe("simulacao IA x IA: seguranca", () => {
 });
 
 describe("simulacao IA x IA: comparacao dos niveis", () => {
-  // Medido (10 bases x 12 partidas por par: Difícil x Fácil 86%, Difícil x Médio 68%, Médio x Fácil 74%): ver tabela com BALANCE_REPORT=1. Referência anterior em 8 bases de 20:
+  // Medido (10 bases x 12 partidas por par: Difícil x Fácil 86%, Difícil x Médio 58%, Médio x Fácil 75%): ver tabela com BALANCE_REPORT=1. Referência anterior em 8 bases de 20:
   // Difícil x Fácil ~89%, Difícil x Médio ~68%. Limiares com margem abaixo do medido, sobre a taxa de vitória
   // do nível maior sobre o menor (empates não existem: toda partida termina com vencedor).
   const rate = (t: Tally): number => t.a / t.games;
