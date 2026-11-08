@@ -73,6 +73,55 @@ const setup = ({
 const SEEDS = [1, 7, 42, 99, 12345, 2024, 777, 31337];
 
 describe("candidatos da IA", () => {
+  it("ia_gera_candidatos_por_zona_para_copias_iguais_e_todos_sao_aceitos_pelo_motor", () => {
+    const battle = setup({
+      phase: "BATTLE",
+      mine: [field("dune_scout"), field("dune_scout")],
+      theirs: [field("tide_imp"), field("tide_imp")],
+      mineTraps: [],
+    });
+    const attacks = generateCandidates(playerView(battle.state, battle.side)).filter((x) => x.type === "ATTACK");
+    expect(attacks).toEqual([
+      { type: "ATTACK", attackerZone: 0, targetZone: 0 },
+      { type: "ATTACK", attackerZone: 0, targetZone: 1 },
+      { type: "ATTACK", attackerZone: 1, targetZone: 0 },
+      { type: "ATTACK", attackerZone: 1, targetZone: 1 },
+    ]);
+    for (const attack of attacks) expect(applyAction(battle.state, battle.side, attack).ok).toBe(true);
+
+    const main = setup({ mine: [field("tide_imp"), field("tide_imp"), field("tide_imp")] });
+    const positions = generateCandidates(playerView(main.state, main.side)).filter((x) => x.type === "CHANGE_POSITION");
+    expect(positions).toEqual([0, 1, 2].map((zone) => ({ type: "CHANGE_POSITION", zone })));
+  });
+
+  it("ia_gera_tributos_por_zona_com_copias_iguais_no_campo", () => {
+    const s = setup({ hand: ["storm_hawk"], mine: [field("tide_imp"), field("tide_imp")] });
+    const summons = generateCandidates(playerView(s.state, s.side)).filter((x) => x.type === "SUMMON_CARD");
+    expect(summons).toEqual([
+      { type: "SUMMON_CARD", cardId: "storm_hawk", tributeZones: [0], zone: 0 },
+      { type: "SUMMON_CARD", cardId: "storm_hawk", tributeZones: [1], zone: 1 },
+    ]);
+    for (const summon of summons) expect(applyAction(s.state, s.side, summon).ok).toBe(true);
+  });
+
+  it("ia_gera_ativacao_de_armadilha_por_zona_para_armadilhas_iguais", () => {
+    const s = setup({
+      phase: "BATTLE",
+      mine: [field("dune_scout")],
+      theirs: [field("moss_golem")],
+      theirTraps: [trap("spike_pit", 1), trap("spike_pit", 1)],
+    });
+    const opened = applyAction(s.state, s.side, { type: "ATTACK", attackerZone: 0, targetZone: 0 });
+    if (!opened.ok) throw new Error("ataque deveria abrir a janela");
+    const responder = opponentOf(s.side);
+    const traps = generateCandidates(playerView(opened.state, responder)).filter((x) => x.type === "ACTIVATE_TRAP");
+    expect(traps).toEqual([
+      { type: "ACTIVATE_TRAP", zone: 0 },
+      { type: "ACTIVATE_TRAP", zone: 1 },
+    ]);
+    for (const trapAction of traps) expect(applyAction(opened.state, responder, trapAction).ok).toBe(true);
+  });
+
   it("ia_candidatos_de_invocacao_respeitam_o_tributo", () => {
     const { state, side } = setup({
       hand: ["ash_dragon", "storm_hawk", "ash_sprite"],
@@ -80,7 +129,7 @@ describe("candidatos da IA", () => {
     });
     const actions = generateCandidates(playerView(state, side)).filter((a) => a.type === "SUMMON_CARD");
     const sizes = (id: string) =>
-      new Set(actions.flatMap((a) => (a.type === "SUMMON_CARD" && a.cardId === id ? [a.tributeCardIds.length] : [])));
+      new Set(actions.flatMap((a) => (a.type === "SUMMON_CARD" && a.cardId === id ? [a.tributeZones.length] : [])));
     expect(sizes("ash_sprite")).toEqual(new Set([0]));
     expect(sizes("storm_hawk")).toEqual(new Set([1]));
     expect(sizes("ash_dragon")).toEqual(new Set([2]));
@@ -101,11 +150,11 @@ describe("candidatos da IA", () => {
   it("ia_gera_ataque_direto_so_sem_monstros_do_oponente", () => {
     const sem = setup({ phase: "BATTLE", mine: [field("dune_scout")] });
     expect(generateCandidates(playerView(sem.state, sem.side)).filter((a) => a.type === "ATTACK")).toEqual([
-      { type: "ATTACK", attackerCardId: "dune_scout", targetZone: null },
+      { type: "ATTACK", attackerZone: 0, targetZone: null },
     ]);
     const com = setup({ phase: "BATTLE", mine: [field("dune_scout")], theirs: [null, field("moss_golem")] });
     expect(generateCandidates(playerView(com.state, com.side)).filter((a) => a.type === "ATTACK")).toEqual([
-      { type: "ATTACK", attackerCardId: "dune_scout", targetZone: 1 },
+      { type: "ATTACK", attackerZone: 0, targetZone: 1 },
     ]);
   });
 
@@ -124,7 +173,7 @@ describe("IA nivel facil: decisoes", () => {
   it("ia_facil_invoca_o_primeiro_monstro_que_consegue", () => {
     const { state, side } = setup({ hand: ["ash_dragon", "dune_scout", "ash_sprite"] });
     const { action } = chooseAiAction({ state, side, level: "easy", seed: 5 });
-    expect(action).toEqual({ type: "SUMMON_CARD", cardId: "dune_scout", tributeCardIds: [], zone: 0 });
+    expect(action).toEqual({ type: "SUMMON_CARD", cardId: "dune_scout", tributeZones: [], zone: 0 });
   });
 
   it("ia_facil_tributa_monstros_do_proprio_campo", () => {
@@ -133,8 +182,8 @@ describe("IA nivel facil: decisoes", () => {
     expect(action?.type).toBe("SUMMON_CARD");
     if (action?.type !== "SUMMON_CARD") return;
     expect(action.cardId).toBe("storm_hawk");
-    expect(action.tributeCardIds).toHaveLength(1);
-    expect(["tide_imp", "moss_golem"]).toContain(action.tributeCardIds[0]);
+    expect(action.tributeZones).toHaveLength(1);
+    expect([0, 1]).toContain(action.tributeZones[0]);
   });
 
   it("ia_facil_na_compra_avanca_a_fase", () => {
@@ -162,7 +211,7 @@ describe("IA nivel facil: decisoes", () => {
     for (const seed of SEEDS.concat([3, 4, 5, 6, 8, 9, 10, 11])) {
       chosen.add(JSON.stringify(chooseAiAction({ state, side, level: "easy", seed }).action));
     }
-    expect(chosen.has(JSON.stringify({ type: "ATTACK", attackerCardId: "tide_imp", targetZone: 0 }))).toBe(true);
+    expect(chosen.has(JSON.stringify({ type: "ATTACK", attackerZone: 0, targetZone: 0 }))).toBe(true);
     expect(chosen.has(JSON.stringify({ type: "NEXT_PHASE" }))).toBe(true);
   });
 
@@ -177,7 +226,7 @@ describe("IA nivel facil: decisoes", () => {
     const defender = opponentOf(attackerSide.side);
     const opened = applyAction(attackerSide.state, attackerSide.side, {
       type: "ATTACK",
-      attackerCardId: "dune_scout",
+      attackerZone: 0,
       targetZone: 0,
     });
     expect(opened.ok).toBe(true);
@@ -314,7 +363,7 @@ describe("playAiTurn", () => {
     const defender = opponentOf(attackerSide.side);
     const opened = applyAction(attackerSide.state, attackerSide.side, {
       type: "ATTACK",
-      attackerCardId: "dune_scout",
+      attackerZone: 0,
       targetZone: 0,
     });
     if (!opened.ok) throw new Error("ataque deveria abrir a janela");

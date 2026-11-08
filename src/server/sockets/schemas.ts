@@ -42,20 +42,20 @@ export const rematchSchema = z
   .refine((data) => !data.accept || data.deckId !== undefined);
 
 const cardId = z.string().min(1).max(100);
-const cardIds = z.array(cardId).max(10);
 const zone = z.number().int().min(0).max(4);
+const zones = z.array(zone).max(5);
 
 /** Espelha a união `Action` da engine; o jogador nunca vem na mensagem. */
 export const matchActionSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("SUMMON_CARD"), cardId, tributeCardIds: cardIds, zone }).strict(),
-  z.object({ type: z.literal("SET_MONSTER"), cardId, tributeCardIds: cardIds, zone }).strict(),
+  z.object({ type: z.literal("SUMMON_CARD"), cardId, tributeZones: zones, zone }).strict(),
+  z.object({ type: z.literal("SET_MONSTER"), cardId, tributeZones: zones, zone }).strict(),
   z.object({ type: z.literal("SET_SPELL_TRAP"), cardId }).strict(),
-  z.object({ type: z.literal("CHANGE_POSITION"), cardId }).strict(),
-  z.object({ type: z.literal("FLIP_SUMMON"), cardId }).strict(),
+  z.object({ type: z.literal("CHANGE_POSITION"), zone }).strict(),
+  z.object({ type: z.literal("FLIP_SUMMON"), zone }).strict(),
   z.object({ type: z.literal("ACTIVATE_SPELL"), cardId, targetZone: zone.nullish() }).strict(),
-  z.object({ type: z.literal("ACTIVATE_TRAP"), cardId }).strict(),
+  z.object({ type: z.literal("ACTIVATE_TRAP"), zone }).strict(),
   z.object({ type: z.literal("PASS_RESPONSE") }).strict(),
-  z.object({ type: z.literal("ATTACK"), attackerCardId: cardId, targetZone: zone.nullable() }).strict(),
+  z.object({ type: z.literal("ATTACK"), attackerZone: zone, targetZone: zone.nullable() }).strict(),
   z.object({ type: z.literal("NEXT_PHASE") }).strict(),
   z.object({ type: z.literal("END_TURN") }).strict(),
 ]);

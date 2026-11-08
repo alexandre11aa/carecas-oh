@@ -22,7 +22,7 @@ import type { EndReason, MatchOutcome, Room, RoomMatch, RoomStore } from "../sto
 
 export const MAX_PLAYERS = 2;
 /** Tempo que o jogador do turno (ou o defensor, com resposta pendente) tem para agir. */
-export const TURN_TIME_MS = 30_000;
+export const TURN_TIME_MS = 100_000;
 /** Pausa padrão entre as ações da IA, para o humano animar uma por vez. */
 export const AI_DELAY_MS = 700;
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -326,7 +326,7 @@ export const createRoomService = (
     const { code } = room;
     cancelTurnTimer(code);
     if (match.outcome) return { ...match, turnDeadline: null };
-    // O relógio de 30 s vale só para o humano: não corre nem expira na vez da IA.
+    // O relógio de 100 s vale só para o humano: não corre nem expira na vez da IA.
     if (botMustAct(room, match)) return { ...match, turnDeadline: null };
     const turnDeadline = clock.now() + turnTimeMs;
     turnTimers.set(code, clock.setTimeout(() => expireTurn(code, turnDeadline), turnTimeMs));
@@ -554,7 +554,7 @@ export const createRoomService = (
       const players = room.players.map((p) =>
         p.token === player.token ? { ...p, deckId: input.accept ? input.deckId : null } : p,
       );
-      // Revanche: novo sorteio das cartas, vida em 8000 e lados trocados; cada deck acompanha o seu jogador.
+      // Revanche: novo sorteio das cartas, vida em 4000 e lados trocados; cada deck acompanha o seu jogador.
       const tokens = { P1: room.match.tokens.P2, P2: room.match.tokens.P1 };
       const deckP1 = players.find((p) => p.token === tokens.P1)?.deckId;
       const deckP2 = players.find((p) => p.token === tokens.P2)?.deckId;

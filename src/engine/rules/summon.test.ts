@@ -42,10 +42,10 @@ const setup = ({ hand = [], monsters, used = false, phase = "MAIN_1" }: Setup): 
 
 const fullField = (ids: string[]): MonsterOnField[] => ids.map((id) => field(id));
 const run = (state: MatchState, p: PlayerId, action: Action) => applyAction(state, p, action);
-const summon = (cardId: string, zone = 0, tributeCardIds: string[] = []): Action => ({
+const summon = (cardId: string, zone = 0, tributeZones: number[] = []): Action => ({
   type: "SUMMON_CARD",
   cardId,
-  tributeCardIds,
+  tributeZones,
   zone,
 });
 
@@ -80,7 +80,7 @@ describe("SUMMON_CARD", () => {
       hand: ["storm_hawk"],
       monsters: [field("tide_imp"), null, null, null, null],
     });
-    const r = run(state, p, summon("storm_hawk", 0, ["tide_imp"]));
+    const r = run(state, p, summon("storm_hawk", 0, [0]));
     if (!r.ok) throw new Error("esperado ok");
     const player = r.state.players[p];
     expect(player.graveyard).toEqual(["tide_imp"]);
@@ -101,11 +101,11 @@ describe("SUMMON_CARD", () => {
       hand: ["ash_dragon"],
       monsters: [field("tide_imp"), field("ash_sprite"), null, null, null],
     });
-    expect(run(state, p, summon("ash_dragon", 2, ["tide_imp"]))).toEqual({
+    expect(run(state, p, summon("ash_dragon", 2, [0]))).toEqual({
       ok: false,
       code: "NOT_ENOUGH_TRIBUTES",
     });
-    const r = run(state, p, summon("ash_dragon", 0, ["tide_imp", "ash_sprite"]));
+    const r = run(state, p, summon("ash_dragon", 0, [0, 1]));
     if (!r.ok) throw new Error("esperado ok");
     expect(r.state.players[p].graveyard).toEqual(["tide_imp", "ash_sprite"]);
     expect(r.state.players[p].monsters.map((m) => m?.cardId ?? null)).toEqual(["ash_dragon", null, null, null, null]);
@@ -113,26 +113,26 @@ describe("SUMMON_CARD", () => {
 
   it("nivel_7_exige_2_tributos", () => {
     const { state, p } = setup({ hand: ["ash_dragon"], monsters: [field("tide_imp"), null, null, null, null] });
-    expect(run(state, p, summon("ash_dragon", 1, ["tide_imp"]))).toEqual({ ok: false, code: "NOT_ENOUGH_TRIBUTES" });
+    expect(run(state, p, summon("ash_dragon", 1, [0]))).toEqual({ ok: false, code: "NOT_ENOUGH_TRIBUTES" });
   });
 
   it("rejeita_tributos_a_mais_repetidos_ou_fora_do_campo", () => {
     const monsters = [field("tide_imp"), field("ash_sprite"), null, null, null];
     const one = setup({ hand: ["storm_hawk"], monsters });
-    expect(run(one.state, one.p, summon("storm_hawk", 2, ["tide_imp", "ash_sprite"]))).toEqual({
+    expect(run(one.state, one.p, summon("storm_hawk", 2, [0, 1]))).toEqual({
       ok: false,
       code: "INVALID_TRIBUTES",
     });
-    expect(run(one.state, one.p, summon("storm_hawk", 2, ["bone_knight"]))).toEqual({
+    expect(run(one.state, one.p, summon("storm_hawk", 2, [3]))).toEqual({
       ok: false,
       code: "INVALID_TRIBUTES",
     });
     const two = setup({ hand: ["ash_dragon"], monsters });
-    expect(run(two.state, two.p, summon("ash_dragon", 2, ["tide_imp", "tide_imp"]))).toEqual({
+    expect(run(two.state, two.p, summon("ash_dragon", 2, [0, 0]))).toEqual({
       ok: false,
       code: "INVALID_TRIBUTES",
     });
-    expect(run(one.state, one.p, summon("dune_scout", 2, ["tide_imp"]))).toEqual({
+    expect(run(one.state, one.p, summon("dune_scout", 2, [0]))).toEqual({
       ok: false,
       code: "CARD_NOT_IN_HAND",
     });
@@ -146,7 +146,7 @@ describe("SUMMON_CARD", () => {
       ...state,
       players: { ...state.players, [other]: { ...enemy, monsters: [field("tide_imp"), null, null, null, null] } },
     };
-    expect(run(withEnemy, p, summon("storm_hawk", 1, ["tide_imp"]))).toEqual({ ok: false, code: "INVALID_TRIBUTES" });
+    expect(run(withEnemy, p, summon("storm_hawk", 1, [0]))).toEqual({ ok: false, code: "INVALID_TRIBUTES" });
   });
 
   it("segunda_invocacao_no_turno_retorna_erro", () => {
@@ -176,8 +176,8 @@ describe("SUMMON_CARD", () => {
       hand: ["storm_hawk"],
       monsters: fullField(["tide_imp", "ash_sprite", "moss_golem", "bone_knight", "crystal_bat"]),
     });
-    expect(run(state, p, summon("storm_hawk", 0, ["ash_sprite"]))).toEqual({ ok: false, code: "ZONE_OCCUPIED" });
-    const r = run(state, p, summon("storm_hawk", 1, ["ash_sprite"]));
+    expect(run(state, p, summon("storm_hawk", 0, [1]))).toEqual({ ok: false, code: "ZONE_OCCUPIED" });
+    const r = run(state, p, summon("storm_hawk", 1, [1]));
     if (!r.ok) throw new Error("esperado ok");
     expect(r.state.players[p].monsters[1]?.cardId).toBe("storm_hawk");
   });
@@ -205,7 +205,7 @@ describe("SUMMON_CARD", () => {
 describe("SET_MONSTER", () => {
   it("baixa_em_defesa_virada_e_conta_como_invocacao_normal", () => {
     const { state, p } = setup({ hand: ["dune_scout", "tide_imp"] });
-    const r = run(state, p, { type: "SET_MONSTER", cardId: "dune_scout", tributeCardIds: [], zone: 3 });
+    const r = run(state, p, { type: "SET_MONSTER", cardId: "dune_scout", tributeZones: [], zone: 3 });
     if (!r.ok) throw new Error("esperado ok");
     expect(r.state.players[p].monsters[3]).toEqual(
       field("dune_scout", { position: "DEFENSE", faceDown: true, summonedOnTurn: 5 }),
@@ -219,7 +219,7 @@ describe("SET_MONSTER", () => {
 
   it("exige_tributo_para_monstro_nivel_alto", () => {
     const { state, p } = setup({ hand: ["storm_hawk"] });
-    expect(run(state, p, { type: "SET_MONSTER", cardId: "storm_hawk", tributeCardIds: [], zone: 0 })).toEqual({
+    expect(run(state, p, { type: "SET_MONSTER", cardId: "storm_hawk", tributeZones: [], zone: 0 })).toEqual({
       ok: false,
       code: "NOT_ENOUGH_TRIBUTES",
     });
@@ -227,7 +227,7 @@ describe("SET_MONSTER", () => {
 });
 
 describe("CHANGE_POSITION", () => {
-  const change: Action = { type: "CHANGE_POSITION", cardId: "dune_scout" };
+  const change: Action = { type: "CHANGE_POSITION", zone: 0 };
 
   it("alterna_ataque_para_defesa", () => {
     const { state, p } = setup({ monsters: [field("dune_scout"), null, null, null, null] });
@@ -255,7 +255,7 @@ describe("CHANGE_POSITION", () => {
     const first = run(state, p, change);
     if (!first.ok) throw new Error("esperado ok");
     expect(run(first.state, p, change)).toEqual({ ok: false, code: "ALREADY_CHANGED_POSITION" });
-    expect(run(first.state, p, { type: "CHANGE_POSITION", cardId: "tide_imp" }).ok).toBe(true);
+    expect(run(first.state, p, { type: "CHANGE_POSITION", zone: 1 }).ok).toBe(true);
   });
 
   it("pode_mudar_novamente_no_turno_seguinte", () => {
@@ -286,7 +286,7 @@ describe("CHANGE_POSITION", () => {
 });
 
 describe("FLIP_SUMMON", () => {
-  const flip: Action = { type: "FLIP_SUMMON", cardId: "dune_scout" };
+  const flip: Action = { type: "FLIP_SUMMON", zone: 0 };
   const faceDown = field("dune_scout", { position: "DEFENSE", faceDown: true });
 
   it("vira_monstro_baixado_em_ataque_virado_para_cima", () => {
@@ -299,7 +299,7 @@ describe("FLIP_SUMMON", () => {
 
   it("nao_permite_virar_no_turno_em_que_foi_baixado", () => {
     const { state, p } = setup({ hand: ["dune_scout"] });
-    const set = run(state, p, { type: "SET_MONSTER", cardId: "dune_scout", tributeCardIds: [], zone: 0 });
+    const set = run(state, p, { type: "SET_MONSTER", cardId: "dune_scout", tributeZones: [], zone: 0 });
     if (!set.ok) throw new Error("esperado ok");
     expect(run(set.state, p, flip)).toEqual({ ok: false, code: "CANNOT_CHANGE_POSITION" });
   });
@@ -313,9 +313,75 @@ describe("FLIP_SUMMON", () => {
     const { state, p } = setup({ monsters: [faceDown, null, null, null, null] });
     const r = run(state, p, flip);
     if (!r.ok) throw new Error("esperado ok");
-    expect(run(r.state, p, { type: "CHANGE_POSITION", cardId: "dune_scout" })).toEqual({
+    expect(run(r.state, p, { type: "CHANGE_POSITION", zone: 0 })).toEqual({
       ok: false,
       code: "ALREADY_CHANGED_POSITION",
     });
+  });
+});
+
+describe("cartas iguais no campo", () => {
+  it("tributar_uma_copia_mantem_as_outras_e_manda_so_uma_ao_cemiterio", () => {
+    const { state, p } = setup({
+      hand: ["storm_hawk"],
+      monsters: [field("tide_imp"), field("tide_imp"), field("tide_imp"), null, null],
+    });
+    const r = run(state, p, summon("storm_hawk", 1, [1]));
+    if (!r.ok) throw new Error("esperado ok");
+    expect(r.state.players[p].monsters.map((m) => m?.cardId ?? null)).toEqual([
+      "tide_imp",
+      "storm_hawk",
+      "tide_imp",
+      null,
+      null,
+    ]);
+    expect(r.state.players[p].graveyard).toEqual(["tide_imp"]);
+  });
+
+  it("dois_tributos_em_zonas_diferentes_de_copias_iguais_sao_aceitos_e_a_mesma_zona_duas_vezes_nao", () => {
+    const { state, p } = setup({
+      hand: ["ash_dragon"],
+      monsters: [field("tide_imp"), field("tide_imp"), field("tide_imp"), null, null],
+    });
+    expect(run(state, p, summon("ash_dragon", 0, [2, 2]))).toEqual({ ok: false, code: "INVALID_TRIBUTES" });
+    const r = run(state, p, summon("ash_dragon", 0, [0, 2]));
+    if (!r.ok) throw new Error("esperado ok");
+    expect(r.state.players[p].monsters.map((m) => m?.cardId ?? null)).toEqual([
+      "ash_dragon",
+      "tide_imp",
+      null,
+      null,
+      null,
+    ]);
+    expect(r.state.players[p].graveyard).toEqual(["tide_imp", "tide_imp"]);
+  });
+
+  it("mudar_posicao_de_uma_copia_nao_afeta_a_outra", () => {
+    const { state, p } = setup({ monsters: [field("dune_scout"), field("dune_scout"), null, null, null] });
+    const r = run(state, p, { type: "CHANGE_POSITION", zone: 1 });
+    if (!r.ok) throw new Error("esperado ok");
+    expect(r.state.players[p].monsters[0]).toEqual(field("dune_scout"));
+    expect(r.state.players[p].monsters[1]).toEqual(
+      field("dune_scout", { position: "DEFENSE", changedPositionOnTurn: 5 }),
+    );
+    expect(run(r.state, p, { type: "CHANGE_POSITION", zone: 1 })).toEqual({ ok: false, code: "ALREADY_CHANGED_POSITION" });
+    expect(run(r.state, p, { type: "CHANGE_POSITION", zone: 0 }).ok).toBe(true);
+  });
+
+  it("virar_uma_de_duas_copias_viradas_nao_vira_a_outra", () => {
+    const down = field("dune_scout", { position: "DEFENSE", faceDown: true });
+    const { state, p } = setup({ monsters: [down, down, null, null, null] });
+    const r = run(state, p, { type: "FLIP_SUMMON", zone: 1 });
+    if (!r.ok) throw new Error("esperado ok");
+    expect(r.state.players[p].monsters[0]).toEqual(down);
+    expect(r.state.players[p].monsters[1]).toEqual(field("dune_scout", { changedPositionOnTurn: 5 }));
+  });
+
+  it("zona_invalida_ou_vazia_nao_muda_posicao", () => {
+    const { state, p } = setup({ monsters: [field("dune_scout"), null, null, null, null] });
+    for (const zone of [1, -1, 5, 0.5]) {
+      expect(run(state, p, { type: "CHANGE_POSITION", zone })).toEqual({ ok: false, code: "MONSTER_NOT_ON_FIELD" });
+      expect(run(state, p, { type: "FLIP_SUMMON", zone })).toEqual({ ok: false, code: "MONSTER_NOT_ON_FIELD" });
+    }
   });
 });

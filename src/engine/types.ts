@@ -118,15 +118,15 @@ export type MatchState = {
 };
 
 export type Action =
-  | { type: "SUMMON_CARD"; cardId: string; tributeCardIds: string[]; zone: number }
-  | { type: "SET_MONSTER"; cardId: string; tributeCardIds: string[]; zone: number }
+  | { type: "SUMMON_CARD"; cardId: string; tributeZones: number[]; zone: number } // tributeZones: zonas (0-4) de monstros próprios; cópias iguais se distinguem pela zona
+  | { type: "SET_MONSTER"; cardId: string; tributeZones: number[]; zone: number }
   | { type: "SET_SPELL_TRAP"; cardId: string }
-  | { type: "CHANGE_POSITION"; cardId: string }
-  | { type: "FLIP_SUMMON"; cardId: string }
+  | { type: "CHANGE_POSITION"; zone: number } // zona (0-4) do monstro próprio
+  | { type: "FLIP_SUMMON"; zone: number }
   | { type: "ACTIVATE_SPELL"; cardId: string; targetZone?: number | null } // alvo por zona (0-4): do próprio campo em BOOST_ATTACK, do oponente em DESTROY_MONSTER
-  | { type: "ACTIVATE_TRAP"; cardId: string }
+  | { type: "ACTIVATE_TRAP"; zone: number } // zona (0-4) da armadilha própria
   | { type: "PASS_RESPONSE" }
-  | { type: "ATTACK"; attackerCardId: string; targetZone: number | null } // targetZone: zona do oponente; null = ataque direto
+  | { type: "ATTACK"; attackerZone: number; targetZone: number | null } // attackerZone: zona do atacante; targetZone: zona do oponente; null = ataque direto
   | { type: "NEXT_PHASE" }
   | { type: "END_TURN" };
 

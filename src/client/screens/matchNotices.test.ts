@@ -97,8 +97,8 @@ describe("buildNotices", () => {
 
 describe("vida", () => {
   it("lifePercent_limita_entre_0_e_100", () => {
-    expect(lifePercent(8000)).toBe(100);
-    expect(lifePercent(4000)).toBe(50);
+    expect(lifePercent(4000)).toBe(100);
+    expect(lifePercent(2000)).toBe(50);
     expect(lifePercent(-100)).toBe(0);
     expect(lifePercent(9000)).toBe(100);
   });

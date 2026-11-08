@@ -22,8 +22,8 @@ describe("cards", () => {
     });
     expect(byId("call_beyond")).toMatchObject({ effect: { kind: "REVIVE_MONSTER", maxLevel: 4 } });
     expect(byId("runic_seal")).toMatchObject({ trigger: "SPELL_ACTIVATION", effect: { kind: "NEGATE_SPELL" } });
-    expect(byId("blazing_colossus")).toMatchObject({ level: 7, attack: 2800, defense: 1500 });
-    expect(byId("granite_giant")).toMatchObject({ level: 7, attack: 2400, defense: 2500 });
+    expect(byId("blazing_colossus")).toMatchObject({ level: 7, attack: 2700, defense: 1500 });
+    expect(byId("granite_giant")).toMatchObject({ level: 7, attack: 2600, defense: 2600 });
   });
 
   it("cobre_faixas_de_nivel_e_ao_menos_3_magias_e_3_armadilhas", () => {
@@ -71,9 +71,9 @@ describe("cards", () => {
     expect(byId("mist_wall")).toMatchObject({ type: "TRAP", trigger: "ATTACK_DECLARED", effect: { kind: "NEGATE_ATTACK" } });
     expect(byId("cunning_scout")).toMatchObject({ level: 2, attack: 800, defense: 500 });
     expect(byId("wall_archer")).toMatchObject({ level: 3, attack: 1300, defense: 1300 });
-    expect(byId("tactical_captain")).toMatchObject({ level: 4, attack: 1700, defense: 1000 });
-    expect(byId("strategist_knight")).toMatchObject({ level: 5, attack: 2000, defense: 1500 });
-    expect(byId("siege_general")).toMatchObject({ level: 7, attack: 2900, defense: 2000 });
+    expect(byId("tactical_captain")).toMatchObject({ level: 4, attack: 1600, defense: 1000 });
+    expect(byId("strategist_knight")).toMatchObject({ level: 5, attack: 1900, defense: 1500 });
+    expect(byId("siege_general")).toMatchObject({ level: 7, attack: 2600, defense: 2000 });
     expect(byId("retreat_plan")).toMatchObject({ type: "SPELL", effect: { kind: "BOUNCE_MONSTER" } });
     expect(byId("precise_strike")).toMatchObject({ effect: { kind: "DESTROY_MONSTER", maxAttack: 2000 } });
     expect(byId("tactical_reinforcement")).toMatchObject({ effect: { kind: "BOOST_ATTACK", amount: 700 } });
@@ -87,5 +87,45 @@ describe("cards", () => {
 
   it("e_serializavel_em_json", () => {
     expect(JSON.parse(JSON.stringify(CARDS))).toEqual(CARDS);
+  });
+});
+
+describe("descricoes_com_valor_do_efeito", () => {
+  const valuesOf = (card: (typeof CARDS)[number]): number[] => {
+    if (card.type === "MONSTER") return [];
+    const e = card.effect;
+    switch (e.kind) {
+      case "BOOST_ATTACK":
+      case "BOOST_ALL_ATTACK":
+      case "HEAL":
+      case "DAMAGE":
+      case "DRAIN":
+        return [e.amount];
+      case "HEAL_PER_MONSTER":
+        return [e.amountPerMonster, e.maxAmount];
+      case "DRAW":
+        return [e.count];
+      case "REVIVE_MONSTER":
+        return [e.maxLevel];
+      case "DESTROY_MONSTER":
+      case "DESTROY_ATTACKER":
+        return e.maxAttack === undefined ? [] : [e.maxAttack];
+      default:
+        return [];
+    }
+  };
+
+  it("toda_descricao_cita_os_numeros_do_effect", () => {
+    for (const card of CARDS) {
+      for (const value of valuesOf(card)) {
+        expect(card.description, card.id).toMatch(new RegExp(String.raw`(^|\D)${value}(\D|$)`));
+      }
+    }
+  });
+
+  it("surto_de_poder_informa_700", () => {
+    expect(CARDS.find((c) => c.id === "power_surge")?.description).toBe(
+      "Aumenta em 700 o ATK de um monstro seu, com energia pura, até o fim do turno.",
+    );
   });
 });

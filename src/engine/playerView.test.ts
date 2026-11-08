@@ -87,7 +87,7 @@ describe("playerView", () => {
     expect(you.hand).toEqual(["healing_spring", "storm_hawk"]);
     expect(you.monsters[0]).toEqual(state.players[a].monsters[0]);
     expect(you.monsters[1]).toEqual(state.players[a].monsters[1]);
-    expect(you.lifePoints).toBe(8000);
+    expect(you.lifePoints).toBe(4000);
   });
 
   it("mostra_contagem_da_mao_e_campo_publico_do_oponente", () => {
@@ -145,6 +145,20 @@ describe("playerView", () => {
     expect(JSON.parse(JSON.stringify(view))).toEqual(view);
   });
 
+  it("copias_iguais_viradas_do_oponente_continuam_ocultas_e_a_virada_de_uma_nao_revela_a_outra", () => {
+    const { state, a, b } = scenario();
+    const down = monster("crystal_bat", { faceDown: true, position: "DEFENSE" });
+    const twins: MatchState = {
+      ...state,
+      players: { ...state.players, [b]: { ...state.players[b], monsters: pad([down, down, { ...down, faceDown: false }]) } },
+    };
+    const seen = playerView(twins, a).opponent.monsters;
+    expect(seen[0]).toEqual({ cardId: null, position: "DEFENSE", faceDown: true, summonedOnTurn: down.summonedOnTurn });
+    expect(seen[1]).toEqual(seen[0]);
+    expect(seen[2]).toMatchObject({ cardId: "crystal_bat", faceDown: false });
+    expect(JSON.stringify([seen[0], seen[1]])).not.toContain("crystal_bat");
+  });
+
   describe("janela_de_resposta", () => {
     it("mostra_acao_interrompida_somente_ao_defensor", () => {
       const { state, a, b } = scenario();
@@ -153,14 +167,14 @@ describe("playerView", () => {
         pendingResponse: {
           trigger: "ATTACK_DECLARED",
           responder: b,
-          action: { type: "ATTACK", attackerCardId: "dune_scout", targetZone: null },
+          action: { type: "ATTACK", attackerZone: 0, targetZone: null },
         },
       };
       expect(playerView(pending, b).pendingResponse).toEqual({
         responder: b,
         canRespond: true,
         trigger: "ATTACK_DECLARED",
-        action: { type: "ATTACK", attackerCardId: "dune_scout", targetZone: null },
+        action: { type: "ATTACK", attackerZone: 0, targetZone: null },
       });
       expect(playerView(pending, a).pendingResponse).toEqual({ responder: b, canRespond: false });
       expect(JSON.stringify(playerView(pending, a).pendingResponse)).not.toContain("dune_scout");
@@ -179,25 +193,25 @@ describe("playerView", () => {
         ...state,
         players: { ...state.players, [a]: { ...state.players[a], monsters: pad([{ ...attacker, hasAttacked: false }]) } },
       };
-      const r = applyAction(ready, a, { type: "ATTACK", attackerCardId: "dune_scout", targetZone: 0 });
+      const r = applyAction(ready, a, { type: "ATTACK", attackerZone: 0, targetZone: 0 });
       if (!r.ok) throw new Error(r.code);
       expect(r.state.pendingResponse).not.toBeNull();
       expect(playerView(r.state, b).pendingResponse).toMatchObject({ canRespond: true, trigger: "ATTACK_DECLARED" });
       expect(playerView(r.state, a).pendingResponse).toEqual({ responder: b, canRespond: false });
     });
 
-    it("remove_tributo_virado_e_alvo_por_zona_nao_vaza_id_na_acao_vista_pelo_defensor", () => {
+    it("tributos_e_alvos_por_zona_nao_vazam_id_de_carta_virada_na_acao_vista_pelo_defensor", () => {
       const { state, a, b } = scenario();
       const summon: MatchState = {
         ...state,
         pendingResponse: {
           trigger: "SUMMON",
           responder: b,
-          action: { type: "SUMMON_CARD", cardId: "storm_hawk", tributeCardIds: ["tide_imp"], zone: 2 },
+          action: { type: "SUMMON_CARD", cardId: "storm_hawk", tributeZones: [0, 1], zone: 2 },
         },
       };
       const seen = playerView(summon, b).pendingResponse;
-      expect(seen).toMatchObject({ action: { type: "SUMMON_CARD", cardId: "storm_hawk", tributeCardIds: [], zone: 2 } });
+      expect(seen).toMatchObject({ action: { type: "SUMMON_CARD", cardId: "storm_hawk", tributeZones: [0, 1], zone: 2 } });
       expect(JSON.stringify(seen)).not.toContain("tide_imp");
 
       const spell: MatchState = {
@@ -215,17 +229,17 @@ describe("playerView", () => {
       expect(playerView(spell, a).pendingResponse).toEqual({ responder: b, canRespond: false });
     });
 
-    it("mantem_tributo_virado_para_cima_na_acao_do_defensor", () => {
+    it("mostra_zonas_dos_tributos_na_acao_do_defensor", () => {
       const { state, b } = scenario();
       const summon: MatchState = {
         ...state,
         pendingResponse: {
           trigger: "SUMMON",
           responder: b,
-          action: { type: "SUMMON_CARD", cardId: "storm_hawk", tributeCardIds: ["dune_scout"], zone: 2 },
+          action: { type: "SUMMON_CARD", cardId: "storm_hawk", tributeZones: [0], zone: 2 },
         },
       };
-      expect(playerView(summon, b).pendingResponse).toMatchObject({ action: { tributeCardIds: ["dune_scout"] } });
+      expect(playerView(summon, b).pendingResponse).toMatchObject({ action: { tributeZones: [0] } });
     });
   });
 });

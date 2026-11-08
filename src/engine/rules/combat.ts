@@ -32,8 +32,8 @@ export const attack = (state: MatchState, player: PlayerId, action: AttackAction
   const self = state.players[player];
   const enemy = state.players[enemyId];
 
-  const attackerZone = self.monsters.findIndex((m) => m?.cardId === action.attackerCardId);
-  const attacker = self.monsters[attackerZone];
+  const attackerZone = action.attackerZone;
+  const attacker = Number.isInteger(attackerZone) ? self.monsters[attackerZone] : null;
   if (!attacker) return fail("MONSTER_NOT_ON_FIELD");
   if (attacker.position !== "ATTACK") return fail("NOT_IN_ATTACK_POSITION");
   if (attacker.hasAttacked) return fail("ALREADY_ATTACKED");

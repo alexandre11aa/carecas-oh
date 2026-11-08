@@ -76,20 +76,6 @@ const viewSpellTrap = (card: SpellTrapOnField | null): SpellTrapOnField | Hidden
   return { cardId: null, faceDown: true, setOnTurn: card.setOnTurn };
 };
 
-/**
- * Ação interrompida como o defensor pode vê-la: ids de monstros virados do jogador do turno
- * (tributos) são removidos, pois revelariam cartas ocultas.
- */
-const sanitizeAction = (action: Action, actor: PlayerState): Action => {
-  const hiddenIds = new Set(
-    actor.monsters.filter((m): m is MonsterOnField => m !== null && m.faceDown).map((m) => m.cardId),
-  );
-  if (action.type === "SUMMON_CARD" || action.type === "SET_MONSTER") {
-    return { ...action, tributeCardIds: action.tributeCardIds.filter((id) => !hiddenIds.has(id)) };
-  }
-  return action;
-};
-
 const viewPending = (state: MatchState, viewer: PlayerId): PendingResponseView | null => {
   const pending = state.pendingResponse;
   if (!pending) return null;
@@ -98,7 +84,8 @@ const viewPending = (state: MatchState, viewer: PlayerId): PendingResponseView |
     responder: pending.responder,
     canRespond: true,
     trigger: pending.trigger,
-    action: sanitizeAction(pending.action, state.players[opponentOf(viewer)]),
+    // Tributos e atacante vão por zona (pública): nenhum id de carta virada sai na ação interrompida.
+    action: pending.action,
   };
 };
 

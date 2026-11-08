@@ -4,7 +4,7 @@ import { getCard } from "../../engine/cards.js";
 import type { EventView } from "../../engine/eventView.js";
 import type { PlayerId } from "../../engine/types.js";
 
-export const MAX_LIFE = 8000;
+export const MAX_LIFE = 4000;
 
 export type NoticeKind = "CARD" | "SUMMON" | "GRAVEYARD" | "DAMAGE" | "HEAL" | "END";
 export type NoticeSide = "you" | "opponent";

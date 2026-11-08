@@ -76,13 +76,13 @@ const decide = (s: { state: MatchState; side: PlayerId }, seed = 5): Action | nu
 describe("IA nivel medio: invocacao", () => {
   it("ia_medio_invoca_o_monstro_de_maior_atk", () => {
     const s = setup({ hand: ["ash_sprite", "dune_scout", "bone_knight"] });
-    expect(decide(s)).toEqual({ type: "SUMMON_CARD", cardId: "dune_scout", tributeCardIds: [], zone: 0 });
+    expect(decide(s)).toEqual({ type: "SUMMON_CARD", cardId: "dune_scout", tributeZones: [], zone: 0 });
   });
 
   it("ia_medio_tributa_o_monstro_mais_fraco_no_nivel_5_a_6", () => {
     const s = setup({ hand: ["storm_hawk"], mine: [field("moss_golem"), field("tide_imp"), field("bone_knight")] });
     const action = decide(s);
-    expect(action).toMatchObject({ type: "SUMMON_CARD", cardId: "storm_hawk", tributeCardIds: ["tide_imp"] });
+    expect(action).toMatchObject({ type: "SUMMON_CARD", cardId: "storm_hawk", tributeZones: [1] });
   });
 
   it("ia_medio_tributa_os_dois_mais_fracos_no_nivel_7", () => {
@@ -93,7 +93,7 @@ describe("IA nivel medio: invocacao", () => {
     const action = decide(s);
     expect(action?.type).toBe("SUMMON_CARD");
     if (action?.type !== "SUMMON_CARD") return;
-    expect(new Set(action.tributeCardIds)).toEqual(new Set(["tide_imp", "moss_golem"]));
+    expect(new Set(action.tributeZones)).toEqual(new Set([1, 2]));
   });
 
   it("ia_medio_nao_tributa_monstros_mais_fortes_que_o_invocado", () => {
@@ -103,24 +103,24 @@ describe("IA nivel medio: invocacao", () => {
 
   it("ia_medio_baixa_em_defesa_virada_sem_vantagem_para_atacar", () => {
     const s = setup({ hand: ["dune_scout", "moss_golem"], theirs: [field("ash_dragon")] });
-    expect(decide(s)).toEqual({ type: "SET_MONSTER", cardId: "moss_golem", tributeCardIds: [], zone: 0 });
+    expect(decide(s)).toEqual({ type: "SET_MONSTER", cardId: "moss_golem", tributeZones: [], zone: 0 });
   });
 
   it("ia_medio_ignora_ameaca_de_monstro_do_oponente_em_defesa", () => {
     const s = setup({ hand: ["dune_scout"], theirs: [defense("ash_dragon")] });
-    expect(decide(s)).toEqual({ type: "SUMMON_CARD", cardId: "dune_scout", tributeCardIds: [], zone: 0 });
+    expect(decide(s)).toEqual({ type: "SUMMON_CARD", cardId: "dune_scout", tributeZones: [], zone: 0 });
   });
 });
 
 describe("IA nivel medio: ataque", () => {
   it("ia_medio_ataca_quando_o_atk_vence_o_atk_do_alvo", () => {
     const s = setup({ phase: "BATTLE", mine: [field("dune_scout")], theirs: [field("bone_knight")] });
-    expect(decide(s)).toEqual({ type: "ATTACK", attackerCardId: "dune_scout", targetZone: 0 });
+    expect(decide(s)).toEqual({ type: "ATTACK", attackerZone: 0, targetZone: 0 });
   });
 
   it("ia_medio_ataca_quando_o_atk_vence_a_def_do_alvo", () => {
     const s = setup({ phase: "BATTLE", mine: [field("dune_scout")], theirs: [defense("moss_golem")] });
-    expect(decide(s)).toEqual({ type: "ATTACK", attackerCardId: "dune_scout", targetZone: 0 });
+    expect(decide(s)).toEqual({ type: "ATTACK", attackerZone: 0, targetZone: 0 });
   });
 
   it("ia_medio_nao_ataca_em_empate_nem_em_desvantagem", () => {
@@ -138,7 +138,7 @@ describe("IA nivel medio: ataque", () => {
       mine: [field("dune_scout", { attackBonus: 700 })],
       theirs: [field("storm_hawk")],
     });
-    expect(decide(com)).toEqual({ type: "ATTACK", attackerCardId: "dune_scout", targetZone: 0 });
+    expect(decide(com)).toEqual({ type: "ATTACK", attackerZone: 0, targetZone: 0 });
   });
 
   it("ia_medio_ataca_o_alvo_mais_forte_que_consegue_vencer", () => {
@@ -147,12 +147,12 @@ describe("IA nivel medio: ataque", () => {
       mine: [field("storm_hawk")],
       theirs: [field("tide_imp"), field("bone_knight")],
     });
-    expect(decide(s)).toEqual({ type: "ATTACK", attackerCardId: "storm_hawk", targetZone: 1 });
+    expect(decide(s)).toEqual({ type: "ATTACK", attackerZone: 0, targetZone: 1 });
   });
 
   it("ia_medio_ataca_direto_quando_o_oponente_nao_tem_monstros", () => {
     const s = setup({ phase: "BATTLE", mine: [field("tide_imp")] });
-    expect(decide(s)).toEqual({ type: "ATTACK", attackerCardId: "tide_imp", targetZone: null });
+    expect(decide(s)).toEqual({ type: "ATTACK", attackerZone: 0, targetZone: null });
   });
 
   it("ia_medio_nunca_ataca_no_primeiro_turno", () => {
@@ -167,14 +167,14 @@ describe("IA nivel medio: ataque", () => {
     const fraco = setup({ phase: "BATTLE", mine: [field("dune_scout")], theirs: [hidden] });
     expect(decide(fraco)).toEqual({ type: "NEXT_PHASE" });
     const forte = setup({ phase: "BATTLE", mine: [field("storm_hawk")], theirs: [hidden] });
-    expect(decide(forte)).toEqual({ type: "ATTACK", attackerCardId: "storm_hawk", targetZone: 0 });
+    expect(decide(forte)).toEqual({ type: "ATTACK", attackerZone: 0, targetZone: 0 });
   });
 });
 
 describe("IA nivel medio: posicao", () => {
   it("ia_medio_vai_para_defesa_com_atk_baixo_diante_de_monstro_mais_forte", () => {
     const s = setup({ mine: [field("tide_imp")], theirs: [field("dune_scout")] });
-    expect(decide(s)).toEqual({ type: "CHANGE_POSITION", cardId: "tide_imp" });
+    expect(decide(s)).toEqual({ type: "CHANGE_POSITION", zone: 0 });
   });
 
   it("ia_medio_fica_em_defesa_enquanto_ha_monstro_mais_forte", () => {
@@ -184,21 +184,21 @@ describe("IA nivel medio: posicao", () => {
 
   it("ia_medio_troca_para_ataque_quando_passa_a_ser_o_mais_forte", () => {
     const s = setup({ mine: [defense("ash_dragon")], theirs: [field("dune_scout")] });
-    expect(decide(s)).toEqual({ type: "CHANGE_POSITION", cardId: "ash_dragon" });
+    expect(decide(s)).toEqual({ type: "CHANGE_POSITION", zone: 0 });
   });
 
   it("ia_medio_vira_monstro_baixado_quando_e_o_mais_forte", () => {
     const set = field("ash_dragon", { faceDown: true, position: "DEFENSE" });
     const s = setup({ mine: [set], theirs: [field("dune_scout")] });
-    expect(decide(s)).toEqual({ type: "FLIP_SUMMON", cardId: "ash_dragon" });
+    expect(decide(s)).toEqual({ type: "FLIP_SUMMON", zone: 0 });
   });
 });
 
 describe("IA nivel medio: magias", () => {
   it("ia_medio_cura_so_com_vida_abaixo_de_50_por_cento", () => {
-    const baixa = setup({ hand: ["healing_spring"], life: 3999 });
+    const baixa = setup({ hand: ["healing_spring"], life: 1999 });
     expect(decide(baixa)).toEqual({ type: "ACTIVATE_SPELL", cardId: "healing_spring" });
-    const meio = setup({ hand: ["healing_spring"], life: 4000 });
+    const meio = setup({ hand: ["healing_spring"], life: 2000 });
     expect(decide(meio)).toEqual({ type: "NEXT_PHASE" });
   });
 
@@ -210,7 +210,7 @@ describe("IA nivel medio: magias", () => {
   });
 
   it("ia_medio_nao_reforca_quando_o_reforco_nao_basta_ou_nao_e_preciso", () => {
-    const naoBasta = setup({ hand: ["power_surge"], mine: [field("dune_scout")], theirs: [defense("granite_giant")] });
+    const naoBasta = setup({ hand: ["power_surge"], mine: [field("bone_knight")], theirs: [defense("granite_giant")] });
     expect(decide(naoBasta)).toEqual({ type: "NEXT_PHASE" });
     const jaVence = setup({ hand: ["power_surge"], mine: [field("dune_scout")], theirs: [field("bone_knight")] });
     expect(decide(jaVence)).toEqual({ type: "NEXT_PHASE" });
@@ -264,7 +264,7 @@ describe("IA nivel medio: armadilhas", () => {
       theirs: defenderMonsters,
       theirTraps: traps.map((id) => trap(id, 1)),
     });
-    const opened = applyAction(s.state, s.side, { type: "ATTACK", attackerCardId: attacker, targetZone });
+    const opened = applyAction(s.state, s.side, { type: "ATTACK", attackerZone: 0, targetZone });
     if (!opened.ok) throw new Error("o ataque deveria abrir a janela");
     return chooseAiAction({ state: opened.state, side: opponentOf(s.side), level: "medium", seed: 1 }).action;
   };
@@ -272,7 +272,7 @@ describe("IA nivel medio: armadilhas", () => {
   it("ia_medio_ativa_armadilha_quando_o_atacante_e_mais_forte_que_o_melhor_defensor", () => {
     expect(respond("dune_scout", [field("moss_golem")], ["spike_pit"])).toEqual({
       type: "ACTIVATE_TRAP",
-      cardId: "spike_pit",
+      zone: 0,
     });
   });
 
@@ -282,17 +282,17 @@ describe("IA nivel medio: armadilhas", () => {
 
   it("ia_medio_ativa_quando_o_dano_seria_grande", () => {
     // Defensor em ataque com ATK maior que o atacante nao existe; ataque direto causa dano total.
-    expect(respond("dune_scout", [], ["mirror_shield"], null)).toEqual({ type: "ACTIVATE_TRAP", cardId: "mirror_shield" });
+    expect(respond("dune_scout", [], ["mirror_shield"], null)).toEqual({ type: "ACTIVATE_TRAP", zone: 0 });
   });
 
   it("ia_medio_prefere_destruir_o_atacante_e_anula_quando_ele_e_forte_demais", () => {
     expect(respond("dune_scout", [field("moss_golem")], ["mirror_shield", "spike_pit"])).toEqual({
       type: "ACTIVATE_TRAP",
-      cardId: "spike_pit",
+      zone: 1,
     });
     expect(respond("storm_hawk", [field("moss_golem")], ["mirror_shield", "spike_pit"])).toEqual({
       type: "ACTIVATE_TRAP",
-      cardId: "mirror_shield",
+      zone: 0,
     });
   });
 

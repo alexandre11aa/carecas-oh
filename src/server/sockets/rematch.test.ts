@@ -125,9 +125,9 @@ describe("match:rematch", () => {
     const [{ view: newA, events: eventsA }, { view: newB }] = await Promise.all([stateA, stateB]);
     expect(newA.winner).toBeNull();
     expect(newA.turn).toBe(1);
-    expect(newA.you.lifePoints).toBe(8000);
-    expect(newA.you.hand).toHaveLength(5);
-    expect(newA.you.deckCount).toBe(5);
+    expect(newA.you.lifePoints).toBe(4000);
+    expect(newA.you.hand).toHaveLength(4);
+    expect(newA.you.deckCount).toBe(16);
     expect(eventsA).toEqual([]);
     expect(newA.viewer).not.toBe(newB.viewer);
     // Lados trocados: quem era P1 agora é P2.
