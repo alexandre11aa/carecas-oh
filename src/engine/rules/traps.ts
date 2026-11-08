@@ -1,5 +1,6 @@
 // src/engine/rules/traps.ts
 // Armadilhas: janela de resposta do defensor e efeitos como dados. Uma resposta por janela (sem cadeia). Funções puras.
+import { removeOne } from "./hand.js";
 import { getCard } from "../cards.js";
 import type {
   Action,
@@ -82,36 +83,39 @@ export const resolveTrapEffect = (
   switch (effect.kind) {
     case "NEGATE_ATTACK": {
       if (pending.type !== "ATTACK") return { state, events, resume: true };
-      events.push({ type: "ATTACK_NEGATED", player: actor, attackerCardId: pending.attackerCardId });
-      const monsters = data.monsters.map((m) =>
-        m?.cardId === pending.attackerCardId ? { ...m, hasAttacked: true } : m,
-      );
+      const negated = data.monsters[pending.attackerZone];
+      if (negated) events.push({ type: "ATTACK_NEGATED", player: actor, attackerCardId: negated.cardId });
+      const monsters = data.monsters.map((m, i) => (m && i === pending.attackerZone ? { ...m, hasAttacked: true } : m));
       return { state: withPlayer(state, actor, { ...data, monsters }), events, resume: false };
     }
     case "DESTROY_ATTACKER": {
       if (pending.type !== "ATTACK") return { state, events, resume: true };
-      const attacker = data.monsters.find((m) => m?.cardId === pending.attackerCardId);
+      const attacker = data.monsters[pending.attackerZone];
       const attackerCard = attacker ? getCard(attacker.cardId) : undefined;
       const attack =
         attacker && attackerCard?.type === "MONSTER" ? attackerCard.attack + (attacker.attackBonus ?? 0) : 0;
       // Atacante forte demais: a armadilha é gasta sem efeito e o ataque segue.
       if (effect.maxAttack !== undefined && attack > effect.maxAttack) return { state, events, resume: true };
-      const monsters = data.monsters.map((m) => (m?.cardId === pending.attackerCardId ? null : m));
-      const next = toGraveyard(actor, { ...data, monsters }, pending.attackerCardId, events);
+      if (!attacker) return { state, events, resume: true };
+      const monsters = data.monsters.map((m, i) => (i === pending.attackerZone ? null : m));
+      const next = toGraveyard(actor, { ...data, monsters }, attacker.cardId, events);
       return { state: withPlayer(state, actor, next), events, resume: false };
     }
     case "NEGATE_SUMMON": {
       if (pending.type !== "SUMMON_CARD") return { state, events, resume: true };
       events.push({ type: "SUMMON_NEGATED", player: actor, cardId: pending.cardId });
-      const hand = data.hand.filter((id) => id !== pending.cardId);
+      const hand = removeOne(data.hand, pending.cardId);
       const next = toGraveyard(actor, { ...data, hand, normalSummonUsed: true }, pending.cardId, events);
       return { state: withPlayer(state, actor, next), events, resume: false };
     }
     case "NEGATE_SPELL": {
       if (pending.type !== "ACTIVATE_SPELL") return { state, events, resume: true };
       events.push({ type: "SPELL_NEGATED", player: actor, cardId: pending.cardId });
-      const hand = data.hand.filter((id) => id !== pending.cardId);
-      const spellTraps = data.spellTraps.map((s) => (s?.cardId === pending.cardId ? null : s));
+      // Como em activateSpell: a cópia da mão tem preferência; só uma ocorrência sai.
+      const inHand = data.hand.includes(pending.cardId);
+      const hand = inHand ? removeOne(data.hand, pending.cardId) : data.hand;
+      const fieldZone = inHand ? -1 : data.spellTraps.findIndex((s) => s?.cardId === pending.cardId);
+      const spellTraps = data.spellTraps.map((s, i) => (i === fieldZone ? null : s));
       const next = toGraveyard(actor, { ...data, hand, spellTraps }, pending.cardId, events);
       return { state: withPlayer(state, actor, next), events, resume: false };
     }
@@ -153,21 +157,21 @@ export const respond = (
   }
 
   const mine = state.players[responder];
-  const zone = mine.spellTraps.findIndex((s) => s?.cardId === action.cardId);
-  const slot = mine.spellTraps[zone];
+  const zone = action.zone;
+  const slot = Number.isInteger(zone) ? mine.spellTraps[zone] : null;
   if (!slot) return fail("TRAP_NOT_AVAILABLE");
-  const card = getCard(action.cardId);
+  const card = getCard(slot.cardId);
   if (card?.type !== "TRAP") return fail("NOT_A_TRAP");
   if (slot.setOnTurn >= state.turn) return fail("TRAP_NOT_ACTIVE_YET");
   if (card.trigger !== window.trigger) return fail("TRAP_TRIGGER_MISMATCH");
 
   const events: GameEvent[] = [
-    { type: "TRAP_ACTIVATED", player: responder, cardId: action.cardId, trigger: window.trigger },
+    { type: "TRAP_ACTIVATED", player: responder, cardId: slot.cardId, trigger: window.trigger },
   ];
   const spent = toGraveyard(
     responder,
     { ...mine, spellTraps: mine.spellTraps.map((s, i) => (i === zone ? null : s)) },
-    action.cardId,
+    slot.cardId,
     events,
   );
   const base: MatchState = { ...open, players: { ...open.players, [responder]: spent } };

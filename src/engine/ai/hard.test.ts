@@ -110,16 +110,16 @@ const defending = (
   };
 };
 
-const attackAction = (attackerCardId: string, targetZone: number | null): Action => ({
+const attackAction = (attackerZone: number, targetZone: number | null): Action => ({
   type: "ATTACK",
-  attackerCardId,
+  attackerZone,
   targetZone,
 });
 
 describe("IA nivel dificil: letal e dano direto", () => {
   it("ia_dificil_ataca_direto_quando_o_oponente_nao_tem_monstros", () => {
     const s = setup({ phase: "BATTLE", mine: [field("dune_scout")] });
-    expect(decide(s)).toEqual({ type: "ATTACK", attackerCardId: "dune_scout", targetZone: null });
+    expect(decide(s)).toEqual({ type: "ATTACK", attackerZone: 0, targetZone: null });
   });
 
   it("ia_dificil_fecha_o_letal_somando_os_ataques_diretos", () => {
@@ -160,7 +160,7 @@ describe("IA nivel dificil: combate", () => {
 
   it("ia_dificil_aceita_troca_favoravel_e_prefere_o_alvo_mais_valioso", () => {
     const s = setup({ phase: "BATTLE", mine: [field("dune_scout")], theirs: [field("tide_imp"), field("wall_archer")] });
-    expect(decide(s)).toEqual({ type: "ATTACK", attackerCardId: "dune_scout", targetZone: 1 });
+    expect(decide(s)).toEqual({ type: "ATTACK", attackerZone: 0, targetZone: 1 });
   });
 
   it("ia_dificil_ordena_os_ataques_usando_o_atacante_mais_fraco_que_vence", () => {
@@ -171,11 +171,11 @@ describe("IA nivel dificil: combate", () => {
     });
     // O Falcão (2100) vence o Golem (DEF 1500); o Morcego (1300) só vence a Fagulha (DEF 500).
     const first = decide(s) as Action;
-    expect(first).toEqual({ type: "ATTACK", attackerCardId: "storm_hawk", targetZone: 0 });
+    expect(first).toEqual({ type: "ATTACK", attackerZone: 0, targetZone: 0 });
     const next = applyAction(s.state, s.side, first);
     expect(next.ok).toBe(true);
     if (next.ok) {
-      expect(decide({ state: next.state, side: s.side })).toEqual({ type: "ATTACK", attackerCardId: "crystal_bat", targetZone: 1 });
+      expect(decide({ state: next.state, side: s.side })).toEqual({ type: "ATTACK", attackerZone: 1, targetZone: 1 });
     }
   });
 
@@ -200,7 +200,7 @@ describe("IA nivel dificil: combate", () => {
       theirs: [field("wall_archer"), field("dune_scout")],
       life: 8000,
     });
-    expect(decide(safe)).toEqual({ type: "ATTACK", attackerCardId: "crystal_bat", targetZone: 0 });
+    expect(decide(safe)).toEqual({ type: "ATTACK", attackerZone: 0, targetZone: 0 });
   });
 
   it("ia_dificil_prefere_o_ataque_que_desfaz_o_letal_iminente", () => {
@@ -222,7 +222,7 @@ describe("IA nivel dificil: combate", () => {
       theirs: [defense("frost_witch"), field("dune_scout"), field("bone_knight"), field("crystal_bat")],
       life: 8000,
     });
-    expect(decide(calm)).toEqual({ type: "ATTACK", attackerCardId: "storm_hawk", targetZone: 0 });
+    expect(decide(calm)).toEqual({ type: "ATTACK", attackerZone: 0, targetZone: 0 });
   });
 
   it("ia_dificil_nao_ataca_monstro_virado_com_atk_baixo", () => {
@@ -290,18 +290,18 @@ describe("IA nivel dificil: magias", () => {
 describe("IA nivel dificil: invocacao e tributo", () => {
   it("ia_dificil_tributa_o_monstro_de_menor_valor", () => {
     const s = setup({ hand: ["storm_hawk"], mine: [field("moss_golem"), field("tide_imp"), field("bone_knight")] });
-    expect(decide(s)).toMatchObject({ type: "SUMMON_CARD", cardId: "storm_hawk", tributeCardIds: ["tide_imp"] });
+    expect(decide(s)).toMatchObject({ type: "SUMMON_CARD", cardId: "storm_hawk", tributeZones: [1] });
   });
 
   it("ia_dificil_mantem_o_defensor_quando_a_vida_esta_baixa", () => {
     const mine = [defense("stone_sentinel"), field("crystal_bat")];
     expect(decide(setup({ hand: ["storm_hawk"], mine, life: 4000 }))).toMatchObject({
       cardId: "storm_hawk",
-      tributeCardIds: ["stone_sentinel"],
+      tributeZones: [0],
     });
     expect(decide(setup({ hand: ["storm_hawk"], mine, life: 1200 }))).toMatchObject({
       cardId: "storm_hawk",
-      tributeCardIds: ["crystal_bat"],
+      tributeZones: [1],
     });
   });
 
@@ -312,12 +312,12 @@ describe("IA nivel dificil: invocacao e tributo", () => {
 
   it("ia_dificil_escolhe_a_melhor_jogada_por_valor_e_nao_a_primeira_da_lista", () => {
     const s = setup({ hand: ["tide_imp", "dune_scout"] });
-    expect(decide(s)).toEqual({ type: "SUMMON_CARD", cardId: "dune_scout", tributeCardIds: [], zone: 0 });
+    expect(decide(s)).toEqual({ type: "SUMMON_CARD", cardId: "dune_scout", tributeZones: [], zone: 0 });
   });
 
   it("ia_dificil_baixa_em_defesa_quando_o_oponente_e_mais_forte_e_a_vida_esta_baixa", () => {
     const s = setup({ hand: ["moss_golem"], theirs: [field("ash_dragon")], life: 2000 });
-    expect(decide(s)).toEqual({ type: "SET_MONSTER", cardId: "moss_golem", tributeCardIds: [], zone: 0 });
+    expect(decide(s)).toEqual({ type: "SET_MONSTER", cardId: "moss_golem", tributeZones: [], zone: 0 });
   });
 });
 
@@ -325,52 +325,52 @@ describe("IA nivel dificil: armadilhas", () => {
   it("ia_dificil_ativa_armadilha_contra_ataque_ao_monstro_mais_valioso", () => {
     const s = defending([field("storm_hawk")], ["spike_pit"], [field("dune_scout")]);
     // Ataque de 1700 contra o Falcão (2100) seria só uma troca ruim para o atacante: não gasta.
-    expect(respond(s, attackAction("dune_scout", 0), "ATTACK_DECLARED")).toEqual({ type: "PASS_RESPONSE" });
+    expect(respond(s, attackAction(0, 0), "ATTACK_DECLARED")).toEqual({ type: "PASS_RESPONSE" });
     const valuable = defending([field("bone_knight")], ["spike_pit"], [field("dune_scout")]);
-    expect(respond(valuable, attackAction("dune_scout", 0), "ATTACK_DECLARED")).toEqual({
+    expect(respond(valuable, attackAction(0, 0), "ATTACK_DECLARED")).toEqual({
       type: "ACTIVATE_TRAP",
-      cardId: "spike_pit",
+      zone: 0,
     });
   });
 
   it("ia_dificil_nao_gasta_armadilha_em_ataque_inofensivo", () => {
     const s = defending([defense("living_wall")], ["mirror_shield"], [field("tide_imp")]);
-    expect(respond(s, attackAction("tide_imp", 0), "ATTACK_DECLARED")).toEqual({ type: "PASS_RESPONSE" });
+    expect(respond(s, attackAction(0, 0), "ATTACK_DECLARED")).toEqual({ type: "PASS_RESPONSE" });
   });
 
   it("ia_dificil_ativa_armadilha_contra_dano_letal", () => {
     const s = defending([], ["mirror_shield"], [field("storm_hawk")], 1500);
-    expect(respond(s, attackAction("storm_hawk", null), "ATTACK_DECLARED")).toEqual({
+    expect(respond(s, attackAction(0, null), "ATTACK_DECLARED")).toEqual({
       type: "ACTIVATE_TRAP",
-      cardId: "mirror_shield",
+      zone: 0,
     });
   });
 
   it("ia_dificil_ativa_armadilha_contra_dano_direto_grande", () => {
     const s = defending([], ["mirror_shield"], [field("dune_scout")], 8000);
-    expect(respond(s, attackAction("dune_scout", null), "ATTACK_DECLARED")).toEqual({
+    expect(respond(s, attackAction(0, null), "ATTACK_DECLARED")).toEqual({
       type: "ACTIVATE_TRAP",
-      cardId: "mirror_shield",
+      zone: 0,
     });
   });
 
   it("ia_dificil_nao_usa_destruicao_de_atacante_acima_do_limite_de_atk", () => {
     const s = defending([defense("tide_imp")], ["spike_pit"], [field("ash_dragon")]);
-    expect(respond(s, attackAction("ash_dragon", 0), "ATTACK_DECLARED")).toEqual({ type: "PASS_RESPONSE" });
+    expect(respond(s, attackAction(0, 0), "ATTACK_DECLARED")).toEqual({ type: "PASS_RESPONSE" });
   });
 
   it("ia_dificil_anula_invocacao_forte_e_ignora_a_fraca", () => {
     const s = defending([], ["hidden_snare"], [], 8000, ["storm_hawk", "tide_imp"], "MAIN_1");
-    const strong: Action = { type: "SUMMON_CARD", cardId: "storm_hawk", tributeCardIds: [], zone: 0 };
-    const weak: Action = { type: "SUMMON_CARD", cardId: "tide_imp", tributeCardIds: [], zone: 0 };
-    expect(respond(s, strong, "SUMMON")).toEqual({ type: "ACTIVATE_TRAP", cardId: "hidden_snare" });
+    const strong: Action = { type: "SUMMON_CARD", cardId: "storm_hawk", tributeZones: [], zone: 0 };
+    const weak: Action = { type: "SUMMON_CARD", cardId: "tide_imp", tributeZones: [], zone: 0 };
+    expect(respond(s, strong, "SUMMON")).toEqual({ type: "ACTIVATE_TRAP", zone: 0 });
     expect(respond(s, weak, "SUMMON")).toEqual({ type: "PASS_RESPONSE" });
   });
 
   it("ia_dificil_anula_magia_de_dano_letal", () => {
     const s = defending([], ["dark_veil"], [], 600, ["fire_bolt"], "MAIN_1");
     const bolt: Action = { type: "ACTIVATE_SPELL", cardId: "fire_bolt" };
-    expect(respond(s, bolt, "SPELL_ACTIVATION")).toEqual({ type: "ACTIVATE_TRAP", cardId: "dark_veil" });
+    expect(respond(s, bolt, "SPELL_ACTIVATION")).toEqual({ type: "ACTIVATE_TRAP", zone: 0 });
     const healthy = defending([], ["dark_veil"], [], 8000, ["fire_bolt"], "MAIN_1");
     expect(respond(healthy, bolt, "SPELL_ACTIVATION")).toEqual({ type: "PASS_RESPONSE" });
   });

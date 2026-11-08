@@ -4,7 +4,7 @@
 import { getCard } from "../cards.js";
 import { INITIAL_LIFE_POINTS } from "../createMatch.js";
 import type { HiddenMonsterView, PlayerView } from "../playerView.js";
-import type { Action, MonsterCard, MonsterOnField, MonsterPosition, SpellEffect } from "../types.js";
+import type { Action, Card, MonsterCard, MonsterOnField, MonsterPosition, SpellEffect } from "../types.js";
 import type { AiContext } from "./easy.js";
 import type { AiDecision } from "./types.js";
 
@@ -83,7 +83,13 @@ const spellEffect = (cardId: string): SpellEffect | null => {
  * Valor de atacar `targetZone` (null = direto) com `atk`: alvo destruído + dano causado
  * - dano sofrido - atacante perdido, com bônus de letal e ajuste pelo risco de contra-ataque letal.
  */
-const evalAttack = (view: PlayerView, attacker: MonsterOnField, atk: number, targetZone: number | null): number => {
+const evalAttack = (
+  view: PlayerView,
+  attacker: MonsterOnField,
+  attackerZone: number,
+  atk: number,
+  targetZone: number | null,
+): number => {
   const myLife = view.you.lifePoints;
   const oppLife = view.opponent.lifePoints;
   const target = targetZone === null ? null : (view.opponent.monsters[targetZone] ?? null);
@@ -117,8 +123,8 @@ const evalAttack = (view: PlayerView, attacker: MonsterOnField, atk: number, tar
   if (dmgToMe >= myLife) return -LETHAL;
   if (dmgToOpp >= oppLife) return LETHAL + atk;
 
-  const othersAtk = ownMonsters(view)
-    .filter((m) => m.cardId !== attacker.cardId && m.position === "ATTACK" && !m.hasAttacked)
+  const othersAtk = view.you.monsters
+    .flatMap((m, zone) => (m && zone !== attackerZone && m.position === "ATTACK" && !m.hasAttacked ? [m] : []))
     .reduce((sum, m) => sum + attackOf(m), 0);
   const oppLeft = oppUnits(view).length - (kill ? 1 : 0);
   const lifeWeight = isLowLife(view) ? 1.5 : 0.8;
@@ -133,9 +139,7 @@ const evalAttack = (view: PlayerView, attacker: MonsterOnField, atk: number, tar
 
   // Contra-ataque letal: premia a jogada que o desfaz e evita gastar um monstro (ou vida) enquanto continua exposto a ele.
   const oppAfter = view.opponent.monsters.flatMap((m, zone) => (m && !(kill && zone === targetZone) ? [unitOf(m)] : []));
-  const mineAfter = ownMonsters(view)
-    .filter((m) => !(lose && m.cardId === attacker.cardId))
-    .map(unitOf);
+  const mineAfter = view.you.monsters.flatMap((m, zone) => (m && !(lose && zone === attackerZone) ? [unitOf(m)] : []));
   const riskBase = counterDamage(oppUnits(view), ownUnits(view)) >= myLife;
   const riskAfter = counterDamage(oppAfter, mineAfter) >= myLife - dmgToMe;
   if (riskAfter && (lose || dmgToMe > 0)) score -= RISK;
@@ -149,30 +153,30 @@ const attackZones = (view: PlayerView): (number | null)[] => {
 };
 
 /** Melhor valor de ataque do monstro com `atk` (0 se não pode ou não compensa atacar). */
-const bestAttack = (view: PlayerView, m: MonsterOnField, atk: number): number => {
+const bestAttack = (view: PlayerView, m: MonsterOnField, attackerZone: number, atk: number): number => {
   if (view.turn <= 1 || m.position !== "ATTACK" || m.hasAttacked) return 0;
-  return Math.max(0, ...attackZones(view).map((zone) => evalAttack(view, m, atk, zone)));
+  return Math.max(0, ...attackZones(view).map((target) => evalAttack(view, m, attackerZone, atk, target)));
 };
 
 const scoreAttackAction = (view: PlayerView, a: Extract<Action, { type: "ATTACK" }>): number => {
-  const m = view.you.monsters.find((x) => x?.cardId === a.attackerCardId);
-  return m ? evalAttack(view, m, attackOf(m), a.targetZone) : -1;
+  const m = view.you.monsters[a.attackerZone];
+  return m ? evalAttack(view, m, a.attackerZone, attackOf(m), a.targetZone) : -1;
 };
 
 /** Valor do tributo: o de menor valor primeiro; com vida baixa os defensores valem mais (são mantidos). */
-const tributeCost = (view: PlayerView, tributes: string[]): number =>
-  tributes.reduce((sum, id) => {
-    const m = view.you.monsters.find((x) => x?.cardId === id);
+const tributeCost = (view: PlayerView, tributeZones: number[]): number =>
+  tributeZones.reduce((sum, zone) => {
+    const m = view.you.monsters[zone];
     if (!m) return sum;
-    return sum + monsterValue(id) * (isLowLife(view) && m.position === "DEFENSE" ? 2.5 : 1);
+    return sum + monsterValue(m.cardId) * (isLowLife(view) && m.position === "DEFENSE" ? 2.5 : 1);
   }, 0);
 
 const scoreSummon = (view: PlayerView, a: Extract<Action, { type: "SUMMON_CARD" | "SET_MONSTER" }>): number => {
   const card = monsterCard(a.cardId);
   if (!card) return -1;
   const value = monsterValue(a.cardId);
-  const cost = tributeCost(view, a.tributeCardIds);
-  if (a.tributeCardIds.length > 0 && value - cost < 500) return -1;
+  const cost = tributeCost(view, a.tributeZones);
+  if (a.tributeZones.length > 0 && value - cost < 500) return -1;
   const threat = strongestOppAttack(view);
   const weaker = card.attack < threat;
   if (a.type === "SUMMON_CARD") {
@@ -182,13 +186,13 @@ const scoreSummon = (view: PlayerView, a: Extract<Action, { type: "SUMMON_CARD" 
 };
 
 const scorePosition = (view: PlayerView, a: Extract<Action, { type: "CHANGE_POSITION" | "FLIP_SUMMON" }>): number => {
-  const m = view.you.monsters.find((x) => x?.cardId === a.cardId);
+  const m = view.you.monsters[a.zone];
   if (!m || (m.faceDown && a.type === "CHANGE_POSITION")) return -1;
   const atk = attackOf(m);
   const threat = strongestOppAttack(view);
   const hasOpp = oppUnits(view).length > 0;
   const canAttackNow = view.phase === "MAIN_1" && !m.hasAttacked;
-  const asAttacker = (): number => (canAttackNow ? bestAttack(view, { ...m, position: "ATTACK" }, atk) : 0);
+  const asAttacker = (): number => (canAttackNow ? bestAttack(view, { ...m, position: "ATTACK" }, a.zone, atk) : 0);
 
   if (m.position === "ATTACK") {
     // Só se protege quando não há ataque que compense e o monstro é mais fraco que a ameaça.
@@ -275,13 +279,15 @@ const scoreSpell = (ctx: Ctx, a: Spell): number => {
     case "BOOST_ATTACK": {
       const m = a.targetZone == null ? null : view.you.monsters[a.targetZone];
       if (!m || !main1) return -1;
-      const gain = bestAttack(view, m, attackOf(m) + effect.amount) - bestAttack(view, m, attackOf(m));
+      const zone = a.targetZone as number;
+      const gain = bestAttack(view, m, zone, attackOf(m) + effect.amount) - bestAttack(view, m, zone, attackOf(m));
       return gain - SPELL_COST;
     }
     case "BOOST_ALL_ATTACK": {
       if (!main1) return -1;
-      const gain = ownMonsters(view).reduce(
-        (sum, m) => sum + bestAttack(view, m, attackOf(m) + effect.amount) - bestAttack(view, m, attackOf(m)),
+      const gain = view.you.monsters.reduce(
+        (sum, m, zone) =>
+          m ? sum + bestAttack(view, m, zone, attackOf(m) + effect.amount) - bestAttack(view, m, zone, attackOf(m)) : sum,
         0,
       );
       return gain - SPELL_COST;
@@ -332,7 +338,7 @@ type AttackResponse = Extract<Action, { type: "ATTACK" }>;
 
 /** Armadilha contra um ataque: pesa o que o ataque causaria (alvo valioso, dano, letal) e o ganho em destruir o atacante. */
 const respondToAttack = (view: PlayerView, valid: Action[], attack: AttackResponse): Action | null => {
-  const attacker = view.opponent.monsters.find((m) => m?.cardId === attack.attackerCardId);
+  const attacker = view.opponent.monsters[attack.attackerZone];
   if (!attacker || attacker.cardId === null) return null;
   const atk = attackOf(attacker);
   const target = attack.targetZone === null ? null : (view.you.monsters[attack.targetZone] ?? null);
@@ -356,7 +362,7 @@ const respondToAttack = (view: PlayerView, valid: Action[], attack: AttackRespon
 
   const options = valid.flatMap((a) => {
     if (a.type !== "ACTIVATE_TRAP") return [];
-    const card = getCard(a.cardId);
+    const card = trapCardAt(view, a);
     const effect = card?.type === "TRAP" ? card.effect : null;
     if (effect?.kind === "NEGATE_ATTACK") return [{ a, benefit: harm }];
     if (effect?.kind === "DESTROY_ATTACKER" && (effect.maxAttack === undefined || atk <= effect.maxAttack)) {
@@ -369,13 +375,18 @@ const respondToAttack = (view: PlayerView, valid: Action[], attack: AttackRespon
   return lethal || best.benefit >= HARD_TRAP_MIN_BENEFIT ? best.a : null;
 };
 
-const trapKind = (a: Action): string | null => {
-  const card = a.type === "ACTIVATE_TRAP" ? getCard(a.cardId) : undefined;
+const trapCardAt = (view: PlayerView, a: Action): Card | undefined => {
+  const slot = a.type === "ACTIVATE_TRAP" ? view.you.spellTraps[a.zone] : null;
+  return slot ? getCard(slot.cardId) : undefined;
+};
+
+const trapKind = (view: PlayerView, a: Action): string | null => {
+  const card = trapCardAt(view, a);
   return card?.type === "TRAP" ? card.effect.kind : null;
 };
 
-const respondToSummon = (valid: Action[], cardId: string): Action | null =>
-  (monsterCard(cardId)?.attack ?? 0) >= 1800 ? (valid.find((a) => trapKind(a) === "NEGATE_SUMMON") ?? null) : null;
+const respondToSummon = (view: PlayerView, valid: Action[], cardId: string): Action | null =>
+  (monsterCard(cardId)?.attack ?? 0) >= 1800 ? (valid.find((a) => trapKind(view, a) === "NEGATE_SUMMON") ?? null) : null;
 
 const respondToSpell = (view: PlayerView, valid: Action[], spell: Spell): Action | null => {
   const effect = spellEffect(spell.cardId);
@@ -384,7 +395,7 @@ const respondToSpell = (view: PlayerView, valid: Action[], spell: Spell): Action
   const threatens =
     ((effect.kind === "DAMAGE" || effect.kind === "DRAIN") && effect.amount >= view.you.lifePoints) ||
     (effect.kind === "DESTROY_MONSTER" && mine !== null && monsterValue(mine.cardId) >= 1500);
-  return threatens ? (valid.find((a) => trapKind(a) === "NEGATE_SPELL") ?? null) : null;
+  return threatens ? (valid.find((a) => trapKind(view, a) === "NEGATE_SPELL") ?? null) : null;
 };
 
 const chooseResponse = (view: PlayerView, valid: Action[]): Action | null => {
@@ -392,7 +403,7 @@ const chooseResponse = (view: PlayerView, valid: Action[]): Action | null => {
   if (!pending?.canRespond) return null;
   const { action } = pending;
   if (pending.trigger === "ATTACK_DECLARED" && action.type === "ATTACK") return respondToAttack(view, valid, action);
-  if (pending.trigger === "SUMMON" && action.type === "SUMMON_CARD") return respondToSummon(valid, action.cardId);
+  if (pending.trigger === "SUMMON" && action.type === "SUMMON_CARD") return respondToSummon(view, valid, action.cardId);
   if (pending.trigger === "SPELL_ACTIVATION" && action.type === "ACTIVATE_SPELL") return respondToSpell(view, valid, action);
   return null;
 };

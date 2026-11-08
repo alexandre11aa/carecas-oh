@@ -198,7 +198,7 @@ describe("IA joga no servidor", () => {
     });
     const summon = ctx.service.submitAction({
       connectionId: "a",
-      action: { type: "SUMMON_CARD", cardId: "dune_scout", tributeCardIds: [], zone: 0 },
+      action: { type: "SUMMON_CARD", cardId: "dune_scout", tributeZones: [], zone: 0 },
     });
     expect(summon.ok).toBe(true);
     const open = ctx.room(code).match!;
@@ -230,7 +230,7 @@ describe("IA joga no servidor", () => {
     });
     const attack = ctx.service.submitAction({
       connectionId: "a",
-      action: { type: "ATTACK", attackerCardId: "dune_scout", targetZone: null },
+      action: { type: "ATTACK", attackerZone: 0, targetZone: null },
     });
     expect(attack.ok).toBe(true);
     expect(ctx.room(code).match!.state.pendingResponse?.responder).toBe("P2");
@@ -276,7 +276,7 @@ describe("fim de partida contra a IA", () => {
     });
     const result = ctx.service.submitAction({
       connectionId: "a",
-      action: { type: "ATTACK", attackerCardId: "dune_scout", targetZone: null },
+      action: { type: "ATTACK", attackerZone: 0, targetZone: null },
     });
     expect(result.ok).toBe(true);
     expect(ctx.room(code).match!.outcome).toEqual({ winner: "P1", reason: "LIFE_ZERO" });
@@ -369,7 +369,7 @@ describe("limite de ações e fallback da IA", () => {
     const ctx = setup("easy");
     const created = createStartedBy(ctx, "bot");
     const code = created.room.code;
-    ai.override = () => ({ action: { type: "ATTACK", attackerCardId: "nao_existe", targetZone: null }, seed: 5 });
+    ai.override = () => ({ action: { type: "ATTACK", attackerZone: 4, targetZone: null }, seed: 5 });
     ctx.fake.advance(AI_DELAY_MS);
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining("IA recusada pela engine"));
     expect(ctx.moves).toHaveLength(1);
@@ -384,7 +384,7 @@ describe("limite de ações e fallback da IA", () => {
     const created = createStartedBy(ctx, "bot");
     const code = created.room.code;
     ctx.forceState(code, (s) => ({ ...s, phase: "MAIN_1", turn: 4 }));
-    ai.override = () => ({ action: { type: "ACTIVATE_TRAP", cardId: "nao_existe" }, seed: 5 });
+    ai.override = () => ({ action: { type: "ACTIVATE_TRAP", zone: 4 }, seed: 5 });
     ctx.fake.advance(AI_DELAY_MS);
     expect(console.error).toHaveBeenCalledTimes(1);
     const match = ctx.room(code).match!;
@@ -403,10 +403,10 @@ describe("limite de ações e fallback da IA", () => {
     });
     ctx.service.submitAction({
       connectionId: "a",
-      action: { type: "SUMMON_CARD", cardId: "dune_scout", tributeCardIds: [], zone: 0 },
+      action: { type: "SUMMON_CARD", cardId: "dune_scout", tributeZones: [], zone: 0 },
     });
     expect(ctx.room(code).match!.state.pendingResponse?.responder).toBe("P2");
-    ai.override = () => ({ action: { type: "ACTIVATE_TRAP", cardId: "nao_existe" }, seed: 5 });
+    ai.override = () => ({ action: { type: "ACTIVATE_TRAP", zone: 4 }, seed: 5 });
     ctx.fake.advance(AI_DELAY_MS);
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining("IA recusada pela engine"));
     expect(ctx.moves[0]!.deliveries[0]!.events.some((e) => e.type === "RESPONSE_PASSED")).toBe(true);
@@ -464,7 +464,7 @@ describe("estado interno da IA", () => {
     });
     ctx.service.submitAction({
       connectionId: "a",
-      action: { type: "ATTACK", attackerCardId: "dune_scout", targetZone: null },
+      action: { type: "ATTACK", attackerZone: 0, targetZone: null },
     });
     expect(ctx.room(human.room.code).match!.outcome?.winner).toBe("P1");
     expect(ctx.service.aiRunCount()).toBe(0);
