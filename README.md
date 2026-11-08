@@ -5,7 +5,7 @@ Jogo de cartas 1x1 para navegador, em 3D simples, rápido de jogar e inspirado n
 ## Como se joga
 
 - Dois jogadores, cada um com 4000 pontos de vida.
-- Existem 6 decks fixos de 10 cartas: Agressivo, Defensivo, Mágico, Controle, Equilibrado e Estratégico. Cada jogador escolhe o seu deck em segredo a cada partida; os decks só são revelados quando a partida começa (os dois podem escolher o mesmo).
+- Existem 6 decks fixos de 20 cartas (as cartas de cada deck repetidas: a magia exclusiva entra 1 vez e as demais de 1 a 3 vezes): Agressivo, Defensivo, Mágico, Controle, Equilibrado e Estratégico. Cada jogador escolhe o seu deck em segredo a cada partida; os decks só são revelados quando a partida começa (os dois podem escolher o mesmo).
 - Mão inicial de 4 cartas; as outras 6 ficam no deck. Perde quem não puder comprar quando for obrigado a comprar, ou quem tiver a vida zerada.
 - Turno em fases: Compra, Principal 1, Batalha, Principal 2 e Fim. No primeiro turno da partida ninguém ataca.
 - **Monstros:** 5 zonas por jogador e 1 invocação normal por turno (ou baixar 1 monstro em defesa virada). Níveis 1 a 4 não exigem tributo, 5 e 6 exigem 1 tributo, 7 ou mais exigem 2 tributos (monstros do próprio campo, enviados ao cemitério). Cada monstro pode mudar de posição uma vez por turno e atacar uma vez por turno; ataque direto só quando o oponente não tem monstros.
