@@ -81,8 +81,8 @@ const backTexture = (): CanvasTexture => {
 };
 
 /**
- * Material compartilhado por identidade de carta; `null` é o verso (PNG único `CARD_BACK_PATH`, nunca a imagem da frente; canvas enquanto carrega ou sem o arquivo).
- * A frente começa com o canvas provisório; se o PNG existir, ele substitui o mapa do próprio material
+ * Material compartilhado por identidade de carta; `null` é o verso (WebP/PNG único `CARD_BACK_PATH`, nunca a imagem da frente; canvas enquanto carrega ou sem o arquivo).
+ * A frente começa com o canvas provisório; se o WebP/PNG existir, ele substitui o mapa do próprio material
  * ao terminar de carregar (sem texto sobreposto: a arte já é a carta inteira). Como o material é por
  * carta e não por malha, uma imagem tardia nunca atinge a carta errada. Em 404 permanece o canvas.
  */
@@ -94,7 +94,7 @@ const materialFor = (cardId: string | null): MeshLambertMaterial => {
     map.colorSpace = SRGBColorSpace;
     material = new MeshLambertMaterial({ map });
     materials.set(key, material);
-    // Verso: um único material (chave "back") compartilhado por todas as cartas viradas; usa o PNG do dono.
+    // Verso: um único material (chave "back") compartilhado por todas as cartas viradas; usa o WebP/PNG do dono.
     const url = cardId === null ? CARD_BACK_PATH : faceImageUrl(cardId);
     if (url) {
       const target = material;

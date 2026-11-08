@@ -232,7 +232,8 @@ src/client/
   main.ts               escolhe a tela pela URL (rotas via `routes.ts`, navegação com `history.pushState` + `popstate`)
   state.ts              último estado recebido do servidor
   style.css
-  public/cards/         imagens das cartas (PNG 1030:1500)
+  public/cards/         imagens das cartas (WebP otimizado, proporção 1030:1500; PNG nas artes provisórias ainda sem arquivo)
+  public/sounds/        efeitos sonoros WAV mono PCM 16 bits, 32 kHz
   public/textures/      fundo e mesa (PNG, opcionais)
   public/decks/         imagens dos botões de deck da sala de espera (PNG, <deckId>.png)
   public/favicon-32.png, icon-192.png, apple-touch-icon.png   ícones da aba (logo reduzido, na raiz de public/; referenciados em index.html com caminho absoluto)
@@ -283,6 +284,8 @@ src/client/
     surfaces.ts         lógica pura: textura x cor do fundo e da mesa, opacidade das zonas e enquadramento do fundo
   animations/           animações GSAP
     hudEffects.ts       GSAP do HUD: aviso de evento, variação flutuante e barra de vida
+    matchFeedback.ts    lógica pura: eventos filtrados + visões anterior/atual => passos de som, aviso e efeito, sem inferir informação oculta
+    matchAudio.ts       Web Audio por tela: cache após gesto, botão de som persistente, limite de vozes e descarte
 ```
 
 ### Padrão de código
@@ -305,7 +308,11 @@ src/client/
 - Monstros invocados aparecem como uma imagem em pé sobre a carta, sem modelos 3D.
 - Não adicione modelos 3D, motor de física ou pós-processamento sem permissão.
 - Menus, mão, botões e textos longos ficam em HTML sobre a cena.
-- Reaproveite geometrias, materiais e texturas entre cartas. Imagens de cartas usam PNG.
+- Reaproveite geometrias, materiais e texturas entre cartas. Artes completas usam WebP de alta qualidade, com nomes derivados do nome atual da carta em snake_case sem acentos; os ids da engine permanecem estáveis. PNG continua aceito para artes ainda não convertidas e texturas.
+- Originais ficam em `docs/decks/<deckId>/`, com o verso compartilhado em `docs/decks/shared/`. Não são servidos pelo Vite nem enviados no contexto Docker (`.dockerignore`). `docs/decks/optimize.py` gera os WebP sem reduzir a resolução; detalhes em `docs/decks/README.md`.
+- `scene/battleEffects.ts` usa geometrias simples e GSAP para projéteis, escudos, impactos e cartas em direção ao cemitério. Não usa modelos, física nem pós-processamento; os recursos transitórios são liberados ao terminar/cancelar.
+- Sons e efeitos seguem a ordem dos eventos já filtrados. O cliente não calcula dano ou destruição. Quando o evento não identifica uma zona de forma inequívoca (cópias saindo juntas), usa origem neutra, sem escolher uma cópia arbitrariamente. O estado permanente da mesa continua sendo a última visão do servidor.
+- O botão de som fica no HUD, persiste a escolha local e só desbloqueia áudio após gesto do usuário. A fila é cancelada na reconexão, revanche, saída e ao ocultar a aba; não reapresenta eventos antigos. Fila acima de 32 passos é descartada para restaurar o estado atual. Movimento reduzido substitui deslocamentos 3D por realces breves e desativa a vinheta de dano.
 - A cena apenas representa o estado: animações não alteram regras nem decidem resultados.
 - Ao receber um novo estado, a interface executa as animações em ordem e termina mostrando exatamente o estado do servidor.
 - Uma reconexão interrompe as animações e restaura diretamente o estado atual.

@@ -27,8 +27,13 @@ import { CAMERA_TARGET, cameraDistanceScale, cameraPosition } from "./framing.js
 import { BACKGROUND_GRADIENT, isValidGradient, zoneOuterSize } from "./tableDesign.js";
 import { BACKGROUND_PATH, TABLE_MAX_TEXTURE_WIDTH, TABLE_PATH } from "./texturePaths.js";
 import { loadTexture } from "./textures.js";
+import { createBattleEffects } from "./battleEffects.js";
+import type { BoardEffect } from "../animations/matchFeedback.js";
 
 export type MatchScene = {
+  playEffects: (effects: readonly BoardEffect[]) => void;
+  clearEffects: () => void;
+  refreshHover: () => void;
   /** Reflete exatamente o estado recebido (cartas ausentes saem da mesa). */
   setView: (view: PlayerView) => void;
   /** Destaca slots (chaves de `slotKey`) sobre a mesa; lista vazia limpa o destaque. */
@@ -73,6 +78,7 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
   scene.add(light);
   // Vórtice decorativo atrás da mesa; se o canvas falhar, vale o fundo atual.
   const reducedMotion = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const battleEffects = createBattleEffects(scene, reducedMotion);
   let blackHole: ReturnType<typeof createBlackHole> = null;
   try {
     blackHole = createBlackHole(reducedMotion);
@@ -137,10 +143,15 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
   const tablePlane = new Plane(new Vector3(0, 1, 0), 0);
   let pickHandler: ((slot: Slot) => void) | null = null;
   let hoverHandler: ((slot: Slot | null) => void) | null = null;
-  const slotAt = (event: PointerEvent): Slot | null => {
+  const slotAt = (event: { clientX: number; clientY: number }): Slot | null => {
     const rect = renderer.domElement.getBoundingClientRect();
     const ndc = new Vector2(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
     raycaster.setFromCamera(ndc, camera);
+    // A carta em defesa ultrapassa a largura da zona. Intersecta a malha real antes
+    // do plano das zonas; o hover independe do carregamento da textura.
+    scene.updateMatrixWorld();
+    const hit = raycaster.intersectObjects([...meshes.values()], false)[0];
+    if (hit) return allSlots().find((slot) => slot.key === hit.object.userData.slotKey) ?? null;
     const point = raycaster.ray.intersectPlane(tablePlane, new Vector3());
     return point ? pickSlot(point.x, point.z) : null;
   };
@@ -149,8 +160,12 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
     hoverHandler?.(slot); // toque (sem hover) também mostra o detalhe
     if (slot) pickHandler?.(slot);
   };
-  const onPointerMove = (event: PointerEvent) => hoverHandler?.(slotAt(event));
-  const onPointerLeave = () => hoverHandler?.(null);
+  let pointer: { clientX: number; clientY: number } | null = null;
+  const onPointerMove = (event: PointerEvent) => {
+    pointer = { clientX: event.clientX, clientY: event.clientY };
+    hoverHandler?.(slotAt(event));
+  };
+  const onPointerLeave = () => { pointer = null; hoverHandler?.(null); };
   renderer.domElement.addEventListener("pointerdown", onPointerDown);
   renderer.domElement.addEventListener("pointermove", onPointerMove);
   renderer.domElement.addEventListener("pointerleave", onPointerLeave);
@@ -163,6 +178,9 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
   loop();
 
   return {
+    playEffects: battleEffects.play,
+    clearEffects: battleEffects.clear,
+    refreshHover: () => { if (pointer) hoverHandler?.(slotAt(pointer)); },
     setView: (view) => {
       const placements = layoutBoard(view);
       const keep = new Set(placements.map((p) => p.key));
@@ -180,7 +198,9 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
           scene.add(mesh);
         }
         updateCardMesh(mesh, placement);
+        mesh.userData.slotKey = placement.key;
       }
+      if (pointer) hoverHandler?.(slotAt(pointer));
     },
     setHighlights: (keys) => {
       const active = new Set(keys);
@@ -209,6 +229,7 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
       renderer.domElement.removeEventListener("pointerleave", onPointerLeave);
       markerGeometry.dispose();
       markerMaterial.dispose();
+      battleEffects.dispose();
       table.dispose();
       if (blackHole) {
         scene.remove(blackHole.group);

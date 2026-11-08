@@ -6,6 +6,12 @@ import gsap from "gsap";
 export const playNotice = (target: HTMLElement, hold: number, fadeOut: boolean, done: () => void): gsap.core.Timeline => {
   gsap.killTweensOf(target);
   const timeline = gsap.timeline({ onComplete: done });
+  if (prefersReducedMotion()) {
+    timeline.set(target, { opacity: 1, scale: 1, y: 0 });
+    timeline.to({}, { duration: hold });
+    if (fadeOut) timeline.set(target, { opacity: 0 });
+    return timeline;
+  }
   timeline.fromTo(target, { opacity: 0, scale: 0.7, y: 12 }, { opacity: 1, scale: 1, y: 0, duration: 0.25, ease: "back.out(2)" });
   timeline.to({}, { duration: hold });
   if (fadeOut) timeline.to(target, { opacity: 0, duration: 0.2 });
@@ -21,14 +27,14 @@ export const floatDelta = (anchor: HTMLElement, text: string, className: string)
   gsap.fromTo(
     floating,
     { opacity: 1, y: 0 },
-    { opacity: 0, y: -40, duration: 1.4, ease: "power1.out", onComplete: () => floating.remove() },
+    { opacity: 0, y: prefersReducedMotion() ? 0 : -40, duration: 1.4, ease: "power1.out", onComplete: () => floating.remove() },
   );
 };
 
 /** Anima o número e a barra de vida até `target`; `onFrame` recebe o valor corrente (inteiro). */
 export const tweenLife = (holder: { value: number }, target: number, onFrame: (value: number) => void): void => {
   gsap.killTweensOf(holder);
-  gsap.to(holder, { value: target, duration: 0.8, ease: "power1.inOut", onUpdate: () => onFrame(Math.round(holder.value)), onComplete: () => onFrame(target) });
+  gsap.to(holder, { value: target, duration: prefersReducedMotion() ? 0 : 0.45, ease: "power1.inOut", onUpdate: () => onFrame(Math.round(holder.value)), onComplete: () => onFrame(target) });
 };
 
 /** Para a animação de vida e fixa o valor final. */
@@ -40,10 +46,28 @@ export const snapLife = (holder: { value: number }, target: number, onFrame: (va
 
 /** Realce curto de um contador (ex.: cemitério). */
 export const flashCounter = (target: HTMLElement): void => {
-  gsap.fromTo(target, { scale: 1.6, color: "#ffd34d" }, { scale: 1, color: "#eeeeee", duration: 0.8, ease: "power2.out", clearProps: "color,transform" });
+  gsap.killTweensOf(target);
+  gsap.fromTo(target, { scale: prefersReducedMotion() ? 1 : 1.6, color: "#ffd34d" }, { scale: 1, color: "#eeeeee", duration: 0.45, ease: "power2.out", clearProps: "color,transform" });
+};
+
+/** Interrompe os efeitos temporários do HUD ao reconectar ou destruir a tela. */
+export const stopHudEffects = (root: HTMLElement): void => {
+  for (const delta of root.querySelectorAll(".life-delta")) { gsap.killTweensOf(delta); delta.remove(); }
+  for (const counter of root.querySelectorAll<HTMLElement>(".graveyard-count")) {
+    gsap.killTweensOf(counter);
+    counter.style.removeProperty("transform");
+    counter.style.removeProperty("color");
+  }
 };
 
 const prefersReducedMotion = (): boolean => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/** Vinheta curta de dano, sem deslocar câmera ou interface. Movimento reduzido só mantém o aviso textual. */
+export const playDamageFlash = (target: HTMLElement): gsap.core.Timeline => {
+  const timeline = gsap.timeline();
+  if (!prefersReducedMotion()) timeline.fromTo(target, { opacity: 0.65 }, { opacity: 0, duration: 0.5, ease: "power2.out" });
+  return timeline;
+};
 
 /** Entrada de um toast (desliza e aparece); sem animação com `prefers-reduced-motion`. */
 export const playToastIn = (target: HTMLElement): void => {

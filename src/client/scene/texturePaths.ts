@@ -3,8 +3,8 @@
 import type { PlayerView } from "../../engine/playerView.js";
 import { faceImageUrl } from "./cardArt.js";
 
-/** Verso das cartas (PNG 1030x1500; sem o arquivo, usa o desenho provisório em canvas). */
-export const CARD_BACK_PATH = "/cards/back.png";
+/** Verso das cartas (WebP 1030x1500; sem o arquivo, usa o desenho provisório em canvas). */
+export const CARD_BACK_PATH = "/cards/verso.webp";
 /** Fundo da página/cena, recomendado 16:9 (opcional). */
 export const BACKGROUND_PATH = "/textures/background.png";
 /** Textura da mesa, recomendada 16:11, igual à proporção da mesa (opcional). */

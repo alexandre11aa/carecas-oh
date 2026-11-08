@@ -8,3 +8,4 @@ dist
 Dockerfile
 docker-compose.yml
 .dockerignore
+docs/decks
