@@ -196,9 +196,9 @@ describe("IA nivel medio: posicao", () => {
 
 describe("IA nivel medio: magias", () => {
   it("ia_medio_cura_so_com_vida_abaixo_de_50_por_cento", () => {
-    const baixa = setup({ hand: ["healing_spring"], life: 3999 });
+    const baixa = setup({ hand: ["healing_spring"], life: 1999 });
     expect(decide(baixa)).toEqual({ type: "ACTIVATE_SPELL", cardId: "healing_spring" });
-    const meio = setup({ hand: ["healing_spring"], life: 4000 });
+    const meio = setup({ hand: ["healing_spring"], life: 2000 });
     expect(decide(meio)).toEqual({ type: "NEXT_PHASE" });
   });
 

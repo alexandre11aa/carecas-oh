@@ -33,7 +33,7 @@ describe("GUIDE_SECTIONS", () => {
   it("documenta_o_limite_de_30_segundos_e_a_tabela_de_tributo", () => {
     const turno = GUIDE_SECTIONS.find((s) => s.id === "turno");
     const text = JSON.stringify(turno?.details);
-    expect(text).toContain("30 segundos");
+    expect(text).toContain("100 segundos");
     const monstros = GUIDE_SECTIONS.find((s) => s.id === "monstros");
     const table = monstros?.details.find((b) => b.kind === "table");
     expect(table).toMatchObject({ rows: [["1 a 4", "Nenhum"], ["5 a 6", expect.any(String)], ["7 ou mais", expect.any(String)]] });
@@ -46,7 +46,7 @@ describe("GUIDE_SECTIONS", () => {
     expect(text).toContain("fixos");
     expect(text).toContain("mesmo deck");
     expect(text).toContain("secreta");
-    expect(text).toContain("5 cartas aleatórias");
+    expect(text).toContain("4 cartas aleatórias");
     const table = decks?.details.find((b) => b.kind === "table");
     expect(table).toMatchObject({
       rows: [

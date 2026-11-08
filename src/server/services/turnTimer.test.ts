@@ -39,7 +39,7 @@ const other = (side: "P1" | "P2") => (side === "P1" ? "P2" : "P1");
 const forA = (deliveries: Delivery[]) => deliveries.find((d) => d.connectionId === "a")!;
 
 describe("prazo do turno", () => {
-  it("a_partida_comeca_com_prazo_de_30s_e_hora_do_servidor_nas_entregas", () => {
+  it("a_partida_comeca_com_prazo_de_100s_e_hora_do_servidor_nas_entregas", () => {
     const { started, match } = setup();
     if (!started.ok) throw new Error();
     expect(match().turnDeadline).toBe(START + TURN_TIME_MS);
@@ -81,7 +81,7 @@ describe("prazo do turno", () => {
     expect(match().state.turn).toBe(4);
   });
 
-  it("acao_valida_antes_do_prazo_renova_os_30s", () => {
+  it("acao_valida_antes_do_prazo_renova_os_100s", () => {
     const { service, expiries, match, actor } = setup();
     vi.advanceTimersByTime(20_000);
     const result = service.submitAction({ connectionId: actor(), action: { type: "NEXT_PHASE" } });
@@ -90,11 +90,11 @@ describe("prazo do turno", () => {
     expect(match().turnDeadline).toBe(START + 20_000 + TURN_TIME_MS);
     expect(forA(result.deliveries).turnDeadline).toBe(START + 20_000 + TURN_TIME_MS);
     expect(forA(result.deliveries).serverNow).toBe(START + 20_000);
-    // O prazo original (30 s) passa sem efeito.
-    vi.advanceTimersByTime(15_000);
+    // O prazo original (100 s) passa sem efeito.
+    vi.advanceTimersByTime(85_000);
     expect(expiries).toHaveLength(0);
     expect(match().state.turn).toBe(1);
-    // O novo prazo vence 30 s depois da ação.
+    // O novo prazo vence 100 s depois da ação.
     vi.advanceTimersByTime(15_000);
     expect(expiries).toHaveLength(1);
     expect(match().state.turn).toBe(2);
@@ -205,7 +205,7 @@ describe("prazo do turno", () => {
     expect(vi.getTimerCount()).toBe(1);
     expect(match().turnDeadline).toBe(START + 10_000 + TURN_TIME_MS);
     expect(rematch.deliveries.every((d) => d.turnDeadline === START + 10_000 + TURN_TIME_MS)).toBe(true);
-    // O prazo velho (START + 30 s) não dispara; o novo, sim.
+    // O prazo velho (START + 100 s) não dispara; o novo, sim.
     vi.advanceTimersByTime(TURN_TIME_MS - 10_000);
     expect(expiries).toHaveLength(0);
     vi.advanceTimersByTime(10_000);

@@ -70,7 +70,7 @@ describe("room:createAi", () => {
     expect(room).toMatchObject({ hasMatch: true, vsAi: true, aiLevel: "easy", players: [{ nickname: "Ana", connected: true, ready: false }] });
     expect(token).toEqual(expect.any(String));
     expect(view.viewer).toBe("P1");
-    expect(view.you.hand).toHaveLength(5);
+    expect(view.you.hand).toHaveLength(4);
     expect(events).toEqual([]);
     expect(names(a)).toEqual(["room:created", "match:state"]);
   });
@@ -149,7 +149,7 @@ describe("room:createAi", () => {
     const a = await client();
     const { view } = await createAi(a);
     expect(JSON.stringify(logs.get(a))).not.toMatch(/seed|botToken/i);
-    expect(view.opponent.handCount).toBe(5);
+    expect(view.opponent.handCount).toBe(4);
     expect(view.opponent).not.toHaveProperty("hand");
     expect(view.opponent).not.toHaveProperty("deck");
   });

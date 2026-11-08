@@ -262,8 +262,8 @@ describe("IA nivel dificil: magias", () => {
 
   it("ia_dificil_cura_so_com_vida_baixa", () => {
     const hand = ["healing_spring"];
-    expect(decide(setup({ hand, life: 7000 }))).toEqual({ type: "NEXT_PHASE" });
-    expect(decide(setup({ hand, life: 3000 }))).toEqual({ type: "ACTIVATE_SPELL", cardId: "healing_spring" });
+    expect(decide(setup({ hand, life: 3500 }))).toEqual({ type: "NEXT_PHASE" });
+    expect(decide(setup({ hand, life: 1500 }))).toEqual({ type: "ACTIVATE_SPELL", cardId: "healing_spring" });
   });
 
   it("ia_dificil_cura_para_evitar_a_derrota", () => {
@@ -295,11 +295,11 @@ describe("IA nivel dificil: invocacao e tributo", () => {
 
   it("ia_dificil_mantem_o_defensor_quando_a_vida_esta_baixa", () => {
     const mine = [defense("stone_sentinel"), field("crystal_bat")];
-    expect(decide(setup({ hand: ["storm_hawk"], mine, life: 8000 }))).toMatchObject({
+    expect(decide(setup({ hand: ["storm_hawk"], mine, life: 4000 }))).toMatchObject({
       cardId: "storm_hawk",
       tributeCardIds: ["stone_sentinel"],
     });
-    expect(decide(setup({ hand: ["storm_hawk"], mine, life: 2500 }))).toMatchObject({
+    expect(decide(setup({ hand: ["storm_hawk"], mine, life: 1200 }))).toMatchObject({
       cardId: "storm_hawk",
       tributeCardIds: ["crystal_bat"],
     });
