@@ -23,3 +23,5 @@ export type {
 } from "./playerView.js";
 export { eventView } from "./eventView.js";
 export type { EventView } from "./eventView.js";
+export { AI_LEVELS, MAX_AI_ACTIONS_PER_TURN, chooseAiAction, playAiTurn } from "./ai/index.js";
+export type { AiDecision, AiInput, AiLevel, AiTurnResult, AiTurnStatus } from "./ai/index.js";

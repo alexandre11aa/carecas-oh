@@ -24,7 +24,7 @@ Guia para agentes (e devs) que escrevem código neste repositório. Siga a arqui
 
 ## Visão geral
 
-Jogo de cartas 1x1 para navegador, em 3D simples, rápido de jogar e inspirado nos jogos antigos de Yu-Gi-Oh, com cartas próprias. Não há contas: um jogador cria uma sala e o outro entra com um código ou link.
+Jogo de cartas 1x1 para navegador, em 3D simples, rápido de jogar e inspirado nos jogos antigos de Yu-Gi-Oh, com cartas próprias. Não há contas: um jogador cria uma sala e o outro entra com um código ou link, ou o jogador duela sozinho contra a IA do servidor.
 
 O projeto é um **monolito em TypeScript**: frontend, backend e regras do jogo ficam em um único projeto, com um único `Dockerfile`, um único `docker-compose.yml` e um único serviço.
 
@@ -63,7 +63,7 @@ Seguem as regras do Yu-Gi-Oh, com monstros, magias, armadilhas e tributo.
 - Existem 6 decks fixos de 10 cartas (`DECKS` em `decks.ts`): Agressivo 6/3/1, Defensivo 5/2/3, Mágico 4/5/1, Controle 4/3/3, Equilibrado 5/3/2 e Estratégico 5/4/1 (monstros/magias/armadilhas). Cada carta pertence a um só deck e cada deck tem ao menos uma magia de efeito exclusivo. Cada jogador usa um deck (os dois podem usar o mesmo), embaralhado com a semente do estado.
 - Mão inicial de 5 cartas; as outras 5 ficam no deck.
 - Perde quem não puder comprar quando for obrigado a comprar.
-- Cada turno tem limite de 30 segundos para o jogador da vez (ou o defensor, se houver janela de resposta aberta). O prazo recomeça a cada ação válida. Ao expirar, o servidor passa a resposta pendente ou encerra o turno. O relógio vive no servidor (`roomService`), nunca na engine.
+- Cada turno tem limite de 30 segundos para o jogador da vez (ou o defensor, se houver janela de resposta aberta). O prazo recomeça a cada ação válida. Ao expirar, o servidor passa a resposta pendente ou encerra o turno. O relógio vive no servidor (`roomService`), nunca na engine. Contra a IA o relógio vale só para o humano: na vez da IA (inclusive na janela de resposta dela) não há prazo.
 - Vence também quem zerar os pontos de vida do oponente.
 
 ### Fases do turno
@@ -95,7 +95,20 @@ Seguem as regras do Yu-Gi-Oh, com monstros, magias, armadilhas e tributo.
 2. **Sala:** os dois jogadores ficam na sala de espera.
 3. **Pronto:** cada jogador escolhe um dos 6 decks fixos e marca "pronto"; a partida começa quando ambos estiverem prontos. A escolha é secreta até o início (ver Backend).
 4. **Partida 3D:** jogada conforme as regras acima, na cena 3D com interface em HTML.
-5. **Fim:** exibe o resultado e oferece **revanche** (reembaralha: reembaralha o deck de cada jogador com nova semente, e reinicia a vida em 8000) ou **voltar ao lobby**.
+5. **Fim:** exibe o resultado e oferece **revanche** (reembaralha o deck de cada jogador com nova semente, troca os lados e reinicia a vida em 8000) ou **voltar ao lobby**.
+
+### Modo contra a IA
+
+Alternativa ao PvP, escolhida na home pelo botão "Duelar com IA". As regras do jogo são as mesmas; muda o fluxo:
+
+1. **Home:** o jogador informa o apelido, escolhe o nível (Fácil, Médio ou Difícil) e o seu deck entre os 6 fixos, e inicia o duelo (`room:createAi`).
+2. **Sem sala de espera:** a partida começa na hora. O humano é o P1 e a IA o P2; quem joga primeiro sai da semente. A sala não aparece no lobby, não aceita segundo jogador e não tem "pronto".
+3. **Deck da IA:** sorteado entre os 6 decks no servidor e nunca enviado antes da partida; depois do início ele é público, como em qualquer partida (`opponent.deckId`).
+4. **Níveis:** Fácil joga ações válidas com pouca estratégia (invoca o que consegue, usa magia e ataque ao acaso, ativa armadilha por sorteio); Médio aplica heurísticas simples e determinísticas (ataca só quando vence, cura com vida baixa); Difícil pontua cada ação uma jogada à frente e busca o dano letal. Detalhes na seção "IA".
+5. **A IA joga no servidor:** uma ação por vez, com atraso de 700 ms (`aiDelayMs`) entre as ações para o humano acompanhar, sempre por `applyAction`. Ela decide lendo só o `playerView` do próprio lado: nunca vê a mão do humano, a ordem do deck nem a semente.
+6. **Tempo:** o limite de 30 s vale só para o humano; na vez da IA (`turnDeadline: null`) não corre prazo.
+7. **Fim:** a vitória ou derrota segue as regras normais. A IA aceita sempre a revanche: o humano escolhe o deck de novo, os lados são trocados, o nível é mantido e a IA recebe um novo deck sorteado.
+8. **Saída:** sair da sala (no meio da partida ou depois do fim) é desistência e remove a sala. Perder a conexão não é: o lugar é mantido para a reconexão por token.
 
 ## Engine (`src/engine/`)
 
@@ -106,13 +119,25 @@ src/engine/
   cards.ts              definições das cartas, tipadas
   decks.ts              os 6 decks fixos de 10 cartas (`DECKS`, `DeckId`, `getDeck`)
   types.ts              tipos de cartas, ações e estado da partida
+  rng.ts                gerador pseudoaleatório determinístico (`nextRandom`), usado no sorteio e na IA
   rules/                turnos, invocação e combate, um arquivo por assunto
+  ai/                   IA (decisão pura): types.ts, candidates.ts, easy.ts, medium.ts, hard.ts, choose.ts (`chooseAiAction`, `playAiTurn`), index.ts
   createMatch.ts        cria o estado inicial a partir dos decks e da semente
   applyAction.ts        (estado, ação) => resultado
   playerView.ts         filtra o estado visível a cada jogador
   eventView.ts          filtra os eventos (GameEvent) visíveis a cada jogador
   index.ts              exportações públicas
 ```
+
+### IA (`src/engine/ai/`)
+
+- Pasta aprovada pelo dono (issue #205): a decisão da IA é pura e determinística como o resto da engine; o servidor só orquestra tempo e envio.
+- `chooseAiAction({ state, side, level, seed })` devolve `{ action, seed }`. Lê o estado apenas por `playerView(state, side)` (nunca a mão do oponente, a ordem dos decks nem a semente do estado), gera candidatos a partir da visão, valida cada um com `applyAction` e só devolve ação aceita. `action` é nulo apenas quando o lado não precisa agir. A aleatoriedade usa `rng.ts` com a semente própria da IA.
+- `playAiTurn` joga um turno com limite de ações (`MAX_AI_ACTIONS_PER_TURN`, 40) e sempre o termina; para antes se abrir uma janela de resposta do oponente ou se a partida acabar.
+- `AiLevel = "easy" | "medium" | "hard"`; um arquivo por nível (`easy.ts`, `medium.ts`, `hard.ts`).
+- Médio (`medium.ts`): heurísticas determinísticas, sem aleatoriedade (devolve a mesma semente). Invoca o monstro de maior ATK (tributando os mais fracos, só se superar os tributados) ou baixa em defesa virada sem vantagem; ataca só quando vence (ATK com bônus > ATK ou DEF do alvo; monstro virado só com ATK > 2000; direto sem monstros do oponente); muda de posição conforme o monstro mais forte visível do oponente; cura abaixo de 50% de vida, reforça ATK só quando isso garante a vitória no ataque, destrói o monstro mais forte alcançável, compra e causa dano; ativa armadilha de ataque se o atacante supera o melhor defensor ou o dano é grande.
+- Difícil (`hard.ts`): determinístico, sem aleatoriedade (devolve a mesma semente) e sem ordem fixa de prioridade: pontua cada ação aceita pelo motor, uma jogada à frente (sem busca profunda), e escolhe a de maior valor; sem ação de valor positivo, avança de fase ou encerra o turno. Ataque vale pelo alvo destruído e dano causado menos dano sofrido e atacante perdido, com bônus de letal (inclusive a soma dos ataques diretos e do dano de magias) , bônus se desfizer um contra-ataque letal e penalidade se a troca (ou o dano sofrido) a deixar exposta a um contra-ataque letal; evita troca ruim ou de valor igual e, entre ataques, usa o atacante mais fraco que vence. Monstro virado do oponente usa estimativas fixas (nunca a identidade). Remoção vai antes do ataque no defensor mais valioso (não gasta em monstro fraco), cura só com vida baixa (≤ 50%) ou para evitar a derrota, dano de magia espera o letal ou a Principal 2, reforço só quando vira o combate e `DRAW` só com o deck cheio (deck abaixo de 5 não compra, para não perder por deck vazio). Tributo escolhe o de menor valor e, com vida baixa, mantém defensores. Armadilhas: ativa contra ataque que destruiria monstro valioso, causaria dano grande ou letal, ou quando destruir o atacante dá ganho, e passa em ataque inofensivo; também anula invocação forte (ATK ≥ 1800) e magia de dano letal ou que destrua monstro valioso.
+- Simulação IA x IA (`ai/simulation.test.ts`): sementes fixas, 10 bases x 6 decks x 2 lados (120 partidas por par de níveis, cerca de 1 s no total), sem `Date.now`/`Math.random`. Afirma zero ação inválida, toda partida com vencedor (limite de 80 turnos) e nenhum turno acima de `MAX_AI_ACTIONS_PER_TURN`. Faixas medidas e limiares (taxa do nível maior sobre o menor): Difícil x Fácil 86% (limiar 75%), Difícil x Médio 68% (limiar 55%), Médio x Fácil 74% (limiar 55%). Se um limiar falhar após mudar uma heurística, abra issue de ajuste; não afrouxe o teste. Tabela: `BALANCE_REPORT=1 npx vitest run src/engine/ai/simulation.test.ts -t imprime`.
 
 ### Padrão de código
 
@@ -161,6 +186,7 @@ src/server/
     roomService.ts      criar sala, entrar, reconectar e jogar
   store/
     roomStore.ts        salas e partidas em memória
+  dist.smoke.ts         smoke test do servidor compilado (`npm run smoke`; fora de `npm test`)
 ```
 
 ### Padrão de código
@@ -180,7 +206,9 @@ src/server/
 - A partida (estado completo) fica em `Room.match` no store; o lado (P1/P2) de cada jogador vem do token, nunca da mensagem.
 - Erros enviados ao cliente têm um `code` estável, e a interface escolhe a mensagem em português.
 - O estado das partidas fica apenas em `store/`.
+- Sala contra a IA (`room:createAi`): `Room.ai` (`{ level, botToken }`) guarda o bot, que não é um `RoomPlayer` (sem conexão) mas ocupa um lado em `match.tokens` (humano P1, IA P2). A partida começa na hora; o deck da IA é sorteado no servidor (`randomInt`, nunca na engine) e quem começa sai da semente. A sala fica fora de `listOpenRooms`/`lobby:rooms`, `joinRoom` devolve `ROOM_FULL` e `PublicRoom` traz `vsAi`/`aiLevel`. Enquanto o turno for da IA não há prazo (`turnDeadline: null`); o relógio de 30 s só vale para o humano. O `roomService` agenda a jogada da IA (`aiDelayMs`, padrão 700 ms, injetável via `Clock`): uma ação por vez, escolhida por `chooseAiAction` com semente própria derivada da do servidor (guardada só em memória no service) e sempre aplicada por `applyAction`; a engine recusando força `PASS_RESPONSE`/`END_TURN`/`NEXT_PHASE`, e perto do limite (`aiMaxActionsPerTurn`, padrão `MAX_AI_ACTIONS_PER_TURN`) só valem as ações de fechamento. Cada ação é entregue ao humano pelo listener `onAiMove` (o handler reaproveita `sendDeliveries`). O agendamento é cancelado ao sair, remover a sala ou terminar a partida.
 - Fim de partida: `Room.match` guarda `outcome` (vencedor e motivo) e `rematchVotes`; a partida encerrada continua na sala até a revanche (`match:rematch`, precisa dos dois votos, troca os lados e reembaralha o deck escolhido por cada jogador) ou a saída. `room:leave` no meio da partida é desistência (o outro vence com `OPPONENT_LEFT`); perder a conexão não é. Detalhes em `docs/events.md`.
+- Sala contra a IA (`Room.ai`): o fim de partida segue o PvP com estas diferenças. A IA aceita sempre a revanche (`match:ended` traz `rematch.opponent: true`): `match:rematch` com `deckId` inicia na hora, com lados trocados, nível mantido, novo deck aleatório da IA sorteado no servidor e deck do humano escolhido de novo; `accept: false` só descarta a escolha. `room:leave` (no meio da partida ou depois do fim) remove a sala e cancela a IA (`dropAi`); perder a conexão não é desistência e a IA continua jogando até o abandono (`removeAbandonedRoom`). A sala de IA nunca aceita segundo jogador (`ROOM_FULL`).
 
 ### Salas e reconexão
 
@@ -189,6 +217,8 @@ src/server/
 3. O segundo jogador entra pelo código ou pelo link `/sala/CODIGO`. Cada jogador marca "pronto" para iniciar a partida (ver "Fluxo da partida").
 4. Cada jogador recebe um token aleatório, salvo no `localStorage`, para voltar à partida após recarregar a página ou perder a conexão.
 5. Salas encerradas ou abandonadas são removidas da memória.
+
+Na sala contra a IA os passos 1 e 3 mudam: `room:createAi` cria a sala já com a partida, sem segundo jogador, e só o humano recebe token. Reconexão e remoção por abandono seguem iguais.
 
 ## Frontend (`src/client/`)
 
@@ -207,16 +237,29 @@ src/client/
   network/
     socket.ts           conexão, envio e recebimento de eventos
   screens/              telas em HTML: início, sala de espera e interface da partida
+    homeScreen.ts       DOM da tela inicial: apelido, criar/entrar em sala e duelo contra a IA
+    waitingRoomScreen.ts DOM da sala de espera: código, link, jogadores, escolha de deck e "Pronto"
+    matchScreen.ts      DOM da interface da partida (HUD, mão, avisos, fim) sobre a cena 3D; fila de avisos e animações
+    dom.ts              helper `el` para criar elementos e o tipo `Screen`
+    errorMessages.ts    `code` de erro => mensagem em português
+    nickname.ts         lógica pura: validação do apelido (`canSubmitNickname`)
+    turnTimer.ts        lógica pura: relógio do turno a partir de `turnDeadline` (segundos restantes, nível de alerta, quem age)
+    handReconcile.ts    lógica pura: quais botões da mão podem ser reaproveitados entre atualizações
+    cardArtImage.ts     DOM: aplica o PNG de frente a uma carta HTML, com fallback de texto
     matchActions.ts     lógica pura (testável): PlayerView + seleção => comandos e `match:action` a enviar
-    matchEnd.ts         lógica pura: textos de resultado, estado do botão de revanche (exige deck escolhido) e payload de `match:rematch`
+    matchEnd.ts         lógica pura: textos de resultado, estado do botão de revanche (exige deck escolhido) e payload de `match:rematch`; com `vsAi` a revanche só exige o deck (sem voto nem espera pelo oponente)
     deckSelect.ts       lógica pura (testável): decks para exibir (id, nome, imagem), deck da partida (`deckOptionFor`), seleção, botão "Pronto" e payload de `room:ready`
     deckPicker.ts       componente HTML dos botões de imagem de deck (sala de espera e revanche)
+    aiDuel.ts           lógica pura: níveis da IA (textos), validação (`canStartAiDuel`) e payload de `room:createAi` da etapa "Duelar com IA" na home, e `aiOpponentLabel` (rótulo "IA (Difícil)" no HUD)
+    loadingScreen.ts    DOM do loading em tela cheia (primeiro acesso: servidor acordando e imagens carregando)
     cardDetail.ts       lógica pura: textos de nome, tipo, ATK/DEF, efeito e mecânica da carta e carta visível num slot
     hero.ts             componente HTML do título temático com cartas decorativas (home, Guia e Cartas)
     cardView.ts         componente HTML de carta, reutilizável (partida e tutorial)
     matchNotices.ts     lógica pura: EventView (de `eventView`) => avisos de interface em ordem (carta, invocação, cemitério, dano/cura, fim); fila e animação ficam em `matchScreen.ts`
     routes.ts           lógica pura: pathname => página (`/`, `/guia`, `/cartas`, `/sala/CODIGO`; desconhecida => `/`) e URL após sair da sala; `FOOTER_LINKS` define os links do rodapé
     footer.ts           DOM do rodapé de navegação (menu, guia, cartas), usando `FOOTER_LINKS` de `routes.ts`
+    loadingTracker.ts   lógica pura: contador de recursos pendentes do carregamento (`track`/`settle`/`pending`/`isReady`, assinatura, `reset`) com timeout de segurança injetável (`LOADING_TIMEOUT_MS`, 10 s), e `shouldShowLoading` (decide o loading em tela cheia: só no primeiro carregamento, nunca depois)
+    pageLoading.ts      rastreador único dos recursos HTML da tela aberta e `trackImage(img)`: toda `<img>` de tela se registra (chave única por imagem; `load`/`error` resolvem; `complete` resolve na hora); `main.ts` chama `reset()` a cada tela nova
     toasts.ts           lógica pura: toasts de erro (fila, dedup do mesmo erro visível, expiração, limite de empilhamento, dispensa) e armazém global; `socket.ts` e as telas só chamam `showErrorCode`/`showErrorMessage`
     toastView.ts        DOM dos toasts (`role="alert"`, botão de dispensar), montado uma vez em `main.ts` e persistente na troca de telas; animação em `hudEffects.ts`
     tutorialSections.ts lógica pura: seções do guia (dados tipados), catálogo de cartas agrupado por deck (composição e magia de efeito único), visibilidade e seção ativa
@@ -233,8 +276,10 @@ src/client/
     blackHole.ts        vórtice decorativo atrás da mesa (planos com textura em canvas, rotação lenta, parado com prefers-reduced-motion)
     blackHoleDesign.ts  lógica pura (testável): camadas, posição e ângulo do vórtice
     texturePaths.ts     caminhos das texturas e tamanho alvo (lógica pura, testável)
-    monsterSprite.ts    arte do monstro em pé sobre a carta
-  animations/           sequências GSAP: compra, invocação e ataque
+    cardArt.ts          lógica pura: URL do PNG de frente de uma carta (nunca de carta oculta) e escolha imagem x visual provisório
+    framing.ts          lógica pura: enquadramento da câmera conforme o aspecto da tela
+    surfaces.ts         lógica pura: textura x cor do fundo e da mesa, opacidade das zonas e enquadramento do fundo
+  animations/           animações GSAP
     hudEffects.ts       GSAP do HUD: aviso de evento, variação flutuante e barra de vida
 ```
 
@@ -247,6 +292,8 @@ src/client/
 - `state.ts` guarda o último estado do servidor, inclusive a última visão da partida (`match`, vinda de `match:state`); a tela da partida (`screens/matchScreen.ts`) abre quando ela existe e a cena apenas a representa. Monstros virados do oponente (`cardId: null`) aparecem como carta de costas.
 - `state.ts` guarda o último estado do servidor. Estado visual, como carta selecionada, fica separado.
 - Todo erro (`app:error`, conexão, cópia, validação de formulário) aparece como toast; as telas não têm linha de erro própria.
+- Gate de loading por recursos: no primeiro carregamento da sessão, `main.ts` mantém o loading em tela cheia (`loadingScreen.ts`) enquanto o servidor não responde ou há recursos pendentes no `pageLoading` (`loadingTracker.ts`); toda `<img>` de tela se registra com `trackImage` e as texturas da cena entram na mesma contagem. Há um timeout de segurança de 10 s (`LOADING_TIMEOUT_MS`) e, depois do primeiro carregamento, trocar de tela não reabre o loading (`shouldShowLoading`).
+- Aviso de fim de jogo sem espaço: os avisos da tela de fim (como o de revanche, `statusKind` de `matchEnd.ts`) só existem quando têm texto; `statusKind: "none"` esconde o elemento (`hidden`) e ele não ocupa espaço no layout.
 - Texto de interface, mensagens e comentários em português. Identificadores de código em inglês.
 
 ### Cena 3D
@@ -288,7 +335,8 @@ O que cobrir:
 
 - **Engine:** cada regra, incluindo jogadas válidas e inválidas, e a garantia de que `playerView` não vaza informação oculta.
 - **Server:** cada evento, incluindo caminho feliz, payload inválido, sala inexistente, jogador sem permissão e reconexão.
-- **Client:** a lógica pura (`scene/layout.ts`, `screens/matchActions.ts`, `screens/matchEnd.ts`, `screens/matchNotices.ts`, `screens/scrollButton.ts`, `state.ts`) tem testes; DOM e WebGL não. Mantenha a decisão de qual ação enviar nos módulos puros. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
+- **Client:** a lógica pura (`scene/layout.ts`, `screens/matchActions.ts`, `screens/matchEnd.ts`, `screens/matchNotices.ts`, `screens/scrollButton.ts`, `screens/loadingTracker.ts`, `screens/aiDuel.ts`, `screens/toasts.ts`, `screens/tutorialSections.ts`, `state.ts`) tem testes; DOM e WebGL não. Mantenha a decisão de qual ação enviar nos módulos puros. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
+- **IA:** a decisão de cada nível tem testes (`ai/ai.test.ts`, `medium.test.ts`, `hard.test.ts`) e a simulação IA x IA (`ai/simulation.test.ts`, ver seção "IA") garante zero ação inválida e partidas sempre concluídas. O servidor testa a sala de IA no service (`aiRoom.test.ts`, `aiPlay.test.ts`, `aiLifecycle.test.ts`, com `Clock` injetado, sem esperar o tempo real) e nos sockets (`sockets/aiRoom.test.ts`).
 - **Correção de bug:** um teste que falharia antes da correção, quando o bug estiver em `engine` ou `server`.
 
 Como escrever:
@@ -311,6 +359,10 @@ package.json
 package-lock.json
 tsconfig.json
 vite.config.ts
+vitest.smoke.config.ts  config do Vitest só do smoke test (`npm run smoke`)
+.github/workflows/ci.yml  CI: check, testes e build em PRs e em `integration-v*`
+.gitignore
+README.md               apresentação do projeto
 ```
 
 ### Docker
@@ -368,6 +420,6 @@ Antes de entregar uma tarefa, rode `npm run check`, `npm test`, `npm run build` 
 
 ## Decisões em aberto
 
-- [ ] Quais serão as 20 cartas definitivas (monstros, magias e armadilhas) e seus efeitos?
+- [ ] Quais serão as cartas definitivas (monstros, magias e armadilhas) e seus efeitos?
 - [ ] Qual será a identidade visual do jogo (tema, cores e estilo das cartas)?
 - [ ] Como será a cadeia com múltiplos efeitos (sprint futura)?

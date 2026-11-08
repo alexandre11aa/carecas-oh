@@ -3,12 +3,14 @@ import { connect, joinRoom } from "./network/socket.js";
 import { createHomeScreen } from "./screens/homeScreen.js";
 import { createMatchScreen } from "./screens/matchScreen.js";
 import { createLoadingScreen } from "./screens/loadingScreen.js";
+import { shouldShowLoading } from "./screens/loadingTracker.js";
+import { pageLoading } from "./screens/pageLoading.js";
 import { createCardsPage, createGuidePage } from "./screens/tutorialScreen.js";
 import { pathAfterRoomExit, resolveRoute, routePath, shouldAutoJoin } from "./screens/routes.js";
 import { mountToasts } from "./screens/toastView.js";
 import { createWaitingRoomScreen } from "./screens/waitingRoomScreen.js";
 import type { Screen } from "./screens/dom.js";
-import { getState, loadNickname, subscribe } from "./state.js";
+import { getState, loadNickname, roomPage, subscribe } from "./state.js";
 
 const root = document.getElementById("app") as HTMLElement;
 
@@ -18,12 +20,58 @@ const codeFromUrl = (): string | null => {
   return route.page === "room" ? route.code : null;
 };
 
+// O loading cobre a tela inteira por cima da página: some quando o servidor responde e as imagens
+// da primeira tela carregam (ou o timeout estoura). Depois disso, navegar não o reabre (exceto ao abrir a mesa).
+const loadingScreen = createLoadingScreen();
+const loadingOverlay = document.createElement("div");
+loadingOverlay.className = "loading-overlay";
+loadingOverlay.append(loadingScreen.element);
+document.body.append(loadingOverlay);
+let initialLoadDone = false;
+
+/** Sala contra a IA entre `room:created` e o primeiro `match:state`: só um aviso, sem sala de espera. */
+const createStartingScreen = (): Screen => {
+  const element = document.createElement("main");
+  element.className = "screen themed";
+  const text = document.createElement("p");
+  text.className = "hint";
+  text.setAttribute("role", "status");
+  text.textContent = "Iniciando o duelo...";
+  element.append(text);
+  return { element, update: () => {} };
+};
+
+let rendering = false;
+
+const refreshLoading = () => {
+  const booting = getState().booting;
+  const show = shouldShowLoading({
+    booting,
+    pending: pageLoading.pending().length,
+    timedOut: pageLoading.expired().length > 0,
+    initialDone: initialLoadDone,
+  });
+  if (!show && !booting) initialLoadDone = true;
+  loadingOverlay.hidden = !show;
+  loadingScreen.update();
+};
+
 let currentKey = "";
 let current: Screen | null = null;
 let autoJoinTried = false;
 let hadRoom = false;
 
 const render = () => {
+  rendering = true;
+  try {
+    renderPage();
+  } finally {
+    rendering = false;
+  }
+  refreshLoading();
+};
+
+const renderPage = () => {
   const state = getState();
   // Sair da sala devolve a URL a `/`, para a home aparecer normal (não como convite).
   const exitPath = pathAfterRoomExit(hadRoom, !!state.room, location.pathname);
@@ -35,12 +83,17 @@ const render = () => {
   let key: string;
   let create: () => Screen;
   if (state.booting) {
-    key = "loading";
-    create = createLoadingScreen;
+    // Sem tela por baixo enquanto o servidor não responde: só o loading.
+    current?.destroy?.();
+    current = null;
+    currentKey = "";
+    root.replaceChildren();
+    return;
   } else if (state.room) {
     // O primeiro match:state (ou o de uma reconexão) abre a mesa; sem partida, sala de espera.
-    key = state.match ? "match" : "waiting";
-    create = state.match ? createMatchScreen : createWaitingRoomScreen;
+    const page = roomPage(state.room, state.match);
+    key = page;
+    create = page === "match" ? createMatchScreen : page === "starting" ? createStartingScreen : createWaitingRoomScreen;
     if (urlCode !== state.room.code) history.replaceState(null, "", `/sala/${state.room.code}`);
   } else {
     // Rota desconhecida (ou fora da forma canônica) volta ao caminho canônico.
@@ -67,6 +120,10 @@ const render = () => {
   if (key !== currentKey) {
     currentKey = key;
     current?.destroy?.();
+    // Ciclo novo de recursos: o timeout da tela anterior não vale para esta (chaves são únicas por imagem).
+    pageLoading.reset();
+    // A mesa reabre o loading em tela cheia até as texturas críticas carregarem (também ao reconectar).
+    if (key === "match") initialLoadDone = false;
     current = create();
     root.replaceChildren(current.element);
   } else {
@@ -76,6 +133,10 @@ const render = () => {
 
 mountToasts(document.body);
 subscribe(render);
+// Imagens que terminam (ou o timeout) reavaliam o loading; durante o próprio render ele é reavaliado no fim.
+pageLoading.subscribe(() => {
+  if (!rendering) refreshLoading();
+});
 // Voltar/avançar do navegador (e os links internos) redesenham a página sem recarregar.
 window.addEventListener("popstate", render);
 render();

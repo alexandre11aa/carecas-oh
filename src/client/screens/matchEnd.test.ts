@@ -35,11 +35,13 @@ describe("endSummary", () => {
 
 describe("rematchState", () => {
   it("sem_votos_convida_a_jogar_novamente", () => {
-    expect(rematchState(ended("LIFE_ZERO"), true, "magic")).toEqual({ label: "Jogar novamente", accept: true, disabled: false, status: "", decksLocked: false });
+    expect(rematchState(ended("LIFE_ZERO"), true, "magic")).toEqual({ label: "Jogar novamente", accept: true, disabled: false, status: "", statusKind: "none", decksLocked: false });
   });
 
   it("mostra_o_voto_do_oponente", () => {
-    expect(rematchState(ended("LIFE_ZERO", false, true), true, "magic").status).toBe("O oponente quer jogar novamente.");
+    const state = rematchState(ended("LIFE_ZERO", false, true), true, "magic");
+    expect(state.status).toBe("O oponente quer jogar novamente.");
+    expect(state.statusKind).toBe("info");
   });
 
   it("depois_de_votar_o_botao_retira_o_voto", () => {
@@ -48,6 +50,7 @@ describe("rematchState", () => {
       accept: false,
       disabled: false,
       status: "Aguardando o oponente...",
+      statusKind: "info",
       decksLocked: true,
     });
   });
@@ -56,6 +59,7 @@ describe("rematchState", () => {
     const state = rematchState(ended("OPPONENT_LEFT"), false, "magic");
     expect(state.disabled).toBe(true);
     expect(state.status).toBe("O oponente saiu: não há revanche.");
+    expect(state.statusKind).toBe("warning");
   });
 });
 
@@ -66,6 +70,7 @@ describe("rematchState com deck", () => {
       accept: true,
       disabled: true,
       status: "Escolha um deck para jogar novamente.",
+      statusKind: "warning",
       decksLocked: false,
     });
   });
@@ -103,5 +108,30 @@ describe("canSurrender", () => {
 
   it("esconde_o_botao_com_resultado_recebido", () => {
     expect(canSurrender(null, ended("OPPONENT_LEFT"))).toBe(false);
+  });
+});
+
+describe("rematchState contra a IA", () => {
+  it("com_deck_habilita_jogar_novamente_sem_aviso", () => {
+    expect(rematchState(ended("LIFE_ZERO"), false, "magic", true)).toEqual({ label: "Jogar novamente", accept: true, disabled: false, status: "", statusKind: "none", decksLocked: false });
+  });
+
+  it("sem_deck_pede_a_escolha_e_bloqueia_o_botao", () => {
+    expect(rematchState(ended("LIFE_ZERO"), true, null, true)).toEqual({ label: "Jogar novamente", accept: true, disabled: true, status: "Escolha um deck para jogar novamente.", statusKind: "warning", decksLocked: false });
+  });
+
+  it("nunca_mostra_oponente_saiu_nem_espera_nem_voto", () => {
+    for (const state of [rematchState(ended("OPPONENT_LEFT", true, true), false, "magic", true), rematchState(ended("LIFE_ZERO", true, false), true, "magic", true)]) {
+      expect(state.status).toBe("");
+      expect(state.statusKind).toBe("none");
+      expect(state.label).toBe("Jogar novamente");
+      expect(state.accept).toBe(true);
+      expect(state.decksLocked).toBe(false);
+      expect(state.disabled).toBe(false);
+    }
+  });
+
+  it("sem_resultado_ainda_fica_desabilitado", () => {
+    expect(rematchState(null, true, "magic", true).disabled).toBe(true);
   });
 });

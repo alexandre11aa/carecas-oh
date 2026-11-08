@@ -168,6 +168,19 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   animation: spin 1s linear infinite;
 }
 
+/* Loading em tela cheia por cima da página (primeiro carregamento) */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: radial-gradient(ellipse at 50% 20%, var(--c-glow) 0%, var(--c-bg) 55%, var(--c-vignette) 100%);
+}
+.loading-overlay[hidden] { display: none; }
+
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* Tema de jogo da home, do carregamento e da sala de espera (escopado: não afeta a partida) */
@@ -210,6 +223,21 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .lobby-empty-icon { flex: none; width: 1.25rem; height: 1.25rem; display: inline-flex; }
 .lobby-empty-icon svg { width: 100%; height: 100%; }
 .lobby-new .hint.divider { margin: 0; }
+/* Etapa "Duelar com IA": ocupa o lugar do bloco; altura ao conteúdo, como o painel Novo duelo. */
+.ai-duel[hidden], .lobby-block[hidden] { display: none; }
+.ai-subtitle { margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--c-text-dim); }
+.ai-levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+.home .panel button.ai-level { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; padding: 0.5rem; }
+.ai-level-name { font-size: 1rem; }
+.ai-level-desc { font-family: var(--font-body, inherit); font-size: 0.75rem; letter-spacing: 0; color: var(--c-text-dim); }
+.home .panel button.ai-level.selected, .home .panel button.deck-option.selected { border-color: var(--c-gold-light); background: linear-gradient(180deg, var(--c-btn-hover-top), var(--c-btn-hover-bottom)); box-shadow: 0 0 0 3px var(--c-gold-light); }
+.ai-duel .deck-select { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 0; }
+.home .panel button.deck-option { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; padding: 0.3rem; }
+.ai-duel .deck-image { max-width: 4.5rem; }
+.ai-duel .hint { word-break: normal; }
+.ai-actions { display: flex; gap: 0.5rem; }
+.ai-actions button { flex: 1; }
+@media (max-width: 40rem) { .ai-levels { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 40rem) { .lobby-block { grid-template-columns: minmax(0, 1fr); } .lobby-open { height: 10rem; } }
 .hero { position: relative; padding: 1.5rem 0 0.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.6rem; }
 .game-title {
@@ -316,7 +344,11 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .surrender-button[hidden] { display: none; }
 .end-box { display: flex; flex-direction: column; gap: 0.75rem; min-width: min(18rem, 92vw); max-width: min(24rem, 92vw); padding: 1.5rem; text-align: center; background: linear-gradient(180deg, var(--c-panel-top), var(--c-panel)); color: var(--c-text); border: 3px double var(--c-gold); border-radius: var(--radius-md); box-shadow: var(--shadow-panel); }
 .end-box h2 { margin: 0; font-family: var(--font-title); font-size: 2rem; color: var(--c-gold); text-shadow: var(--shadow-text); }
-.end-box .hint { word-break: normal; min-height: 1.2em; color: var(--c-text-dim); }
+.end-box .hint { word-break: normal; color: var(--c-text-dim); }
+.end-notice { margin: 0; padding: 0.5rem 0.75rem; font-size: 1rem; font-weight: 600; border-radius: var(--radius-sm); border: 1px solid var(--c-line); border-left-width: 5px; background: var(--c-shade); color: var(--c-text); }
+.end-notice.info { border-color: var(--c-sapphire); }
+.end-notice.warning { border-color: var(--c-danger); color: var(--c-danger); }
+.end-notice[hidden] { display: none; }
 
 .turn-banner { margin: 0; display: flex; justify-content: center; align-items: center; gap: 0.75rem; padding: 0.3rem 0.8rem; border-radius: var(--radius-sm); font-family: var(--font-title); font-weight: 700; border: var(--border-gold); box-shadow: var(--shadow-panel); }
 .turn-banner.mine { background: linear-gradient(180deg, #2a8044, #1f5e33); color: #fff; }

@@ -8,6 +8,8 @@ import { leaveRoom, sendAction, sendRematch } from "../network/socket.js";
 import { createMatchScene, type MatchScene } from "../scene/scene.js";
 import { getState, loadNickname } from "../state.js";
 import { el, type Screen } from "./dom.js";
+import { criticalTextureUrls } from "../scene/texturePaths.js";
+import { pageLoading, trackImage, trackTextures } from "./pageLoading.js";
 import {
   connectionNotice,
   handClick,
@@ -28,6 +30,7 @@ import { reusableHandSlots } from "./handReconcile.js";
 import { createCardView } from "./cardView.js";
 import { createDeckPicker } from "./deckPicker.js";
 import { asDeckId, deckOptionFor, selectDeck } from "./deckSelect.js";
+import { aiOpponentLabel } from "./aiDuel.js";
 import { canSurrender, endSummary, rematchState } from "./matchEnd.js";
 import { actingPlayer, opponentNickname, secondsRemaining, timerLevel, turnBannerText } from "./turnTimer.js";
 
@@ -62,6 +65,7 @@ const renderDeckBadge = (badge: HTMLElement, deckId: unknown) => {
   const image = el("img", "deck-badge-image");
   image.alt = "";
   image.src = option.image;
+  trackImage(image);
   image.addEventListener("error", () => image.remove());
   badge.append(image, el("span", "deck-badge-name", option.name));
 };
@@ -118,7 +122,8 @@ export const createMatchScreen = (): Screen => {
   const endReason = el("p", "hint");
   const rematchButton = el("button", "primary");
   rematchButton.type = "button";
-  const rematchStatus = el("p", "hint");
+  const rematchStatus = el("p", "end-notice");
+  rematchStatus.hidden = true;
   const lobbyButton = el("button", undefined, "Voltar ao lobby");
   lobbyButton.type = "button";
   const deckPicker = createDeckPicker("Escolha seu deck para a revanche", (id) => {
@@ -255,6 +260,8 @@ export const createMatchScreen = (): Screen => {
     update();
   };
 
+  // Texturas críticas do estado inicial seguram o loading em tela cheia (main.ts); a cena as reaproveita do cache.
+  trackTextures(criticalTextureUrls(getState().match));
   let scene: MatchScene | null = null;
   let observer: ResizeObserver | null = null;
   try {
@@ -303,13 +310,16 @@ export const createMatchScreen = (): Screen => {
       scene?.setView(match);
     }
     scene?.setHighlights(highlightKeys(match, selection));
-    if (matchEvents && matchEvents.seq !== shownEventSeq) {
+    // Enquanto o loading cobre a tela, avisos e toasts esperam (as animações só começam depois dele).
+    const ready = pageLoading.isReady();
+    if (ready && matchEvents && matchEvents.seq !== shownEventSeq) {
       shownEventSeq = matchEvents.seq;
       receiveEvents(match, matchEvents);
     }
 
     const { you, opponent } = match;
-    infoBoxes.opponent.rest.textContent = ` Oponente · Mão ${opponent.handCount} · Deck ${opponent.deckCount} · `;
+    const aiLabel = aiOpponentLabel(room);
+    infoBoxes.opponent.rest.textContent = ` ${aiLabel ?? "Oponente"} · Mão ${opponent.handCount} · Deck ${opponent.deckCount} · `;
     infoBoxes.opponent.graveyard.textContent = `Cemitério ${opponent.graveyard.length}`;
     infoBoxes.you.rest.textContent = ` Você · Deck ${you.deckCount} · `;
     infoBoxes.you.graveyard.textContent = `Cemitério ${you.graveyard.length}`;
@@ -323,9 +333,9 @@ export const createMatchScreen = (): Screen => {
     const actingMine = acting === match.viewer;
     turnBanner.className = `turn-banner ${match.winner ? "over" : actingMine ? "mine" : "theirs"}`;
     turnBanner.hidden = !!match.winner;
-    (turnBanner.firstElementChild as HTMLElement).textContent = `${turnBannerText(match.viewer, acting, opponentNickname(room?.players ?? [], loadNickname()))} · ${PHASE_LABELS[match.phase]}`;
+    (turnBanner.firstElementChild as HTMLElement).textContent = `${turnBannerText(match.viewer, acting, aiLabel ?? opponentNickname(room?.players ?? [], loadNickname()))} · ${PHASE_LABELS[match.phase]}`;
     renderCountdown();
-    if (turnNotice && turnNotice.seq !== shownNoticeSeq) {
+    if (ready && turnNotice && turnNotice.seq !== shownNoticeSeq) {
       shownNoticeSeq = turnNotice.seq;
       turnToast.textContent = turnNotice.text;
       turnToast.hidden = false;
@@ -398,7 +408,7 @@ export const createMatchScreen = (): Screen => {
     if (match.winner && !playing && noticeQueue.length === 0) {
       const summary = endSummary(match.viewer, match.winner, ended);
       selectedDeck ??= asDeckId(getState().deckId);
-      const rematch = rematchState(ended, opponentInRoom(room?.players ?? []), selectedDeck);
+      const rematch = rematchState(ended, opponentInRoom(room?.players ?? []), selectedDeck, room?.vsAi === true);
       decksLocked = rematch.decksLocked;
       deckPicker.update(selectedDeck, decksLocked);
       endTitle.textContent = summary.title;
@@ -407,6 +417,8 @@ export const createMatchScreen = (): Screen => {
       rematchButton.disabled = rematch.disabled;
       acceptRematch = rematch.accept;
       rematchStatus.textContent = rematch.status;
+      rematchStatus.hidden = rematch.statusKind === "none";
+      rematchStatus.className = `end-notice ${rematch.statusKind}`;
       endTitle.className = match.winner === match.viewer ? "victory" : "defeat";
       endOverlay.hidden = false;
     } else {
@@ -415,10 +427,14 @@ export const createMatchScreen = (): Screen => {
   };
 
   update();
+  const stopWaitingLoading = pageLoading.subscribe(() => {
+    if (pageLoading.isReady()) update();
+  });
   return {
     element,
     update,
     destroy: () => {
+      stopWaitingLoading();
       clearInterval(countdownInterval);
       if (toastTimer) clearTimeout(toastTimer);
       stopNotices();

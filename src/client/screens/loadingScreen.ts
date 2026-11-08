@@ -9,10 +9,13 @@ export const createLoadingScreen = (): Screen => {
   element.append(el("h1", "game-title", "Carecas-Oh"), el("div", "spinner"), text);
 
   const update = () => {
+    const { booting, connection } = getState();
     text.textContent =
-      getState().connection === "offline"
+      connection === "offline"
         ? "Sem conexão com o servidor. Tentando reconectar..."
-        : "Conectando ao servidor... Se ele estava hibernando, isso pode levar cerca de um minuto.";
+        : booting
+          ? "Conectando ao servidor... Se ele estava hibernando, isso pode levar cerca de um minuto."
+          : "Carregando imagens...";
   };
   update();
   return { element, update };
