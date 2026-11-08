@@ -213,7 +213,7 @@ describe("efeitos de magia", () => {
 
     // tide_imp 600 + 700 = 1300 contra ash_sprite 700 em ataque: destrói e causa 600 de dano
     const battle = ok(boosted.state, p, { type: "NEXT_PHASE" });
-    const hit = ok(battle.state, p, { type: "ATTACK", attackerCardId: "tide_imp", targetZone: 0 });
+    const hit = ok(battle.state, p, { type: "ATTACK", attackerZone: 0, targetZone: 0 });
     expect(hit.state.players[o].lifePoints).toBe(7400);
     expect(hit.state.players[o].graveyard).toEqual(["ash_sprite"]);
 

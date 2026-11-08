@@ -54,16 +54,15 @@ const respondStep = (state: MatchState): Step => {
   const window = state.pendingResponse!;
   const responder = window.responder;
   const me = state.players[responder];
-  for (const slot of me.spellTraps) {
+  for (const [trapZone, slot] of me.spellTraps.entries()) {
     if (!slot || !slot.faceDown || slot.setOnTurn >= state.turn) continue;
     const card = getCard(slot.cardId);
     if (card?.type !== "TRAP" || card.trigger !== window.trigger) continue;
     if (card.effect.kind === "DESTROY_ATTACKER" && window.action.type === "ATTACK") {
-      const attackerId = window.action.attackerCardId;
-      const attacker = state.players[state.currentPlayer].monsters.find((m) => m?.cardId === attackerId);
+      const attacker = state.players[state.currentPlayer].monsters[window.action.attackerZone];
       if (!attacker || (card.effect.maxAttack !== undefined && atkOf(attacker) > card.effect.maxAttack)) continue;
     }
-    return { player: responder, action: { type: "ACTIVATE_TRAP", cardId: slot.cardId } };
+    return { player: responder, action: { type: "ACTIVATE_TRAP", zone: trapZone } };
   }
   return { player: responder, action: { type: "PASS_RESPONSE" } };
 };
@@ -161,17 +160,17 @@ const mainStep = (state: MatchState, me: PlayerId, tried: Set<string>): Action |
 
   // Monstros em defesa que agora vencem o campo viram para ataque; em ataque que perdem, para defesa.
   if (state.phase === "MAIN_1") {
-    for (const { monster } of zonesOf(self.monsters)) {
+    for (const { monster, zone } of zonesOf(self.monsters)) {
       if (monster.summonedOnTurn === state.turn || monster.hasAttacked || monster.changedPositionOnTurn === state.turn) continue;
       if (monster.position === "DEFENSE" && state.turn > 1 && atkOf(monster) > enemyBest && atkOf(monster) >= defOf(monster) - 400) {
-        return key({ type: monster.faceDown ? "FLIP_SUMMON" : "CHANGE_POSITION", cardId: monster.cardId });
+        return key({ type: monster.faceDown ? "FLIP_SUMMON" : "CHANGE_POSITION", zone });
       }
     }
   } else {
-    for (const { monster } of zonesOf(self.monsters)) {
+    for (const { monster, zone } of zonesOf(self.monsters)) {
       if (monster.summonedOnTurn === state.turn || monster.hasAttacked || monster.changedPositionOnTurn === state.turn) continue;
       if (monster.position === "ATTACK" && atkOf(monster) < enemyBest && defOf(monster) > atkOf(monster)) {
-        return key({ type: "CHANGE_POSITION", cardId: monster.cardId });
+        return key({ type: "CHANGE_POSITION", zone });
       }
     }
   }
@@ -191,12 +190,12 @@ const mainStep = (state: MatchState, me: PlayerId, tried: Set<string>): Action |
       const tributes = field.slice(0, needed);
       const lost = tributes.reduce((sum, t) => sum + atkOf(t.monster), 0);
       if (needed > 0 && card.attack <= lost + 600) continue;
-      const tributeCardIds = tributes.map((t) => t.monster.cardId);
-      const zone = self.monsters.findIndex((m) => m === null || tributeCardIds.includes(m.cardId));
+      const tributeZones = tributes.map((t) => t.zone);
+      const zone = self.monsters.findIndex((m, i) => m === null || tributeZones.includes(i));
       if (zone === -1) continue;
       // Ataque se vence o melhor atacante inimigo; senão baixa em defesa virada.
       const strongEnough = card.attack > enemyBest || card.attack >= card.defense + 600;
-      return key({ type: strongEnough ? "SUMMON_CARD" : "SET_MONSTER", cardId: card.id, tributeCardIds, zone });
+      return key({ type: strongEnough ? "SUMMON_CARD" : "SET_MONSTER", cardId: card.id, tributeZones, zone });
     }
   }
   return null;
@@ -221,11 +220,11 @@ const nextStep = (state: MatchState, tried: Set<string>): Step => {
         const attackers = zonesOf(self.monsters)
           .filter(({ monster }) => monster.position === "ATTACK" && !monster.hasAttacked)
           .sort((a, b) => atkOf(b.monster) - atkOf(a.monster));
-        for (const { monster } of attackers) {
+        for (const { monster, zone: attackerZone } of attackers) {
           const hasEnemy = enemy.monsters.some((m) => m !== null);
           const target = hasEnemy ? pickTarget(monster, enemy) : -1;
           if (target === null) continue;
-          const action: Action = { type: "ATTACK", attackerCardId: monster.cardId, targetZone: target === -1 ? null : target };
+          const action: Action = { type: "ATTACK", attackerZone, targetZone: target === -1 ? null : target };
           const id = JSON.stringify(action) + state.turn;
           if (tried.has(id)) continue;
           tried.add(id);
