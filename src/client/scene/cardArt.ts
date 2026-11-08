@@ -15,3 +15,12 @@ export type FaceKind = "image" | "fallback";
 
 /** WebP/PNG só é usado depois de carregado com sucesso; antes disso (ou em 404) vale o fallback. */
 export const chooseFace = (url: string | null, loaded: boolean): FaceKind => (url && loaded ? "image" : "fallback");
+
+export type ArtPhase = "none" | "loading" | "art" | "fallback";
+
+/** Fase inicial da arte: sem imagem => texto; imagem já em cache => arte direta; senão carregando. */
+export const startArtPhase = (url: string | null, cached: boolean): ArtPhase => (!url ? "none" : cached ? "art" : "loading");
+
+/** Resolve o carregamento: só a fase `loading` muda; sucesso mostra a arte, erro ou tempo esgotado mostram o texto. */
+export const settleArtPhase = (phase: ArtPhase, outcome: "load" | "error" | "timeout"): ArtPhase =>
+  phase !== "loading" ? phase : outcome === "load" ? "art" : "fallback";

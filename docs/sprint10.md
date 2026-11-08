@@ -43,3 +43,9 @@ A mesa passa a ser uma projeção visual (`animations/boardPresentation.ts`): ao
 O último passo termina exatamente em `layoutBoard` da visão recebida. Reconexão, saída, revanche, aba oculta, cancelamento e excesso de fila restauram direto o estado atual. Movimento reduzido mantém a transição simples. Enquanto a apresentação roda, ações e cliques na mesa ficam desabilitados e o detalhe por hover usa as cartas realmente desenhadas (`cardAt`). Sem mudança em regras, eventos Socket.IO ou informação oculta.
 
 Verificação: check, 819 testes, build e smoke aprovados.
+
+## Correção #263 — loading no detalhe da carta
+
+O detalhe da carta (`createCardView`) não mostra mais os textos de fallback antes da arte: enquanto a imagem carrega, só um indicador pequeno (`role="status"`, rótulo "Carregando arte da carta", rotação lenta com movimento reduzido) aparece. Ao carregar, a arte o substitui; em erro (incluindo arquivo inexistente) ou após 10 s, os textos normais aparecem. Imagem em cache aparece direto, sem loading. Cada carta tem seu próprio contêiner, então a carga ou erro de uma carta anterior não afeta o detalhe atual. A lógica de fases é pura (`startArtPhase`/`settleArtPhase` em `scene/cardArt.ts`, com testes); a mão mantém o comportamento anterior.
+
+Verificação: check, testes, build e smoke aprovados. Não houve conferência visual em navegador.
