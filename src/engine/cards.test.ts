@@ -89,3 +89,43 @@ describe("cards", () => {
     expect(JSON.parse(JSON.stringify(CARDS))).toEqual(CARDS);
   });
 });
+
+describe("descricoes_com_valor_do_efeito", () => {
+  const valuesOf = (card: (typeof CARDS)[number]): number[] => {
+    if (card.type === "MONSTER") return [];
+    const e = card.effect;
+    switch (e.kind) {
+      case "BOOST_ATTACK":
+      case "BOOST_ALL_ATTACK":
+      case "HEAL":
+      case "DAMAGE":
+      case "DRAIN":
+        return [e.amount];
+      case "HEAL_PER_MONSTER":
+        return [e.amountPerMonster, e.maxAmount];
+      case "DRAW":
+        return [e.count];
+      case "REVIVE_MONSTER":
+        return [e.maxLevel];
+      case "DESTROY_MONSTER":
+      case "DESTROY_ATTACKER":
+        return e.maxAttack === undefined ? [] : [e.maxAttack];
+      default:
+        return [];
+    }
+  };
+
+  it("toda_descricao_cita_os_numeros_do_effect", () => {
+    for (const card of CARDS) {
+      for (const value of valuesOf(card)) {
+        expect(card.description, card.id).toMatch(new RegExp(String.raw`(^|\D)${value}(\D|$)`));
+      }
+    }
+  });
+
+  it("surto_de_poder_informa_700", () => {
+    expect(CARDS.find((c) => c.id === "power_surge")?.description).toBe(
+      "Aumenta em 700 o ATK de um monstro seu, com energia pura, até o fim do turno.",
+    );
+  });
+});
