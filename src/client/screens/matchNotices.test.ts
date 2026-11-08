@@ -14,7 +14,7 @@ describe("buildNotices", () => {
   it("armadilha_ativada_do_oponente_e_publica", () => {
     const [notice] = buildNotices([ev({ type: "TRAP_ACTIVATED", player: "P2", cardId: "moss_golem", trigger: "SUMMON" })], "P1");
     expect(notice.side).toBe("opponent");
-    expect(notice.text).toBe("Oponente ativou a armadilha Golem de Musgo");
+    expect(notice.text).toBe("Oponente ativou a armadilha Peido Fatal");
   });
 
   it("carta_baixada_oculta_vira_carta_virada", () => {
@@ -24,7 +24,7 @@ describe("buildNotices", () => {
 
   it("carta_baixada_propria_mostra_nome", () => {
     const [notice] = buildNotices([ev({ type: "SPELL_TRAP_SET", player: "P1", cardId: "moss_golem", zone: 0 })], "P1");
-    expect(notice.text).toBe("Você baixou Golem de Musgo");
+    expect(notice.text).toBe("Você baixou Peido Fatal");
   });
 
   it("invocacao_aberta_mostra_nome_e_posicao", () => {
