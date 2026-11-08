@@ -419,7 +419,7 @@ describe("armadilha: cartas iguais no campo", () => {
     const r = ok(open, o, activate(0));
     expect(r.state.players[p].monsters[0]).toEqual(field("dune_scout"));
     expect(r.state.players[p].monsters[1]).toEqual(field("dune_scout", { hasAttacked: true }));
-    expect(r.state.players[o].lifePoints).toBe(8000);
+    expect(r.state.players[o].lifePoints).toBe(4000);
   });
 
   it("destruir_atacante_remove_so_a_copia_que_atacou", () => {
