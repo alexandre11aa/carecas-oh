@@ -14,7 +14,7 @@ export const createCardView = (detail: CardDetail): HTMLElement => {
   card.append(el("h3", "card-view-name", detail.name), el("p", "card-view-type", detail.typeLabel));
   if (detail.stats) card.append(el("p", "card-view-stats", detail.stats));
   card.append(labeled("Efeito", detail.effect), labeled("Mecânica", detail.mechanic));
-  // Com PNG, a arte traz nome, tipo, efeito e texto: o texto HTML fica só para leitores de tela (`has-art`).
+  // Com WebP/PNG, a arte traz nome, tipo, efeito e texto: o texto HTML fica só para leitores de tela (`has-art`).
   applyCardArt(card, detail.id, `${detail.name}. ${detail.typeLabel}${detail.stats ? `. ${detail.stats}` : ""}`);
   return card;
 };

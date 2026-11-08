@@ -3,7 +3,7 @@ import { CARD_BACK_PATH } from "../scene/texturePaths.js";
 import { el } from "./dom.js";
 import { trackImage } from "./pageLoading.js";
 
-const DECO_FRONT_PATH = "/cards/esquiva_da_gloria_divina.png";
+const DECO_FRONT_PATH = "/cards/esquiva_da_gloria_divina.webp";
 
 /** Carta decorativa inclinada. O fundo em CSS é o fallback: a imagem segura o loading até carregar e some se falhar. */
 const createDecoCard = (className: string, src: string): HTMLElement => {

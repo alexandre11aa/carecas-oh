@@ -1,11 +1,11 @@
 // src/client/screens/cardArtImage.ts
-// Aplica o PNG de frente a um elemento HTML de carta, com fallback para o visual de texto.
+// Aplica o WebP/PNG de frente a um elemento HTML de carta, com fallback para o visual de texto.
 import { faceImageUrl } from "../scene/cardArt.js";
 import { el } from "./dom.js";
 import { trackImage } from "./pageLoading.js";
 
 /**
- * Se a carta tiver PNG, tenta carregá-lo: ao terminar, insere a arte (que já traz todo o texto) e marca o
+ * Se a carta tiver WebP/PNG, tenta carregá-lo: ao terminar, insere a arte (que já traz todo o texto) e marca o
  * elemento com `has-art`, o que esconde visualmente o texto de fallback (ele segue acessível a leitores
  * de tela). Em 404 não faz nada. Carta oculta (`null`) nunca resolve imagem.
  */

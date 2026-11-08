@@ -55,7 +55,7 @@ describe("cards", () => {
       type: "TRAP",
       trigger: "ATTACK_DECLARED",
       effect: { kind: "NEGATE_ATTACK" },
-      image: "/cards/esquiva_da_gloria_divina.png",
+      image: "/cards/esquiva_da_gloria_divina.webp",
     });
     expect(CARDS.some((c) => c.id === "mirror_wall")).toBe(false);
   });

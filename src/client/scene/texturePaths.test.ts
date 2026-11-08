@@ -14,7 +14,7 @@ import {
 
 describe("texturePaths", () => {
   it("expoe_os_caminhos_centrais", () => {
-    expect(CARD_BACK_PATH).toBe("/cards/back.png");
+    expect(CARD_BACK_PATH).toBe("/cards/verso.webp");
     expect(BACKGROUND_PATH).toBe("/textures/background.png");
     expect(TABLE_PATH).toBe("/textures/table.png");
   });
@@ -64,8 +64,8 @@ describe("texturas criticas do estado inicial", () => {
       CARD_BACK_PATH,
       "/cards/ash_sprite.png",
       "/cards/fire_bolt.png",
-      "/cards/moss_golem.png",
-      "/cards/spike_pit.png",
+      "/cards/peido_fatal.webp",
+      "/cards/reversao_de_acusacao_absurda.webp",
     ]);
   });
 
