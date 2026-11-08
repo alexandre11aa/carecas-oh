@@ -67,31 +67,31 @@ describe("comandos da carta da mao", () => {
   const view = viewOf({ mine: { hand: ["ash_sprite", "healing_spring", "wind_gust", "spike_pit"] } });
 
   it("monstro_oferece_invocar_e_baixar_em_defesa_que_pedem_a_zona", () => {
-    const commands = selectionCommands(view, { kind: "hand", cardId: "ash_sprite" });
+    const commands = selectionCommands(view, { kind: "hand", cardId: "ash_sprite", handIndex: 0 });
     expect(labels(commands)).toEqual(["Invocar", "Baixar em defesa", "Cancelar"]);
     expect(commands[0].select).toEqual({ kind: "summon", cardId: "ash_sprite", set: false, tributes: [] });
     expect(commands[1].select).toEqual({ kind: "summon", cardId: "ash_sprite", set: true, tributes: [] });
   });
 
   it("magia_sem_alvo_ativa_direto_e_pode_ser_baixada", () => {
-    const commands = selectionCommands(view, { kind: "hand", cardId: "healing_spring" });
+    const commands = selectionCommands(view, { kind: "hand", cardId: "healing_spring", handIndex: 1 });
     expect(commands[0].action).toEqual({ type: "ACTIVATE_SPELL", cardId: "healing_spring" });
     expect(commands[1].action).toEqual({ type: "SET_SPELL_TRAP", cardId: "healing_spring" });
   });
 
   it("magia_que_destroi_monstro_pede_alvo_do_oponente", () => {
-    const commands = selectionCommands(view, { kind: "hand", cardId: "wind_gust" });
+    const commands = selectionCommands(view, { kind: "hand", cardId: "wind_gust", handIndex: 2 });
     expect(commands[0].select).toEqual({ kind: "spellTarget", cardId: "wind_gust", side: "opponent" });
   });
 
   it("armadilha_so_pode_ser_baixada", () => {
-    const commands = selectionCommands(view, { kind: "hand", cardId: "spike_pit" });
+    const commands = selectionCommands(view, { kind: "hand", cardId: "spike_pit", handIndex: 3 });
     expect(commands[0]).toEqual({ label: "Baixar armadilha", action: { type: "SET_SPELL_TRAP", cardId: "spike_pit" } });
   });
 
   it("fora_das_fases_principais_so_resta_cancelar", () => {
     const battle = viewOf({ phase: "BATTLE", mine: { hand: ["ash_sprite"] } });
-    expect(labels(selectionCommands(battle, { kind: "hand", cardId: "ash_sprite" }))).toEqual(["Cancelar"]);
+    expect(labels(selectionCommands(battle, { kind: "hand", cardId: "ash_sprite", handIndex: 0 }))).toEqual(["Cancelar"]);
   });
 
   it("sem_comandos_com_janela_de_resposta_aberta", () => {
@@ -99,14 +99,14 @@ describe("comandos da carta da mao", () => {
       pendingResponse: { trigger: "SUMMON", responder: "P2", action: { type: "END_TURN" } },
       mine: { hand: ["ash_sprite"] },
     });
-    expect(selectionCommands(pending, { kind: "hand", cardId: "ash_sprite" })).toEqual([]);
+    expect(selectionCommands(pending, { kind: "hand", cardId: "ash_sprite", handIndex: 0 })).toEqual([]);
     expect(phaseCommands(pending)).toEqual([]);
-    expect(handClick(pending, null, "ash_sprite")).toBeNull();
+    expect(handClick(pending, null, 0)).toBeNull();
   });
 
   it("clicar_na_mesma_carta_da_mao_limpa_a_selecao", () => {
-    expect(handClick(view, null, "ash_sprite")).toEqual({ kind: "hand", cardId: "ash_sprite" });
-    expect(handClick(view, { kind: "hand", cardId: "ash_sprite" }, "ash_sprite")).toBeNull();
+    expect(handClick(view, null, 0)).toEqual({ kind: "hand", cardId: "ash_sprite", handIndex: 0 });
+    expect(handClick(view, { kind: "hand", cardId: "ash_sprite", handIndex: 0 }, 0)).toBeNull();
   });
 });
 
@@ -239,7 +239,7 @@ describe("ataque com selecao de alvo por zona", () => {
 describe("magia com alvo", () => {
   it("reforco_de_ataque_mira_monstro_proprio_por_zona", () => {
     const view = viewOf({ mine: { hand: ["power_surge"], monsters: field(null, monster("ash_sprite")) } });
-    const sel = selectionCommands(view, { kind: "hand", cardId: "power_surge" })[0].select ?? null;
+    const sel = selectionCommands(view, { kind: "hand", cardId: "power_surge", handIndex: 0 })[0].select ?? null;
     expect(sel).toEqual({ kind: "spellTarget", cardId: "power_surge", side: "you" });
     expect(slotClick(view, sel, slot("you", "monster", 1))).toEqual({
       selection: null,
@@ -384,11 +384,37 @@ describe("connectionNotice e opponentInRoom", () => {
 });
 
 describe("mão com cópias repetidas", () => {
+  it("troca_a_selecao_entre_copias_iguais_e_so_desmarca_a_ocorrencia_repetida", () => {
+    const view = viewOf({ mine: { hand: ["tide_imp", "tide_imp", "tide_imp"] } });
+    const first = handClick(view, null, 0);
+    const second = handClick(view, first, 1);
+    expect(first).toEqual({ kind: "hand", cardId: "tide_imp", handIndex: 0 });
+    expect(second).toEqual({ kind: "hand", cardId: "tide_imp", handIndex: 1 });
+    expect(handClick(view, second, 1)).toBeNull();
+    expect(handClick(view, second, 2)).toEqual({ kind: "hand", cardId: "tide_imp", handIndex: 2 });
+  });
+
+  it("a_ocorrencia_visual_nao_altera_o_payload_da_carta_usada", () => {
+    const view = viewOf({ mine: { hand: ["healing_spring", "healing_spring"] } });
+    const selection = handClick(view, null, 1);
+    expect(selectionCommands(view, selection)[0]!.action).toEqual({ type: "ACTIVATE_SPELL", cardId: "healing_spring" });
+  });
+
+  it("nao_seleciona_indice_invalido_nem_oferece_comando_para_ocorrencia_removida", () => {
+    const view = viewOf({ mine: { hand: ["tide_imp", "tide_imp"] } });
+    for (const index of [-1, 2, 0.5, NaN]) expect(handClick(view, null, index)).toBeNull();
+    const selection = handClick(view, null, 1);
+    const shorter = viewOf({ mine: { hand: ["tide_imp"] } });
+    expect(selectionCommands(shorter, selection)).toEqual([]);
+    const replaced = viewOf({ mine: { hand: ["tide_imp", "healing_spring"] } });
+    expect(selectionCommands(replaced, selection)).toEqual([]);
+  });
+
   it("seleciona_a_carta_e_oferece_os_comandos_mesmo_com_tres_copias", () => {
     const view = viewOf({ mine: { hand: ["tide_imp", "tide_imp", "tide_imp"] } });
     expect(view.you.hand).toEqual(["tide_imp", "tide_imp", "tide_imp"]);
-    const selection = handClick(view, null, "tide_imp");
-    expect(selection).toEqual({ kind: "hand", cardId: "tide_imp" });
+    const selection = handClick(view, null, 0);
+    expect(selection).toEqual({ kind: "hand", cardId: "tide_imp", handIndex: 0 });
     expect(selectionCommands(view, selection).map((c) => c.label)).toContain("Invocar");
   });
 });

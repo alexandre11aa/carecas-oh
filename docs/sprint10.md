@@ -23,3 +23,15 @@ O Vite continua emitindo aviso de bundle JavaScript acima de 500 kB por conter T
 O controle de som usa somente um ícone SVG próprio de alto-falante: ondas quando ligado, risco diagonal quando silenciado. Compartilha a altura de Desistir e mantém nome acessível, estado `aria-pressed`, foco de teclado e a preferência persistida de áudio.
 
 Verificação: check, 809 testes (um relatório previamente ignorado), build e dois smoke aprovados. Conferência em Chrome headless nas larguras 1280 e 390 px, nos dois estados: som e Desistir medem 33,59375 px de altura; o botão não tem texto visível, o SVG muda corretamente, e nome acessível/estado alternam. Screenshot de 390 px silenciado inspecionada visualmente. Nenhuma exceção JavaScript, inclusive ao destruir a tela.
+
+## Correção #261 — cópias na mão
+
+A seleção visual da mão agora identifica a ocorrência por `handIndex`, além do `cardId`. Clicar na outra cópia transfere o destaque; repetir o clique na mesma ocorrência o limpa. O mesmo tratador atende a ativação nativa por teclado. Apenas o botão selecionado recebe a classe de destaque e `aria-pressed="true"`. O índice não vai para a engine ou para o servidor: ações continuam usando os ids atuais e removendo uma cópia por vez.
+
+Cada nova visão do servidor limpa a seleção, como antes, impedindo que o destaque migre para outra cópia ao comprar, usar ou remover cartas. Comandos também rejeitam uma seleção que já não corresponda à posição da mão recebida. Os testes puros cobrem troca entre cópias, alternância da mesma ocorrência, payload sem índice visual, índices inválidos e seleção obsoleta após remoção/substituição.
+
+A reconciliação também protege a tela contra chamadas recursivas do loading: uma imagem já em cache pode concluir sincronamente enquanto os botões estão sendo criados. Nesse caso, a nova atualização aguarda o render atual terminar, e atualizações agendadas não executam depois de destruir a tela.
+
+Verificação automatizada: check, 812 testes aprovados (um relatório previamente ignorado), build e dois smoke aprovados.
+
+Verificação no Chrome: primeira e segunda cópias ficam selecionadas individualmente ao clicar; repetir o clique limpa a seleção; Enter seleciona a segunda e Espaço a desmarca. Remover a primeira cópia com cache quente limpa o destaque sem recursão; comprar outra cópia e selecioná-la destaca somente seu novo índice. `aria-pressed` acompanha os estados. Nenhuma exceção JavaScript ou erro ao destruir a tela.
