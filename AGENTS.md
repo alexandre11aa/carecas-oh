@@ -221,10 +221,10 @@ src/client/
     socket.ts           conexão, envio e recebimento de eventos
   screens/              telas em HTML: início, sala de espera e interface da partida
     matchActions.ts     lógica pura (testável): PlayerView + seleção => comandos e `match:action` a enviar
-    matchEnd.ts         lógica pura: textos de resultado, estado do botão de revanche (exige deck escolhido) e payload de `match:rematch`
+    matchEnd.ts         lógica pura: textos de resultado, estado do botão de revanche (exige deck escolhido) e payload de `match:rematch`; com `vsAi` a revanche só exige o deck (sem voto nem espera pelo oponente)
     deckSelect.ts       lógica pura (testável): decks para exibir (id, nome, imagem), deck da partida (`deckOptionFor`), seleção, botão "Pronto" e payload de `room:ready`
     deckPicker.ts       componente HTML dos botões de imagem de deck (sala de espera e revanche)
-    aiDuel.ts           lógica pura: níveis da IA (textos), validação (`canStartAiDuel`) e payload de `room:createAi` da etapa "Duelar com IA" na home
+    aiDuel.ts           lógica pura: níveis da IA (textos), validação (`canStartAiDuel`) e payload de `room:createAi` da etapa "Duelar com IA" na home, e `aiOpponentLabel` (rótulo "IA (Difícil)" no HUD)
     cardDetail.ts       lógica pura: textos de nome, tipo, ATK/DEF, efeito e mecânica da carta e carta visível num slot
     hero.ts             componente HTML do título temático com cartas decorativas (home, Guia e Cartas)
     cardView.ts         componente HTML de carta, reutilizável (partida e tutorial)
