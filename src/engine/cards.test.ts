@@ -125,7 +125,7 @@ describe("descricoes_com_valor_do_efeito", () => {
 
   it("surto_de_poder_informa_700", () => {
     expect(CARDS.find((c) => c.id === "power_surge")?.description).toBe(
-      "Aumenta em 700 o ATK de um monstro seu, com energia pura, até o fim do turno.",
+      "Aumenta o ataque de um monstro seu em ATK 700 até o fim do turno.",
     );
   });
 });
