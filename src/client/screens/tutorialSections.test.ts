@@ -1,6 +1,7 @@
 // src/client/screens/tutorialSections.test.ts
 import { describe, expect, it } from "vitest";
 import { DECKS } from "../../engine/decks.js";
+import { aiLevelOptions } from "./aiDuel.js";
 import {
   GUIDE_SECTIONS,
   groupCardsByDeck,
@@ -25,7 +26,7 @@ describe("GUIDE_SECTIONS", () => {
 
   it("tem_as_secoes_obrigatorias_na_ordem", () => {
     expect(GUIDE_SECTIONS.map((section) => section.id)).toEqual([
-      "objetivo", "decks", "turno", "monstros", "combate", "magias", "armadilhas", "fim",
+      "objetivo", "decks", "turno", "monstros", "combate", "magias", "armadilhas", "ia", "fim",
     ]);
   });
 
@@ -65,6 +66,25 @@ describe("GUIDE_SECTIONS", () => {
     expect(magias).toContain("magia/armadilha do oponente");
     expect(magias).toContain("devolução à mão");
     expect(magias).toContain("cemitério");
+  });
+
+  it("explica_o_duelo_contra_a_ia_com_niveis_deck_aleatorio_revanche_e_timer_so_do_humano", () => {
+    const ia = GUIDE_SECTIONS.find((s) => s.id === "ia");
+    expect(ia?.title).toBe("Duelar com IA");
+    const text = JSON.stringify(ia);
+    expect(text).toContain("deck aleatório");
+    expect(text).toContain("só para você");
+    expect(text).toContain("Revanche");
+    expect(text).toContain("desistência");
+    expect(text).not.toContain("20 cartas");
+    const table = ia?.details.find((b) => b.kind === "table");
+    expect(table && "rows" in table ? table.rows.map((row) => row[0]) : []).toEqual(["Fácil", "Médio", "Difícil"]);
+  });
+
+  it("os_niveis_do_guia_acompanham_os_textos_da_home", () => {
+    const table = GUIDE_SECTIONS.find((s) => s.id === "ia")?.details.find((b) => b.kind === "table");
+    const rows = table && "rows" in table ? table.rows : [];
+    expect(rows).toEqual(aiLevelOptions().map((option) => [option.name, option.description]));
   });
 
   it("nao_inclui_secao_de_cartas_no_guia", () => {
