@@ -156,7 +156,7 @@ Direção: servidor → cliente
 Payload:
 { "rooms": [{ "code": "X7K2", "hostNickname": "Ana" }] }
 
-Lista completa de salas abertas (vazia quando não há nenhuma). Enviada em resposta a `lobby:subscribe` e, aos assinantes, sempre que a lista muda: sala criada, sala que enche, sala removida, host que perde ou recupera a conexão, sala que ganha partida. Os itens trazem só `code` e `hostNickname`: nunca tokens nem ids de conexão.
+Salas contra a IA nunca aparecem aqui. Lista completa de salas abertas (vazia quando não há nenhuma). Enviada em resposta a `lobby:subscribe` e, aos assinantes, sempre que a lista muda: sala criada, sala que enche, sala removida, host que perde ou recupera a conexão, sala que ganha partida. Os itens trazem só `code` e `hostNickname`: nunca tokens nem ids de conexão.
 
 ## Partida
 
@@ -194,13 +194,14 @@ Direção: servidor → cliente
 Payload:
 { "view": { "viewer": "P1", "turn": 2, "currentPlayer": "P1", "phase": "MAIN_1", "winner": null, "you": { ... }, "opponent": { ... }, "pendingResponse": null }, "events": [{ "type": "CARD_DRAWN", "player": "P2", "cardId": null }], "turnDeadline": 1767225630000, "serverNow": 1767225600000 }
 
-`view` é o resultado de `playerView` para o destinatário; `events` são os eventos da jogada passados por `eventView` (o servidor nunca envia `GameEvent` bruto). Para eventos do oponente, ids de cartas ocultas viram `null`: `CARD_DRAWN`, `MONSTER_SUMMONED`/`POSITION_CHANGED` com carta virada, `SPELL_TRAP_SET` e `cardId` de `ATTACK_BOOSTED` (que traz também `zone`). `CARD_RETURNED_TO_HAND` (monstro devolvido à mão; traz `zone` e `faceDown`) tem o `cardId` oculto de quem não é o dono quando o monstro estava virado. `ATTACK_DECLARED` e `SPELL_ACTIVATED` identificam o alvo por `targetZone`, público. Nunca inclui a semente nem a mão/deck do oponente. Enviado ao iniciar a partida (`events: []`), após cada ação válida, quando o prazo do turno expira e na reconexão (`events: []`, restaura o estado atual).
+`view` é o resultado de `playerView` para o destinatário; `events` são os eventos da jogada passados por `eventView` (o servidor nunca envia `GameEvent` bruto). Para eventos do oponente, ids de cartas ocultas viram `null`: `CARD_DRAWN`, `MONSTER_SUMMONED`/`POSITION_CHANGED` com carta virada, `SPELL_TRAP_SET` e `cardId` de `ATTACK_BOOSTED` (que traz também `zone`). `CARD_RETURNED_TO_HAND` (monstro devolvido à mão; traz `zone` e `faceDown`) tem o `cardId` oculto de quem não é o dono quando o monstro estava virado. `ATTACK_DECLARED` e `SPELL_ACTIVATED` identificam o alvo por `targetZone`, público. Nunca inclui a semente nem a mão/deck do oponente. Enviado ao iniciar a partida (`events: []`), após cada ação válida (inclusive cada ação jogada pela IA numa sala `vsAi`, uma por mensagem), quando o prazo do turno expira e na reconexão (`events: []`, restaura o estado atual).
 
 `turnDeadline` e `serverNow` (ambos em ms, públicos, acrescentados na camada de entrega, fora da engine) controlam o limite de tempo: o jogador do turno tem 30 segundos para agir; com `pendingResponse` aberta, o tempo conta para o defensor. O cliente calcula o tempo restante por `turnDeadline - serverNow` (não depende do relógio local). Regras do servidor:
 
 - O prazo recomeça (30 s) no início de cada turno e **após cada ação válida**; jogada inválida não renova.
 - Ao expirar, o servidor joga por conta própria e envia `match:state` aos dois com os eventos filtrados: `END_TURN` do jogador do turno (na fase de compra, antes avança a fase, o que faz a compra) ou, com resposta pendente, `PASS_RESPONSE` do defensor (o prazo é renovado; se expirar de novo, `END_TURN`).
 - O prazo continua correndo se o jogador desconectar. Na reconexão, `match:state` traz o `turnDeadline` vigente.
+- Em sala contra a IA o prazo só existe na vez do humano: quando quem deve agir (jogador do turno ou defensor) é a IA, `turnDeadline` é `null` e nada expira.
 - O prazo é cancelado (`turnDeadline: null`) quando a partida termina, em desistência e quando a sala é removida; a revanche abre um prazo novo. Se a expiração encerrar a partida (por exemplo, compra sem cartas), `match:ended` segue o `match:state`.
 
 ### match:rematch
@@ -244,11 +245,11 @@ Payload:
 |---|---|
 | `INVALID_PAYLOAD` | A mensagem não passou na validação Zod |
 | `ROOM_NOT_FOUND` | Não existe sala com o código informado |
-| `ROOM_FULL` | A sala já tem 2 jogadores |
+| `ROOM_FULL` | A sala já tem 2 jogadores, ou é uma sala contra a IA (`room:join` nunca entra nela) |
 | `INVALID_TOKEN` | Token desconhecido ou sala removida |
 | `NOT_IN_ROOM` | A conexão não pertence a nenhuma sala |
 | `MATCH_NOT_STARTED` | `match:action` antes de a partida começar |
-| `MATCH_ALREADY_STARTED` | `room:ready` com a partida em andamento |
+| `MATCH_ALREADY_STARTED` | `room:ready` com a partida em andamento (inclusive em sala contra a IA, que já nasce com partida) |
 | `MATCH_NOT_ENDED` | `match:rematch` com a partida em andamento |
 | `REMATCH_UNAVAILABLE` | `match:rematch` sem o oponente na sala (nunca em sala contra a IA) |
 | (códigos da engine) | Jogada inválida, por exemplo `NOT_YOUR_TURN` e `INVALID_PHASE` |
