@@ -19,12 +19,27 @@ export const endSummary = (viewer: PlayerId, winner: PlayerId, ended: MatchEnded
 /** Tipo do aviso de revanche: `none` não ocupa espaço; `warning` é alerta (oponente saiu ou falta deck); `info` é informativo. */
 export type RematchNoticeKind = "none" | "info" | "warning";
 
-/** Revanche: precisa do oponente na sala e de um deck escolhido para votar; o botão alterna entre votar e retirar o voto. */
+/**
+ * Revanche: precisa do oponente na sala e de um deck escolhido para votar; o botão alterna entre votar e retirar o voto.
+ * Contra a IA (`vsAi`) o oponente está sempre presente e não há voto: "Jogar novamente" só exige o deck e reinicia direto.
+ */
 export const rematchState = (
   ended: MatchEnded | null,
   opponentInRoom: boolean,
   deckId: DeckId | null,
+  vsAi = false,
 ): { label: string; accept: boolean; disabled: boolean; status: string; statusKind: RematchNoticeKind; decksLocked: boolean } => {
+  if (vsAi) {
+    const missing = deckId === null;
+    return {
+      label: "Jogar novamente",
+      accept: true,
+      disabled: ended === null || missing,
+      status: missing ? "Escolha um deck para jogar novamente." : "",
+      statusKind: missing ? "warning" : "none",
+      decksLocked: false,
+    };
+  }
   const voted = ended?.rematch.you === true;
   const status = !opponentInRoom
     ? "O oponente saiu: não há revanche."

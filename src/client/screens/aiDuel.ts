@@ -38,3 +38,7 @@ export const aiRoomPayload = (input: {
   deckId: DeckId | null;
 }): { nickname: string; level: AiLevel; deckId: DeckId } | null =>
   input.level && input.deckId && canStartAiDuel(input) ? { nickname: input.nickname.trim(), level: input.level, deckId: input.deckId } : null;
+
+/** Rótulo da IA para o HUD e a faixa de vez (ex.: "IA (Difícil)"); fora de sala de IA, ou sem nível, não há rótulo. */
+export const aiOpponentLabel = (room: { vsAi?: boolean; aiLevel?: AiLevel } | null): string | null =>
+  room?.vsAi && room.aiLevel ? `IA (${LEVEL_TEXTS[room.aiLevel].name})` : null;
