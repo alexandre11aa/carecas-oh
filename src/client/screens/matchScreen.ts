@@ -1,5 +1,5 @@
 // src/client/screens/matchScreen.ts
-import { floatDelta, flashCounter, playNotice, snapLife, tweenLife } from "../animations/hudEffects.js";
+import { floatDelta, flashCounter, playNotice, snapLife, stopHudEffects, tweenLife } from "../animations/hudEffects.js";
 import { getCard } from "../../engine/cards.js";
 import type { DeckId } from "../../engine/decks.js";
 import type { Phase } from "../../engine/types.js";
@@ -23,8 +23,8 @@ import {
   type Command,
   type Selection,
 } from "./matchActions.js";
-import { buildNotices, deltaText, lifePercent, lifeSides, MAX_LIFE, type Notice, type NoticeSide } from "./matchNotices.js";
-import { buildCardDetail, slotCardId } from "./cardDetail.js";
+import { buildNotices, deltaText, lifePercent, lifeSides, MAX_LIFE, type NoticeSide } from "./matchNotices.js";
+import { buildCardDetail } from "./cardDetail.js";
 import { applyCardArt } from "./cardArtImage.js";
 import { reusableHandSlots } from "./handReconcile.js";
 import { createCardView } from "./cardView.js";
@@ -33,6 +33,10 @@ import { asDeckId, deckOptionFor, selectDeck } from "./deckSelect.js";
 import { aiOpponentLabel } from "./aiDuel.js";
 import { canSurrender, endSummary, rematchState } from "./matchEnd.js";
 import { actingPlayer, opponentNickname, secondsRemaining, timerLevel, turnBannerText } from "./turnTimer.js";
+import { arrivePresentationStep, beginPresentationStep, buildPresentationSteps, finishPresentationStep, type PresentationStep } from "../animations/boardPresentation.js";
+import { layoutBoard, type CardPlacement } from "../scene/layout.js";
+import { createMatchAudio } from "../animations/matchAudio.js";
+import { playDamageFlash } from "../animations/hudEffects.js";
 
 const NOTICE_MS = 2200;
 const NOTICE_HOLD = 0.9; // segundos de cada aviso de evento
@@ -104,7 +108,24 @@ export const createMatchScreen = (): Screen => {
   const top = el("div", "hud-bar");
   const surrenderButton = el("button", "surrender-button", "Desistir");
   surrenderButton.type = "button";
-  top.append(opponentInfo, turnInfo, surrenderButton);
+  const audio = createMatchAudio();
+  const soundButton = el("button", "sound-button");
+  soundButton.type = "button";
+  const soundIcon = el("span", "sound-icon");
+  soundIcon.setAttribute("aria-hidden", "true");
+  // Ícone próprio e estático: alto-falante com ondas, ou com risco quando silenciado.
+  soundIcon.innerHTML = '<svg viewBox="0 0 24 24" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4Z"/><path class="sound-waves" d="M16 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/><path class="sound-slash" d="m3 3 18 18"/></svg>';
+  soundButton.append(soundIcon);
+  const renderSound = () => {
+    soundButton.setAttribute("aria-pressed", String(audio.isEnabled()));
+    soundButton.setAttribute("aria-label", audio.isEnabled() ? "Desativar sons da partida" : "Ativar sons da partida");
+    soundButton.title = audio.isEnabled() ? "Som ligado: desativar sons" : "Som desligado: ativar sons";
+  };
+  soundButton.addEventListener("click", () => { audio.setEnabled(!audio.isEnabled()); renderSound(); });
+  renderSound();
+  const topActions = el("div", "hud-top-actions");
+  topActions.append(soundButton, surrenderButton);
+  top.append(opponentInfo, turnInfo, topActions);
 
   const youInfo = infoBoxes.you.box;
   const hintLine = el("p", "hud-hint");
@@ -158,17 +179,34 @@ export const createMatchScreen = (): Screen => {
   // Contêiner flex central: empilha toast (acima) e evento (abaixo) sem depender de transform (o GSAP anima scale/y do aviso).
   const toasts = el("div", "match-toasts");
   toasts.append(turnToast, eventNotice);
-  element.append(canvasBox, hud, toasts, endOverlay, surrenderOverlay);
+  const damageFlash = el("div", "damage-flash");
+  damageFlash.setAttribute("aria-hidden", "true");
+  element.append(canvasBox, damageFlash, hud, toasts, endOverlay, surrenderOverlay);
 
   // Detalhe da carta sob o ponteiro (mão ou mesa). Guarda só o id; cartas ocultas (null) não mostram nada.
   let detailCardId: string | null = null;
   const showDetail = (cardId: string | null) => {
     if (cardId !== null && cardId === detailCardId && !detailPanel.hidden) return; // já mostrando: não recria (evita pisca da arte)
     detailCardId = cardId;
+    detailPanel.dataset.cardId = cardId ?? "";
     const detail = buildCardDetail(cardId);
     detailPanel.hidden = !detail;
     detailPanel.replaceChildren(...(detail ? [createCardView(detail)] : []));
   };
+  // Um único ponto reconcilia hover/foco da mão após mudanças no DOM. O painel
+  // fica fora do fluxo: mostrá-lo não desloca a carta que está sob o ponteiro.
+  let pointerPosition: { x: number; y: number } | null = null;
+  const refreshHandDetail = () => {
+    const pointed = pointerPosition ? document.elementFromPoint(pointerPosition.x, pointerPosition.y)?.closest<HTMLButtonElement>(".hand-card") : null;
+    const focused = !pointerPosition && document.activeElement instanceof HTMLButtonElement && hand.contains(document.activeElement) ? document.activeElement : null;
+    const button = pointed ?? focused;
+    if (button && hand.contains(button)) showDetail(button.dataset.cardId ?? null);
+  };
+  element.addEventListener("pointermove", (event) => {
+    pointerPosition = { x: event.clientX, y: event.clientY };
+    refreshHandDetail();
+  });
+  element.addEventListener("pointerleave", () => { pointerPosition = null; showDetail(null); });
 
   let selection: Selection | null = null;
   let lastMatch: PlayerView | null = null;
@@ -180,63 +218,127 @@ export const createMatchScreen = (): Screen => {
 
   // Fila de avisos dos eventos. A vida dos lados com dano/cura fica "retida" até o aviso aparecer; ao esvaziar a fila tudo volta ao estado do servidor.
   let shownEventSeq = getState().matchEvents?.seq ?? 0; // eventos já existentes ao abrir a tela não reaparecem
-  const noticeQueue: Notice[] = [];
+  const noticeQueue: PresentationStep[] = [];
+  let shownBoard: CardPlacement[] = [];
+  let presentationGeneration = 0;
+  const presentBoard = (placements: CardPlacement[]) => {
+    shownBoard = placements;
+    scene?.setPlacements(placements);
+  };
+  const presentationBusy = () => playing || noticeQueue.length > 0;
   const heldLife = new Set<NoticeSide>();
   const lifeShown: Record<NoticeSide, { value: number }> = { you: { value: MAX_LIFE }, opponent: { value: MAX_LIFE } };
+  const lifeTargets: Record<NoticeSide, number> = { you: MAX_LIFE, opponent: MAX_LIFE };
   let playing = false;
   let noticeTimeline: { kill: () => void } | null = null;
+  let effectTimer: ReturnType<typeof setTimeout> | null = null;
+  let damageTimeline: { kill: () => void } | null = null;
 
   const renderLife = (side: NoticeSide, value: number) => {
     infoBoxes[side].life.textContent = `LP ${value}`;
     infoBoxes[side].fill.style.width = `${lifePercent(value)}%`;
   };
   const serverLife = (side: NoticeSide): number => (side === "you" ? lastMatch?.you.lifePoints : lastMatch?.opponent.lifePoints) ?? MAX_LIFE;
-  const snapAllLife = () => (["you", "opponent"] as const).forEach((side) => snapLife(lifeShown[side], serverLife(side), (value) => renderLife(side, value)));
+  const snapAllLife = () => (["you", "opponent"] as const).forEach((side) => {
+    lifeTargets[side] = serverLife(side);
+    snapLife(lifeShown[side], lifeTargets[side], (value) => renderLife(side, value));
+  });
 
   const stopNotices = () => {
+    presentationGeneration++;
     noticeQueue.length = 0;
     heldLife.clear();
     playing = false;
     noticeTimeline?.kill();
     noticeTimeline = null;
+    if (effectTimer) clearTimeout(effectTimer);
+    effectTimer = null;
+    damageTimeline?.kill();
+    damageFlash.style.opacity = "0";
+    audio.stop();
+    scene?.clearEffects();
+    if (lastMatch) presentBoard(layoutBoard(lastMatch));
+    stopHudEffects(element);
+    snapAllLife();
     eventNotice.hidden = true;
   };
 
   const pumpNotices = () => {
-    if (playing) return;
-    const notice = noticeQueue.shift();
-    if (!notice) {
+    if (playing || !pageLoading.isReady()) return;
+    const step = noticeQueue.shift();
+    if (!step) {
       heldLife.clear();
       snapAllLife();
+      if (lastMatch) presentBoard(layoutBoard(lastMatch));
       eventNotice.hidden = true;
       update(); // libera a tela de fim, se houver
       return;
     }
     playing = true;
+    presentBoard(beginPresentationStep(shownBoard, step));
+    const feedback = step.feedback;
+    const generation = presentationGeneration;
+    let effectsDone = false;
+    let noticeDone = false;
+    let finished = false;
+    const finish = () => {
+      if (generation !== presentationGeneration || finished || !effectsDone || !noticeDone) return;
+      finished = true;
+      if (step.finish) presentBoard(finishPresentationStep(shownBoard, step));
+      playing = false;
+      pumpNotices();
+      update();
+    };
+    const effectsFinished = () => {
+      if (generation !== presentationGeneration) return;
+      if (step.arrivals.length) presentBoard(arrivePresentationStep(shownBoard, step));
+      effectsDone = true;
+      finish();
+    };
+    audio.play(feedback.sound);
+    if (scene) scene.playEffects(feedback.effects, effectsFinished);
+    else effectsFinished();
+    if (feedback.effects.some((effect) => effect.kind === "damage" && effect.side === "you")) {
+      damageTimeline?.kill();
+      damageTimeline = playDamageFlash(damageFlash);
+    }
+    const notice = feedback.notice;
+    if (!notice) {
+      eventNotice.hidden = true;
+      if (feedback.sound && feedback.effects.length === 0) {
+        effectTimer = setTimeout(() => { effectTimer = null; noticeDone = true; finish(); }, 180);
+      } else {
+        noticeDone = true;
+        finish();
+      }
+      return;
+    }
     eventNotice.textContent = notice.kind === "DAMAGE" || notice.kind === "HEAL" ? `${notice.text} (${deltaText(notice)})` : notice.text;
     eventNotice.className = `event-notice ${notice.kind.toLowerCase()} ${notice.side}${notice.victory === false ? " defeat" : ""}`;
     eventNotice.hidden = false;
     if (notice.kind === "GRAVEYARD") flashCounter(infoBoxes[notice.side].graveyard);
     if (notice.kind === "DAMAGE" || notice.kind === "HEAL") {
       floatDelta(infoBoxes[notice.side].box, deltaText(notice), notice.kind === "DAMAGE" ? "damage" : "heal");
-      tweenLife(lifeShown[notice.side], serverLife(notice.side), (value) => renderLife(notice.side, value));
+      const nextLife = Math.max(0, Math.min(MAX_LIFE, lifeTargets[notice.side] + (notice.kind === "DAMAGE" ? -1 : 1) * (notice.amount ?? 0)));
+      lifeTargets[notice.side] = nextLife;
+      tweenLife(lifeShown[notice.side], nextLife, (value) => renderLife(notice.side, value));
     }
     const isEnd = notice.kind === "END";
-    noticeTimeline = playNotice(eventNotice, isEnd ? END_HOLD : NOTICE_HOLD, !isEnd, () => {
-      playing = false;
-      pumpNotices();
+    noticeTimeline = playNotice(eventNotice, isEnd ? END_HOLD : noticeQueue.length > 8 ? 0.05 : Math.min(NOTICE_HOLD, 0.35), !isEnd, () => {
+      noticeDone = true;
+      finish();
     });
   };
 
   /** Recebe o lote de eventos novo: avisos entram na fila; sem eventos (reconexão) a fila é descartada e o estado é exibido direto. */
-  const receiveEvents = (match: PlayerView, batch: NonNullable<ReturnType<typeof getState>["matchEvents"]>) => {
+  const receiveEvents = (match: PlayerView, batch: NonNullable<ReturnType<typeof getState>["matchEvents"]>, previous: PlayerView | null) => {
+    if (batch.events.length === 0 || document.hidden) { stopNotices(); return; }
+    const steps = buildPresentationSteps(previous, match, batch.events);
     const notices = buildNotices(batch.events, match.viewer);
-    if (notices.length === 0) {
-      if (batch.events.length === 0) stopNotices();
-      return;
-    }
+    // Uma aba lenta não acumula dezenas de segundos de efeitos antigos.
+    if (noticeQueue.length + steps.length > 32) { stopNotices(); snapAllLife(); return; }
     lifeSides(notices).forEach((side) => heldLife.add(side));
-    noticeQueue.push(...notices);
+    noticeQueue.push(...steps);
     pumpNotices();
   };
 
@@ -273,6 +375,7 @@ export const createMatchScreen = (): Screen => {
     observer = new ResizeObserver(resize);
     observer.observe(canvasBox);
     scene.onPick((slot) => {
+      if (presentationBusy()) return;
       const view = getState().match;
       if (!view) return;
       const outcome = slotClick(view, selection, slot);
@@ -281,8 +384,7 @@ export const createMatchScreen = (): Screen => {
       update();
     });
     scene.onHover((slot) => {
-      const view = getState().match;
-      const cardId = view && slot ? slotCardId(view, slot) : null;
+      const cardId = slot ? scene?.cardAt(slot) ?? null : null;
       if (cardId !== detailCardId) showDetail(cardId);
     });
   } catch {
@@ -303,22 +405,26 @@ export const createMatchScreen = (): Screen => {
   };
   const countdownInterval = setInterval(renderCountdown, 250);
 
-  const update = () => {
+  const render = () => {
     const { match, connection, ended, room, turnNotice, matchEvents } = getState();
     if (!match) return;
     // Nova visão do servidor: a seleção anterior pode não valer mais.
+    const previousMatch = lastMatch;
     if (match !== lastMatch) {
+      if (lastMatch && (match.viewer !== lastMatch.viewer || match.turn < lastMatch.turn || (lastMatch.winner && !match.winner))) stopNotices();
       lastMatch = match;
       selection = null;
-      scene?.setView(match);
     }
-    scene?.setHighlights(highlightKeys(match, selection));
     // Enquanto o loading cobre a tela, avisos e toasts esperam (as animações só começam depois dele).
     const ready = pageLoading.isReady();
-    if (ready && matchEvents && matchEvents.seq !== shownEventSeq) {
+    if (matchEvents && matchEvents.seq !== shownEventSeq) {
       shownEventSeq = matchEvents.seq;
-      receiveEvents(match, matchEvents);
+      receiveEvents(match, matchEvents, previousMatch);
     }
+    if (ready && noticeQueue.length > 0) pumpNotices();
+    if (match !== previousMatch && !presentationBusy()) presentBoard(layoutBoard(match));
+    const busy = presentationBusy();
+    scene?.setHighlights(busy ? [] : highlightKeys(match, selection));
 
     const { you, opponent } = match;
     const aiLabel = aiOpponentLabel(room);
@@ -329,7 +435,10 @@ export const createMatchScreen = (): Screen => {
     renderDeckBadge(infoBoxes.opponent.deck, opponent.deckId);
     renderDeckBadge(infoBoxes.you.deck, you.deckId);
     (["you", "opponent"] as const).forEach((side) => {
-      if (!heldLife.has(side)) snapLife(lifeShown[side], serverLife(side), (value) => renderLife(side, value));
+      if (!heldLife.has(side)) {
+        lifeTargets[side] = serverLife(side);
+        snapLife(lifeShown[side], lifeTargets[side], (value) => renderLife(side, value));
+      }
     });
 
     const acting = actingPlayer(match);
@@ -354,7 +463,7 @@ export const createMatchScreen = (): Screen => {
       : `Turno ${match.turn} · ${mine ? "Seu turno" : "Turno do oponente"}`;
     phaseLine.textContent = `Fase: ${PHASE_LABELS[match.phase]}`;
     noticeLine.textContent = connectionNotice(connection);
-    hintLine.textContent = selectionHint(match, selection);
+    hintLine.textContent = busy ? "Aguarde a animação da jogada." : selectionHint(match, selection);
 
     const commands = [
       ...selectionCommands(match, selection),
@@ -365,6 +474,7 @@ export const createMatchScreen = (): Screen => {
       ...commands.map((command) => {
         const button = el("button", undefined, command.label);
         button.type = "button";
+        button.disabled = busy;
         button.addEventListener("click", () => runCommand(command));
         return button;
       }),
@@ -374,35 +484,45 @@ export const createMatchScreen = (): Screen => {
     // não é recriada nem recarregada, e o foco do teclado não se perde); só a seleção é atualizada.
     const reuse = reusableHandSlots(handCardIds, you.hand);
     const buttons = you.hand.map((cardId, index) => {
-      const selected = selection?.kind === "hand" && selection.cardId === cardId;
+      const selected = selection?.kind === "hand" && selection.handIndex === index && selection.cardId === cardId;
       const existing = reuse[index] ? handButtons[index] : undefined;
       if (existing) {
+        existing.disabled = busy;
         existing.classList.toggle("selected", selected);
+        existing.setAttribute("aria-pressed", String(selected));
         return existing;
       }
       const { kind, title, detail } = handCardLabel(cardId);
       const card = el("button", `hand-card ${kind}${selected ? " selected" : ""}`);
+      card.dataset.cardId = cardId;
       card.type = "button";
+      card.disabled = busy;
       card.append(el("b", undefined, title), el("span", undefined, detail));
       card.setAttribute("aria-label", `${title}. ${detail}`);
+      card.setAttribute("aria-pressed", String(selected));
       applyCardArt(card, cardId, title);
-      card.addEventListener("mouseenter", () => showDetail(cardId));
-      card.addEventListener("focus", () => showDetail(cardId));
-      card.addEventListener("mouseleave", () => showDetail(null));
+      card.addEventListener("pointerenter", () => showDetail(cardId));
+      card.addEventListener("focus", () => { pointerPosition = null; showDetail(cardId); });
+      card.addEventListener("pointerleave", () => showDetail(null));
       card.addEventListener("blur", () => showDetail(null));
       card.addEventListener("click", () => {
         if (!lastMatch) return;
         showDetail(cardId);
-        selection = handClick(lastMatch, selection, cardId); // sempre o estado mais recente, nunca o de quando o botão foi criado
+        selection = handClick(lastMatch, selection, index); // sempre o estado mais recente, nunca o de quando o botão foi criado
         update();
       });
       return card;
     });
+    const focusedHand = hand.contains(document.activeElement) ? document.activeElement as HTMLElement : null;
     if (buttons.some((button, index) => button !== handButtons[index]) || buttons.length !== handButtons.length) {
       hand.replaceChildren(...buttons);
+      if (focusedHand && hand.contains(focusedHand)) focusedHand.focus({ preventScroll: true });
+      showDetail(null);
     }
     handButtons = buttons;
     handCardIds = [...you.hand];
+    refreshHandDetail();
+    scene?.refreshHover();
 
     const surrenderAllowed = canSurrender(match.winner, ended);
     surrenderButton.hidden = !surrenderAllowed;
@@ -429,18 +549,43 @@ export const createMatchScreen = (): Screen => {
     }
   };
 
+  // Uma imagem já em cache pode resolver trackImage de forma síncrona durante a
+  // reconciliação da mão. O loading só pede outra passagem depois do render atual.
+  let updating = false;
+  let updatePending = false;
+  let destroyed = false;
+  const update = () => {
+    if (destroyed) return;
+    if (updating) { updatePending = true; return; }
+    updating = true;
+    try {
+      render();
+    } finally {
+      updating = false;
+      if (updatePending) {
+        updatePending = false;
+        queueMicrotask(update);
+      }
+    }
+  };
+
   update();
   const stopWaitingLoading = pageLoading.subscribe(() => {
     if (pageLoading.isReady()) update();
   });
+  const onVisibilityChange = () => { if (document.hidden) { stopNotices(); snapAllLife(); } };
+  document.addEventListener("visibilitychange", onVisibilityChange);
   return {
     element,
     update,
     destroy: () => {
+      destroyed = true;
       stopWaitingLoading();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       clearInterval(countdownInterval);
       if (toastTimer) clearTimeout(toastTimer);
       stopNotices();
+      audio.dispose();
       observer?.disconnect();
       scene?.dispose();
     },

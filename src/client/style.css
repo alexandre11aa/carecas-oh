@@ -220,7 +220,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .lobby-open { contain: size; }
 .lobby-open .lobby-list { flex: 1; min-height: 0; overflow-y: auto; }
 .lobby-open .hint { margin: 0; }
-.lobby-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; text-align: center; }
+.lobby-empty { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; text-align: center; }
+.lobby-open .lobby-list:empty { display: none; }
 .lobby-empty[hidden] { display: none; }
 .lobby-empty-icon { flex: none; width: 1.25rem; height: 1.25rem; display: inline-flex; }
 .lobby-empty-icon svg { width: 100%; height: 100%; }
@@ -308,11 +309,13 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .hud-bar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 1rem; }
 .hud-bar > :first-child { grid-column: 1; justify-self: start; }
 .hud-bar > .hud-center { grid-column: 2; }
-.hud-bar > .surrender-button { grid-column: 3; grid-row: 1; justify-self: end; align-self: start; }
+.hud-bar > .hud-top-actions { grid-column: 3; grid-row: 1; justify-self: end; align-self: start; }
+.hud-top-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.4rem; }
+.damage-flash { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at center, transparent 40%, rgba(185, 28, 44, 0.8) 100%); }
 @media (max-width: 40rem) {
   .hud-bar { grid-template-columns: 1fr auto; gap: 0.5rem; }
   .hud-bar > .hud-center { grid-column: 1 / -1; grid-row: 2; justify-self: center; }
-  .hud-bar > .surrender-button { grid-column: 2; }
+  .hud-bar > .hud-top-actions { grid-column: 2; }
 }
 .hud-box { background: linear-gradient(180deg, var(--c-panel-top), var(--c-panel)); border: var(--border-gold); border-radius: var(--radius-sm); padding: 0.4rem 0.8rem; box-shadow: var(--shadow-panel); color: var(--c-text); }
 .hud-lp { font-family: var(--font-title); font-size: 1.4rem; font-weight: 700; color: var(--c-gold-light); text-shadow: var(--shadow-text); }
@@ -342,7 +345,11 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .end-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(10, 8, 18, 0.78); }
 .end-overlay[hidden] { display: none; }
 .surrender-overlay { z-index: 10; }
-.surrender-button { box-sizing: border-box; height: 2.1rem; padding: 0 0.8rem; font-size: 0.85rem; line-height: 1; }
+.surrender-button, .sound-button { box-sizing: border-box; height: 2.1rem; padding: 0 0.8rem; font-size: 0.85rem; line-height: 1; }
+.sound-button { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 2.1rem; padding: 0; }
+.sound-icon, .sound-icon svg { display: block; width: 1.2rem; height: 1.2rem; }
+.sound-icon .sound-slash, .sound-button[aria-pressed="false"] .sound-waves { display: none; }
+.sound-button[aria-pressed="false"] .sound-slash { display: block; }
 .surrender-button[hidden] { display: none; }
 .end-box { display: flex; flex-direction: column; gap: 0.75rem; min-width: min(18rem, 92vw); max-width: min(24rem, 92vw); padding: 1.5rem; text-align: center; background: linear-gradient(180deg, var(--c-panel-top), var(--c-panel)); color: var(--c-text); border: 3px double var(--c-gold); border-radius: var(--radius-md); box-shadow: var(--shadow-panel); }
 .end-box h2 { margin: 0; font-family: var(--font-title); font-size: 2rem; color: var(--c-gold); text-shadow: var(--shadow-text); }
@@ -394,11 +401,12 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 /* Detalhe da carta (painel em HTML sobre a partida; também usado no tutorial) */
 /* Painel de detalhe da carta, dentro de .hand-row (logo acima da barra de vida, sem números fixos).
    Telas largas: ancorado ao canto inferior esquerdo da linha da mão, na lateral livre ao lado das cartas.
-   Até 70rem (a mão ocupa quase a largura toda): entra no fluxo, acima da mão, empurrando-a só o necessário. Nunca captura cliques. */
+   Até 70rem: reduz o detalhe, mantendo-o fora do fluxo para não deslocar a mão durante o hover. Nunca captura cliques. */
 .hand-row { position: relative; }
 .card-detail { --detail-width: clamp(11rem, 18vw, 18rem); --detail-free: calc(100vh - 14rem); position: absolute; left: 0; bottom: 0; width: var(--detail-width); max-height: max(8rem, var(--detail-free)); overflow-y: auto; pointer-events: none; }
 @supports (height: 100dvh) { .card-detail { --detail-free: calc(100dvh - 14rem); } }
-@media (max-width: 70rem) { .card-detail { position: static; --detail-width: min(10rem, 45vw); --detail-free: 11rem; margin-bottom: 0.4rem; } }
+@media (max-width: 70rem) { .card-detail { --detail-width: min(10rem, 30vw); --detail-free: min(20rem, 42vh); } }
+.card-detail { z-index: 2; }
 .card-detail .card-view.has-art .card-art { width: auto; max-width: 100%; height: max(6rem, var(--detail-free)); max-height: calc(var(--detail-width) * 1500 / 1030); object-fit: contain; }
 .card-detail[hidden] { display: none; }
 .card-view { box-sizing: border-box; padding: 0.7rem 0.8rem; border-radius: var(--radius-md); background: linear-gradient(180deg, var(--c-parchment), var(--c-parchment-dark)); color: var(--c-ink); border: 4px double var(--c-monster); box-shadow: var(--shadow-panel); font-size: 0.85rem; overflow-wrap: anywhere; word-break: break-word; }
@@ -451,3 +459,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .toast-message { flex: 1; }
 .toast-close { flex: none; padding: 0 0.4rem; line-height: 1.4; font-size: 1.1rem; color: var(--c-text); background: transparent; border: 0; cursor: pointer; }
 .toast-close:focus-visible { outline: 3px solid var(--c-gold-light); outline-offset: 2px; }
+
+/* Carregando a arte do detalhe: só o indicador aparece; o texto volta se a imagem falhar */
+.card-view.art-loading > :not(.art-spinner) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.card-view.art-loading { display: flex; align-items: center; justify-content: center; padding: 0; border-width: 0; background: transparent; box-shadow: none; min-height: 6rem; }
+.art-spinner { width: 1.6rem; height: 1.6rem; margin: 0; }

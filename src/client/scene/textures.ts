@@ -1,5 +1,5 @@
 // src/client/scene/textures.ts
-// Carregador de texturas PNG com cache por URL e fallback: devolve null (sem lançar)
+// Carregador de texturas WebP/PNG com cache por URL e fallback: devolve null (sem lançar)
 // se o arquivo não existir ou falhar. A imagem é reduzida na carga antes de ir à GPU.
 import { CanvasTexture, LinearMipmapLinearFilter, SRGBColorSpace, Texture, TextureLoader } from "three";
 import { fitTextureSize, MAX_TEXTURE_WIDTH, textureOptionsFor } from "./texturePaths.js";

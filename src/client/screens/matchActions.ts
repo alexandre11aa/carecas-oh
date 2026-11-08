@@ -8,7 +8,7 @@ import { slotKey, ZONE_COUNT, type Slot } from "../scene/layout.js";
 
 /** O que o jogador tem selecionado (estado visual, fora do `state.ts`). */
 export type Selection =
-  | { kind: "hand"; cardId: string }
+  | { kind: "hand"; cardId: string; handIndex: number }
   | { kind: "field"; cardId: string }
   | { kind: "monster"; zone: number }
   | { kind: "summon"; cardId: string; set: boolean; tributes: readonly number[] }
@@ -86,6 +86,7 @@ export const selectionCommands = (view: PlayerView, selection: Selection | null)
   if (!selection || !canAct(view)) return [];
   switch (selection.kind) {
     case "hand": {
+      if (view.you.hand[selection.handIndex] !== selection.cardId) return [];
       if (!isMain(view)) return [cancel];
       const card = getCard(selection.cardId);
       if (card?.type === "MONSTER") {
@@ -140,10 +141,13 @@ export const responseCommands = (view: PlayerView): Command[] => {
   return commands;
 };
 
-/** Clique em uma carta da mão: seleciona (ou limpa, se já estava selecionada). */
-export const handClick = (view: PlayerView, selection: Selection | null, cardId: string): Selection | null => {
-  if (!canAct(view)) return null;
-  return selection?.kind === "hand" && selection.cardId === cardId ? null : { kind: "hand", cardId };
+/** Seleciona a ocorrência clicada na mão; o índice é só visual, nunca vai ao servidor. */
+export const handClick = (view: PlayerView, selection: Selection | null, handIndex: number): Selection | null => {
+  if (!canAct(view) || !Number.isInteger(handIndex)) return null;
+  const cardId = view.you.hand[handIndex];
+  if (!cardId) return null;
+  return selection?.kind === "hand" && selection.handIndex === handIndex && selection.cardId === cardId
+    ? null : { kind: "hand", cardId, handIndex };
 };
 
 /** Zonas do seu campo onde o monstro em invocação pode entrar (livres ou liberadas pelos tributos). */
