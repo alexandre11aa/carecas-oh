@@ -118,6 +118,15 @@ describe("groupCardsByDeck", () => {
     }
   });
 
+  it("catalogo_do_controle_exibe_os_nomes_novos_com_texto_e_arte_proprios", () => {
+    const control = groups.find((g) => g.id === "control");
+    expect(control?.cards.map((c) => c.name)).toEqual(["Peido Fatal", "É Bala Pra Todo Lado", "O Ataque do Sonâmbulo", "Paidrasto", "Não Sobra Nada", "Ilusão do Sábio Bananão", "Está em 80%", "Esquiva da Glória Divina", "Reversão de Acusação Absurda", "Barreira Emocional de Fumaça"]);
+    expect(control?.cards.map((c) => c.id)).toEqual(["moss_golem", "bone_knight", "storm_hawk", "iron_minotaur", "silent_rupture", "power_surge", "wind_gust", "divine_glory_evasion", "spike_pit", "dark_veil"]);
+    const old = ["Golem de Musgo", "Cavaleiro de Ossos", "Falcão da Tempestade", "Minotauro de Ferro", "Ruptura Silenciosa", "Surto de Poder", "Rajada de Vento", "Fosso de Espinhos", "Véu Sombrio"];
+    const text = JSON.stringify([GUIDE_SECTIONS, groups]);
+    for (const name of old) expect(text).not.toContain(name);
+  });
+
   it("composicao_confere_com_o_guia", () => {
     expect(groups.map((g) => [g.composition.monsters, g.composition.spells, g.composition.traps])).toEqual([
       [12, 6, 2],
