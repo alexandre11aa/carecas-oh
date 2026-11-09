@@ -10,6 +10,9 @@ import { pathAfterRoomExit, resolveRoute, routePath, shouldAutoJoin } from "./sc
 import { mountToasts } from "./screens/toastView.js";
 import { createWaitingRoomScreen } from "./screens/waitingRoomScreen.js";
 import type { Screen } from "./screens/dom.js";
+import { getAppAudio } from "./animations/matchAudio.js";
+import { createSoundButton } from "./screens/soundButtonView.js";
+import { playsUiClicks, showsFloatingSoundButton, uiSoundFor } from "./screens/uiSounds.js";
 import { getState, loadNickname, roomPage, subscribe } from "./state.js";
 
 const root = document.getElementById("app") as HTMLElement;
@@ -57,6 +60,28 @@ const refreshLoading = () => {
 };
 
 let currentKey = "";
+// Botão de som fixo das páginas fora da partida (a mesa mostra o mesmo botão no HUD). Persiste entre telas.
+const floatingSound = createSoundButton("sound-floating");
+floatingSound.element.hidden = true;
+document.body.append(floatingSound.element);
+const refreshFloatingSound = () => {
+  floatingSound.element.hidden = !showsFloatingSoundButton(currentKey);
+  floatingSound.refresh();
+};
+// Som de clique global: um único ouvinte delegado, decidido por `uiSoundFor` conforme a página aberta.
+document.addEventListener("click", (event) => {
+  if (!playsUiClicks(currentKey) || !(event.target instanceof Element)) return;
+  const node = event.target.closest("button, a, select, summary, input, [role=button]");
+  if (!node) return;
+  const sound = uiSoundFor({
+    tag: node.tagName.toLowerCase(),
+    classes: [...node.classList],
+    disabled: node.matches(":disabled") || node.getAttribute("aria-disabled") === "true",
+    role: node.getAttribute("role"),
+    inputType: node instanceof HTMLInputElement ? node.type : null,
+  });
+  getAppAudio().play(sound);
+}, { capture: true });
 let current: Screen | null = null;
 let autoJoinTried = false;
 let hadRoom = false;
@@ -68,6 +93,7 @@ const render = () => {
   } finally {
     rendering = false;
   }
+  refreshFloatingSound();
   refreshLoading();
 };
 

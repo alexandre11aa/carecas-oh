@@ -1,6 +1,6 @@
 // src/client/animations/matchAudio.test.ts
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createMatchAudio } from "./matchAudio.js";
+import { createMatchAudio, getAppAudio, UI_SOUND_NAMES } from "./matchAudio.js";
 
 describe("áudio da partida", () => {
   let documentMock: EventTarget & { hidden: boolean };
@@ -106,5 +106,20 @@ describe("áudio da partida", () => {
     expect(sources).toHaveLength(5);
     expect(sources[0]!.stop).toHaveBeenCalledOnce();
     expect(sources[4]!.start).toHaveBeenCalledOnce();
+  });
+
+  it("audio_global_e_unico_pre_carrega_sons_de_interface_e_toca_click", async () => {
+    const audio = getAppAudio();
+    expect(getAppAudio()).toBe(audio);
+    created.push(audio);
+    documentMock.dispatchEvent(new Event("pointerdown"));
+    await settle();
+    expect(fetch).toHaveBeenCalledTimes(12 + UI_SOUND_NAMES.length);
+    expect(fetch).toHaveBeenCalledWith("/sounds/click.wav");
+    expect(fetch).toHaveBeenCalledWith("/sounds/confirm.wav");
+    audio.play("click");
+    await settle();
+    expect(sources).toHaveLength(1);
+    expect(sources[0]!.start).toHaveBeenCalledOnce();
   });
 });
