@@ -24,7 +24,7 @@ import {
   type Selection,
 } from "./matchActions.js";
 import { buildNotices, deltaText, lifePercent, lifeSides, MAX_LIFE, type NoticeSide } from "./matchNotices.js";
-import { buildCardDetail } from "./cardDetail.js";
+import { buildCardDetail, buildMonsterStats, slotMonsterBonus } from "./cardDetail.js";
 import { applyCardArt } from "./cardArtImage.js";
 import { reusableHandSlots } from "./handReconcile.js";
 import { createCardView } from "./cardView.js";
@@ -185,13 +185,21 @@ export const createMatchScreen = (): Screen => {
 
   // Detalhe da carta sob o ponteiro (mão ou mesa). Guarda só o id; cartas ocultas (null) não mostram nada.
   let detailCardId: string | null = null;
-  const showDetail = (cardId: string | null) => {
-    if (cardId !== null && cardId === detailCardId && !detailPanel.hidden) return; // já mostrando: não recria (evita pisca da arte)
+  let detailBonus: number | null = null;
+  const showDetail = (cardId: string | null, attackBonus: number | null = null) => {
+    if (cardId !== null && cardId === detailCardId && attackBonus === detailBonus && !detailPanel.hidden) return; // já mostrando: não recria (evita pisca da arte)
     detailCardId = cardId;
+    detailBonus = attackBonus;
     detailPanel.dataset.cardId = cardId ?? "";
     const detail = buildCardDetail(cardId);
     detailPanel.hidden = !detail;
-    detailPanel.replaceChildren(...(detail ? [createCardView(detail)] : []));
+    // Monstro em campo: atributos atuais (com reforço) visíveis também sobre a arte.
+    const stats = attackBonus === null ? null : buildMonsterStats(cardId, attackBonus);
+    const statsBox = stats ? el("p", `card-detail-stats${stats.boosted ? " boosted" : ""}`) : null;
+    if (statsBox && stats) {
+      statsBox.append(el("span", undefined, stats.levelText), el("span", "atk", stats.attackText), el("span", undefined, stats.defenseText));
+    }
+    detailPanel.replaceChildren(...(detail ? [createCardView(detail)] : []), ...(statsBox ? [statsBox] : []));
   };
   // Um único ponto reconcilia hover/foco da mão após mudanças no DOM. O painel
   // fica fora do fluxo: mostrá-lo não desloca a carta que está sob o ponteiro.
@@ -385,7 +393,9 @@ export const createMatchScreen = (): Screen => {
     });
     scene.onHover((slot) => {
       const cardId = slot ? scene?.cardAt(slot) ?? null : null;
-      if (cardId !== detailCardId) showDetail(cardId);
+      const view = getState().match;
+      const bonus = slot && view ? slotMonsterBonus(view, slot) : null;
+      if (cardId !== detailCardId || bonus !== detailBonus) showDetail(cardId, bonus);
     });
   } catch {
     canvasBox.append(el("p", "match-notice error", "Seu navegador não conseguiu iniciar o 3D (WebGL indisponível)."));
