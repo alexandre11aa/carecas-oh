@@ -109,17 +109,17 @@ const monster = (cardId: string) => ({
 });
 
 describe("IA joga no servidor", () => {
-  it("nao_joga_antes_do_atraso_e_joga_uma_acao_por_vez_a_cada_700ms", () => {
+  it("nao_joga_antes_do_atraso_e_joga_uma_acao_por_vez_a_cada_1500ms", () => {
     const ctx = setup();
     const created = createStartedBy(ctx, "bot");
     const code = created.room.code;
-    expect(AI_DELAY_MS).toBe(700);
-    ctx.fake.advance(699);
+    expect(AI_DELAY_MS).toBe(1500);
+    ctx.fake.advance(1499);
     expect(ctx.moves).toHaveLength(0);
     ctx.fake.advance(1);
     expect(ctx.moves).toHaveLength(1);
     expect(ctx.room(code).match!.state.phase).not.toBe("DRAW");
-    ctx.fake.advance(700);
+    ctx.fake.advance(1500);
     expect(ctx.moves).toHaveLength(2);
     for (const move of ctx.moves) {
       expect(move.code).toBe(code);
