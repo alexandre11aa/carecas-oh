@@ -3,11 +3,12 @@ import { describe, expect, it } from "vitest";
 import { CARDS } from "./cards.js";
 
 describe("cards", () => {
-  it("tem_ids_nomes_e_descricoes_unicos", () => {
+  // Só ids e nomes são únicos: a descrição pode repetir quando duas cartas têm o mesmo efeito
+  // e a arte traz o mesmo texto (ex.: Raio de Fogo e Revide Pessoal, "Causa 800 de dano direto ao oponente.").
+  it("tem_ids_e_nomes_unicos", () => {
     expect(CARDS).toHaveLength(60);
     expect(new Set(CARDS.map((c) => c.id)).size).toBe(60);
     expect(new Set(CARDS.map((c) => c.name)).size).toBe(60);
-    expect(new Set(CARDS.map((c) => c.description)).size).toBe(60);
   });
 
   it("ids_sao_snake_case", () => {
