@@ -24,6 +24,7 @@ Conversão: mistura para mono, reamostragem para 32 kHz, corte, fade-out, normal
 |---|---|---|---|
 | `menu.ogg` | Home, guia e cartas | Faixa "Main Menu" de Yu-Gi-Oh! Forbidden Memories (trilha remasterizada, compositores Naoko Ishii, Waichiro Ozaki e Hiroshi Tanabe) | 0,84 MB |
 | `lobby.ogg` | Sala de espera | Faixa "Build Deck Menu" da mesma trilha | 1,51 MB |
+| `battle.ogg` | Partida (PvP e IA); para com fade no fim da partida e volta na revanche | Faixa "Free Duel" da mesma trilha | 2,47 MB |
 
 Fonte: https://archive.org/details/yu-gi-oh-forbidden-memories-remastered-25th-anniversary (Internet Archive, MP3). Não há licença de redistribuição; o uso é por decisão e risco do dono do projeto.
 
