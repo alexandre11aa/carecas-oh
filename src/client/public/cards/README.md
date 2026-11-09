@@ -5,7 +5,7 @@ WebP otimizado com proporção 1030:1500 (retrato), na resolução original para
 Nomes esperados:
 
 - `verso.webp`: verso das cartas.
-- Frente de cada carta: o arquivo apontado por `image` em `src/engine/cards.ts`. As artes de Controle usam o nome atual em snake_case sem acentos e extensão `.webp`, por exemplo `peido_fatal.webp`. Cartas ainda sem arte preservam o caminho provisório `<id>.png` e o fallback.
+- Frente de cada carta: o arquivo apontado por `image` em `src/engine/cards.ts`. As artes de Controle e Mágico usam o nome atual em snake_case sem acentos e extensão `.webp`, por exemplo `peido_fatal.webp`. Cartas ainda sem arte preservam o caminho provisório `<id>.png` e o fallback.
 
 Originais, receita de exportação e tamanhos: `docs/decks/README.md` (fora dos arquivos públicos).
 
