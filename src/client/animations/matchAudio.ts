@@ -1,18 +1,40 @@
 // src/client/animations/matchAudio.ts
-// Áudio opcional: desbloqueio por gesto, cache, limite de vozes e descarte por tela.
+// Áudio opcional: desbloqueio por gesto, cache, limite de vozes e descarte.
+// Também serve de áudio global do app (`getAppAudio`): uma instância única que sobrevive à troca de tela.
 import { SOUND_NAMES, type SoundName } from "./matchFeedback.js";
 
 const STORAGE_KEY = "carecas-oh:sound";
 
-export const createMatchAudio = () => {
+/** Efeitos da interface fora da partida: clique comum e confirmação (criar, entrar, pronto). */
+export const UI_SOUND_NAMES = ["click", "confirm"] as const;
+export type UiSoundName = typeof UI_SOUND_NAMES[number];
+export type AudioName = SoundName | UiSoundName;
+
+/** Músicas de fundo em loop (OGG): menu, lobby e batalha. */
+export const MUSIC_TRACKS = ["menu", "lobby", "battle"] as const;
+export type MusicTrack = typeof MUSIC_TRACKS[number];
+/** Volume da música, abaixo dos efeitos (0,35). */
+export const MUSIC_VOLUME = 0.15;
+/** Duração do fade na troca de faixa, em segundos. */
+export const MUSIC_FADE_SECONDS = 1.2;
+
+export const createMatchAudio = (names: readonly AudioName[] = SOUND_NAMES) => {
   let enabled = true;
   try { enabled = localStorage.getItem(STORAGE_KEY) !== "off"; } catch { /* Sem armazenamento, vale a escolha desta tela. */ }
   let context: AudioContext | null = null;
   let disposed = false;
   let generation = 0;
-  const buffers = new Map<SoundName, Promise<AudioBuffer | null>>();
+  const buffers = new Map<AudioName, Promise<AudioBuffer | null>>();
   const voices = new Set<AudioBufferSourceNode>();
-  const load = (name: SoundName): Promise<AudioBuffer | null> => {
+  type MusicVoice = { track: MusicTrack; source: AudioBufferSourceNode; gain: GainNode };
+  let wantedMusic: MusicTrack | null = null;
+  let musicVoice: MusicVoice | null = null;
+  let musicToken = 0;
+  const fadingMusic = new Set<MusicVoice>();
+  // Só a faixa em uso fica decodificada: a outra é descartada ao trocar (a decodificação é grande).
+  const musicBuffers = new Map<MusicTrack, Promise<AudioBuffer | null>>();
+  const enabledListeners = new Set<() => void>();
+  const load = (name: AudioName): Promise<AudioBuffer | null> => {
     const audio = context;
     if (!audio) return Promise.resolve(null);
     let pending = buffers.get(name);
@@ -23,18 +45,88 @@ export const createMatchAudio = () => {
     }
     return pending;
   };
+  const loadMusic = (track: MusicTrack): Promise<AudioBuffer | null> => {
+    const audio = context;
+    if (!audio) return Promise.resolve(null);
+    let pending = musicBuffers.get(track);
+    if (!pending) {
+      pending = fetch(`/sounds/${track}.ogg`).then((response) => response.ok ? response.arrayBuffer() : null)
+        .then((data) => data ? audio.decodeAudioData(data) : null).catch(() => null);
+      musicBuffers.set(track, pending);
+    }
+    return pending;
+  };
+  const releaseMusic = (voice: MusicVoice) => {
+    fadingMusic.delete(voice);
+    try { voice.source.disconnect(); voice.gain.disconnect(); } catch { /* Já desconectado. */ }
+  };
+  /** Encerra a faixa com fade (ou na hora) e libera os nós de áudio. */
+  const endMusic = (voice: MusicVoice, immediate: boolean) => {
+    const audio = context;
+    voice.source.onended = () => releaseMusic(voice);
+    try {
+      if (immediate || !audio) {
+        voice.source.stop();
+      } else {
+        const now = audio.currentTime;
+        voice.gain.gain.cancelScheduledValues(now);
+        voice.gain.gain.setValueAtTime(voice.gain.gain.value, now);
+        voice.gain.gain.linearRampToValueAtTime(0, now + MUSIC_FADE_SECONDS);
+        voice.source.stop(now + MUSIC_FADE_SECONDS);
+        fadingMusic.add(voice);
+        return;
+      }
+    } catch { /* Já encerrada. */ }
+    releaseMusic(voice);
+  };
+  const stopMusic = () => {
+    musicToken++;
+    if (musicVoice) { endMusic(musicVoice, true); musicVoice = null; }
+    for (const voice of [...fadingMusic]) endMusic(voice, true);
+  };
+  /** Alinha a música tocando com a faixa desejada, respeitando som ligado e áudio liberado. */
+  const syncMusic = () => {
+    const audio = context;
+    const target = !disposed && enabled && audio?.state === "running" ? wantedMusic : null;
+    if (musicVoice && musicVoice.track === target) return;
+    musicToken++;
+    if (musicVoice) { endMusic(musicVoice, false); musicVoice = null; }
+    if (!target || !audio) return;
+    const token = musicToken;
+    void loadMusic(target).then((buffer) => {
+      if (!buffer || token !== musicToken || disposed || !enabled || audio.state !== "running") return;
+      const source = audio.createBufferSource();
+      const gain = audio.createGain();
+      source.buffer = buffer;
+      source.loop = true;
+      gain.gain.setValueAtTime(0, audio.currentTime);
+      gain.gain.linearRampToValueAtTime(MUSIC_VOLUME, audio.currentTime + MUSIC_FADE_SECONDS);
+      source.connect(gain).connect(audio.destination);
+      musicVoice = { track: target, source, gain };
+      source.start();
+      for (const key of [...musicBuffers.keys()]) if (key !== target) musicBuffers.delete(key);
+    });
+  };
   const unlock = () => {
     if (disposed || !enabled) return;
     try {
       context ??= new AudioContext();
       void context.resume().then(() => {
-        if (!disposed && enabled) SOUND_NAMES.forEach((name) => { void load(name); });
+        if (!disposed && enabled) names.forEach((name) => { void load(name); });
+        syncMusic();
       }).catch(() => undefined);
     } catch { /* Falta de áudio não impede o duelo. */ }
   };
   const onKey = (event: KeyboardEvent) => { if (event.key === "Enter" || event.key === " ") unlock(); };
   document.addEventListener("pointerdown", unlock, { capture: true });
   document.addEventListener("keydown", onKey, { capture: true });
+  // Aba oculta: o contexto inteiro (música e efeitos) pausa e retoma ao voltar.
+  const onVisibility = () => {
+    if (disposed || !context) return;
+    if (document.hidden) void context.suspend?.()?.catch?.(() => undefined);
+    else if (enabled) void context.resume().catch(() => undefined);
+  };
+  document.addEventListener("visibilitychange", onVisibility);
   const stop = () => {
     generation++;
     for (const voice of voices) { try { voice.stop(); } catch { /* Já encerrada. */ } }
@@ -45,9 +137,21 @@ export const createMatchAudio = () => {
     setEnabled: (value: boolean) => {
       enabled = value;
       try { localStorage.setItem(STORAGE_KEY, value ? "on" : "off"); } catch { /* Preferência apenas em memória. */ }
-      if (value) unlock(); else stop();
+      if (value) unlock(); else { stop(); stopMusic(); }
+      enabledListeners.forEach((listener) => listener());
     },
-    play: (name: SoundName | null) => {
+    /** Avisa quando o som é ligado ou desligado; devolve a função que remove o aviso. */
+    onEnabledChange: (listener: () => void) => {
+      enabledListeners.add(listener);
+      return () => { enabledListeners.delete(listener); };
+    },
+    /** Define a música de fundo em loop (ou nenhuma); troca com fade e só toca com som ligado e áudio liberado. */
+    setMusic: (track: MusicTrack | null) => {
+      if (wantedMusic === track) return;
+      wantedMusic = track;
+      syncMusic();
+    },
+    play: (name: AudioName | null) => {
       if (!name || !enabled || disposed || document.hidden || context?.state !== "running") return;
       const expected = generation;
       // Não repete um som atrasado: o primeiro carregamento serve aos próximos eventos.
@@ -74,10 +178,21 @@ export const createMatchAudio = () => {
       if (disposed) return;
       disposed = true;
       stop();
+      stopMusic();
+      enabledListeners.clear();
+      document.removeEventListener("visibilitychange", onVisibility);
       document.removeEventListener("pointerdown", unlock, { capture: true });
       document.removeEventListener("keydown", onKey, { capture: true });
       buffers.clear();
+      musicBuffers.clear();
       void context?.close().catch(() => undefined);
     },
   };
 };
+
+export type MatchAudio = ReturnType<typeof createMatchAudio>;
+
+let appAudio: MatchAudio | null = null;
+
+/** Áudio único do app (partida, menu e lobby): preferência e vozes compartilhadas entre telas. */
+export const getAppAudio = (): MatchAudio => (appAudio ??= createMatchAudio([...SOUND_NAMES, ...UI_SOUND_NAMES]));

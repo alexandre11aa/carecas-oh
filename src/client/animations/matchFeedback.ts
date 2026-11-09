@@ -5,7 +5,7 @@ import type { PlayerView } from "../../engine/playerView.js";
 import { allSlots, slotPosition, type Side, type Slot } from "../scene/layout.js";
 import { buildNotices, type Notice } from "../screens/matchNotices.js";
 
-export const SOUND_NAMES = ["activate", "attack", "damage", "destroyed", "draw", "equip", "flip", "gainlp", "nextturn", "phase", "set", "summon"] as const;
+export const SOUND_NAMES = ["activate", "attack", "damage", "destroyed", "draw", "equip", "flip", "gainlp", "nextturn", "phase", "set", "summon", "victory", "defeat"] as const;
 export type SoundName = typeof SOUND_NAMES[number];
 type Point = { x: number; z: number };
 export type BoardEffect =

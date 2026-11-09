@@ -105,7 +105,7 @@ Alternativa ao PvP, escolhida na home pelo botão "Duelar com IA". As regras do 
 2. **Sem sala de espera:** a partida começa na hora. O humano é o P1 e a IA o P2; quem joga primeiro sai da semente. A sala não aparece no lobby, não aceita segundo jogador e não tem "pronto".
 3. **Deck da IA:** sorteado entre os 6 decks no servidor e nunca enviado antes da partida; depois do início ele é público, como em qualquer partida (`opponent.deckId`).
 4. **Níveis:** Fácil joga ações válidas com pouca estratégia (invoca o que consegue, usa magia e ataque ao acaso, ativa armadilha por sorteio); Médio aplica heurísticas simples e determinísticas (ataca só quando vence, cura com vida baixa); Difícil pontua cada ação uma jogada à frente e busca o dano letal. Detalhes na seção "IA".
-5. **A IA joga no servidor:** uma ação por vez, com atraso de 700 ms (`aiDelayMs`) entre as ações para o humano acompanhar, sempre por `applyAction`. Ela decide lendo só o `playerView` do próprio lado: nunca vê a mão do humano, a ordem do deck nem a semente.
+5. **A IA joga no servidor:** uma ação por vez, com atraso de 1500 ms (`aiDelayMs`) entre as ações para o humano acompanhar, sempre por `applyAction`. Ela decide lendo só o `playerView` do próprio lado: nunca vê a mão do humano, a ordem do deck nem a semente.
 6. **Tempo:** o limite de 100 s vale só para o humano; na vez da IA (`turnDeadline: null`) não corre prazo.
 7. **Fim:** a vitória ou derrota segue as regras normais. A IA aceita sempre a revanche: o humano escolhe o deck de novo, os lados são trocados, o nível é mantido e a IA recebe um novo deck sorteado.
 8. **Saída:** sair da sala (no meio da partida ou depois do fim) é desistência e remove a sala. Perder a conexão não é: o lugar é mantido para a reconexão por token.
@@ -208,7 +208,7 @@ src/server/
 - A partida (estado completo) fica em `Room.match` no store; o lado (P1/P2) de cada jogador vem do token, nunca da mensagem.
 - Erros enviados ao cliente têm um `code` estável, e a interface escolhe a mensagem em português.
 - O estado das partidas fica apenas em `store/`.
-- Sala contra a IA (`room:createAi`): `Room.ai` (`{ level, botToken }`) guarda o bot, que não é um `RoomPlayer` (sem conexão) mas ocupa um lado em `match.tokens` (humano P1, IA P2). A partida começa na hora; o deck da IA é sorteado no servidor (`randomInt`, nunca na engine) e quem começa sai da semente. A sala fica fora de `listOpenRooms`/`lobby:rooms`, `joinRoom` devolve `ROOM_FULL` e `PublicRoom` traz `vsAi`/`aiLevel`. Enquanto o turno for da IA não há prazo (`turnDeadline: null`); o relógio de 100 s só vale para o humano. O `roomService` agenda a jogada da IA (`aiDelayMs`, padrão 700 ms, injetável via `Clock`): uma ação por vez, escolhida por `chooseAiAction` com semente própria derivada da do servidor (guardada só em memória no service) e sempre aplicada por `applyAction`; a engine recusando força `PASS_RESPONSE`/`END_TURN`/`NEXT_PHASE`, e perto do limite (`aiMaxActionsPerTurn`, padrão `MAX_AI_ACTIONS_PER_TURN`) só valem as ações de fechamento. Cada ação é entregue ao humano pelo listener `onAiMove` (o handler reaproveita `sendDeliveries`). O agendamento é cancelado ao sair, remover a sala ou terminar a partida.
+- Sala contra a IA (`room:createAi`): `Room.ai` (`{ level, botToken }`) guarda o bot, que não é um `RoomPlayer` (sem conexão) mas ocupa um lado em `match.tokens` (humano P1, IA P2). A partida começa na hora; o deck da IA é sorteado no servidor (`randomInt`, nunca na engine) e quem começa sai da semente. A sala fica fora de `listOpenRooms`/`lobby:rooms`, `joinRoom` devolve `ROOM_FULL` e `PublicRoom` traz `vsAi`/`aiLevel`. Enquanto o turno for da IA não há prazo (`turnDeadline: null`); o relógio de 100 s só vale para o humano. O `roomService` agenda a jogada da IA (`aiDelayMs`, padrão 1500 ms, injetável via `Clock`): uma ação por vez, escolhida por `chooseAiAction` com semente própria derivada da do servidor (guardada só em memória no service) e sempre aplicada por `applyAction`; a engine recusando força `PASS_RESPONSE`/`END_TURN`/`NEXT_PHASE`, e perto do limite (`aiMaxActionsPerTurn`, padrão `MAX_AI_ACTIONS_PER_TURN`) só valem as ações de fechamento. Cada ação é entregue ao humano pelo listener `onAiMove` (o handler reaproveita `sendDeliveries`). O agendamento é cancelado ao sair, remover a sala ou terminar a partida.
 - Fim de partida: `Room.match` guarda `outcome` (vencedor e motivo) e `rematchVotes`; a partida encerrada continua na sala até a revanche (`match:rematch`, precisa dos dois votos, troca os lados e reembaralha o deck escolhido por cada jogador) ou a saída. `room:leave` no meio da partida é desistência (o outro vence com `OPPONENT_LEFT`); perder a conexão não é. Detalhes em `docs/events.md`.
 - Sala contra a IA (`Room.ai`): o fim de partida segue o PvP com estas diferenças. A IA aceita sempre a revanche (`match:ended` traz `rematch.opponent: true`): `match:rematch` com `deckId` inicia na hora, com lados trocados, nível mantido, novo deck aleatório da IA sorteado no servidor e deck do humano escolhido de novo; `accept: false` só descarta a escolha. `room:leave` (no meio da partida ou depois do fim) remove a sala e cancela a IA (`dropAi`); perder a conexão não é desistência e a IA continua jogando até o abandono (`removeAbandonedRoom`). A sala de IA nunca aceita segundo jogador (`ROOM_FULL`).
 
@@ -233,7 +233,7 @@ src/client/
   state.ts              último estado recebido do servidor
   style.css
   public/cards/         imagens das cartas (WebP otimizado, proporção 1030:1500; PNG nas artes provisórias ainda sem arquivo)
-  public/sounds/        efeitos sonoros WAV mono PCM 16 bits, 32 kHz
+  public/sounds/        efeitos sonoros WAV mono PCM 16 bits, 32 kHz; músicas de fundo em OGG Vorbis (até 3 MB cada, feitas para loop sem emenda: `menu.ogg`, `lobby.ogg`, `battle.ogg`); `victory.wav` e `defeat.wav` tocam uma vez no fim da partida (README.md registra a origem e o aviso de material oficial)
   public/textures/      fundo e mesa (PNG, opcionais)
   public/decks/         imagens dos botões de deck da sala de espera (PNG, <deckId>.png)
   public/favicon-32.png, icon-192.png, apple-touch-icon.png   ícones da aba (logo reduzido, na raiz de public/; referenciados em index.html com caminho absoluto)
@@ -246,10 +246,12 @@ src/client/
     dom.ts              helper `el` para criar elementos e o tipo `Screen`
     errorMessages.ts    `code` de erro => mensagem em português
     nickname.ts         lógica pura: validação do apelido (`canSubmitNickname`)
+    presentationWatchdog.ts lógica pura: watchdog da fila de apresentação (`isStepStuck`, `STEP_TIMEOUT_MS` 6 s, tempo injetável) e `describeWatchdog` (mensagem e contexto do `console.warn`)
     turnTimer.ts        lógica pura: relógio do turno a partir de `turnDeadline` (segundos restantes, nível de alerta, quem age)
     handReconcile.ts    lógica pura: quais botões da mão podem ser reaproveitados entre atualizações
     cardArtImage.ts     DOM: aplica o PNG de frente a uma carta HTML, com fallback de texto
     matchActions.ts     lógica pura (testável): PlayerView + seleção => comandos e `match:action` a enviar
+    selectionSound.ts   lógica pura: som do clique que seleciona carta na mão ou no campo (`click`; mudo ao desselecionar, sem efeito ou quando o clique envia ação)
     matchEnd.ts         lógica pura: textos de resultado, estado do botão de revanche (exige deck escolhido) e payload de `match:rematch`; com `vsAi` a revanche só exige o deck (sem voto nem espera pelo oponente)
     deckSelect.ts       lógica pura (testável): decks para exibir (id, nome, imagem), deck da partida (`deckOptionFor`), seleção, botão "Pronto" e payload de `room:ready`
     deckPicker.ts       componente HTML dos botões de imagem de deck (sala de espera e revanche)
@@ -268,6 +270,9 @@ src/client/
     tutorialSections.ts lógica pura: seções do guia (dados tipados), catálogo de cartas agrupado por deck (composição de 20 cartas, cópias de cada carta e magia de efeito único), visibilidade e seção ativa
     tutorialScreen.ts   DOM das páginas `/guia` (menu de âncoras, blocos lista/tabela, seção ativa) e `/cartas` (catálogo por deck)
     scrollButton.ts     lógica pura: botão fixo único que alterna entre descer ao fim e subir ao topo (`pickScrollTarget`: `top`, `bottom` ou `null` sem rolagem) e rótulos
+    musicTrack.ts       lógica pura: música de fundo por página (`musicTrackFor`: `menu` em home/guia/cartas, `lobby` na sala de espera, `battle` na partida em andamento, parada com fade no fim e de volta na revanche; nenhuma na tela de início do duelo ou com som desligado)
+    uiSounds.ts         lógica pura: som de interface por elemento clicado (`uiSoundFor`: `confirm` em botão `primary`, `click` nos demais interativos) e páginas com som/botão de som (`showsSoundButton`, `playsUiClicks`)
+    soundButtonView.ts  DOM do botão de som (mesmo ícone da partida) ligado à preferência compartilhada; `main.ts` monta um botão fixo persistente fora da partida e a mesa usa o mesmo no HUD
     scrollButtonView.ts DOM do botão fixo de subir/descer (só em `/guia` e `/cartas`, via `createPage`): usa `scrollButton.ts`, `scrollTo` com `auto`/`smooth` conforme `prefers-reduced-motion`, remove listeners no `destroy`
   scene/
     scene.ts            renderer, câmera, luzes e loop
@@ -286,7 +291,7 @@ src/client/
     hudEffects.ts       GSAP do HUD: aviso de evento, variação flutuante e barra de vida
     matchFeedback.ts    lógica pura: eventos filtrados + visões anterior/atual => passos de som, aviso e efeito, sem inferir informação oculta
     boardPresentation.ts lógica pura: retém a mesa anterior e aplica saídas/chegadas ao cemitério em sincronia com os efeitos; o fim coincide com a visão do servidor
-    matchAudio.ts       Web Audio por tela: cache após gesto, botão de som persistente, limite de vozes e descarte
+    matchAudio.ts       Web Audio: cache após gesto, preferência de som salva, limite de vozes e descarte; `getAppAudio()` é o áudio global único do app (partida, `click` e `confirm` de menu e lobby), que sobrevive à troca de tela; também toca a música de fundo (`setMusic`: `AudioBufferSourceNode` em loop, volume 0,15 abaixo dos efeitos, fade de 1,2 s na troca, só a faixa em uso fica decodificada, pausa com a aba oculta e libera os nós ao trocar, silenciar ou descartar)
 ```
 
 ### Padrão de código
@@ -317,6 +322,7 @@ src/client/
 - A cena apenas representa o estado: animações não alteram regras nem decidem resultados.
 - Ao receber um novo estado, a interface executa as animações em ordem e termina mostrando exatamente o estado do servidor.
 - Uma reconexão interrompe as animações e restaura diretamente o estado atual.
+- Contenção de travamento (issue #284): `pumpNotices` captura exceções e um watchdog (a cada 1 s, limite `STEP_TIMEOUT_MS`) chama `stopNotices()` se um passo não concluir; ambos registram `console.warn` com contexto e restauram o estado do servidor. A causa raiz do travamento ocasional da página durante a partida NÃO foi encontrada: isto é contenção e o bug ainda pode existir.
 
 ## Eventos (`docs/events.md`)
 
@@ -345,7 +351,7 @@ O que cobrir:
 
 - **Engine:** cada regra, incluindo jogadas válidas e inválidas, e a garantia de que `playerView` não vaza informação oculta.
 - **Server:** cada evento, incluindo caminho feliz, payload inválido, sala inexistente, jogador sem permissão e reconexão.
-- **Client:** a lógica pura (`scene/layout.ts`, `screens/matchActions.ts`, `screens/matchEnd.ts`, `screens/matchNotices.ts`, `screens/scrollButton.ts`, `screens/loadingTracker.ts`, `screens/aiDuel.ts`, `screens/toasts.ts`, `screens/tutorialSections.ts`, `state.ts`) tem testes; DOM e WebGL não. Mantenha a decisão de qual ação enviar nos módulos puros. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
+- **Client:** a lógica pura (`scene/layout.ts`, `screens/matchActions.ts`, `screens/matchEnd.ts`, `screens/matchNotices.ts`, `screens/scrollButton.ts`, `screens/loadingTracker.ts`, `screens/aiDuel.ts`, `screens/uiSounds.ts`, `screens/selectionSound.ts`, `screens/musicTrack.ts`, `screens/toasts.ts`, `screens/tutorialSections.ts`, `state.ts`) tem testes; DOM e WebGL não. Mantenha a decisão de qual ação enviar nos módulos puros. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
 - **IA:** a decisão de cada nível tem testes (`ai/ai.test.ts`, `medium.test.ts`, `hard.test.ts`) e a simulação IA x IA (`ai/simulation.test.ts`, ver seção "IA") garante zero ação inválida e partidas sempre concluídas. O servidor testa a sala de IA no service (`aiRoom.test.ts`, `aiPlay.test.ts`, `aiLifecycle.test.ts`, com `Clock` injetado, sem esperar o tempo real) e nos sockets (`sockets/aiRoom.test.ts`).
 - **Correção de bug:** um teste que falharia antes da correção, quando o bug estiver em `engine` ou `server`.
 

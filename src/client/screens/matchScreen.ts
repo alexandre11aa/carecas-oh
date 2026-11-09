@@ -8,6 +8,7 @@ import { leaveRoom, sendAction, sendRematch } from "../network/socket.js";
 import { createMatchScene, type MatchScene } from "../scene/scene.js";
 import { getState, loadNickname } from "../state.js";
 import { el, type Screen } from "./dom.js";
+import { createSoundButton } from "./soundButtonView.js";
 import { criticalTextureUrls } from "../scene/texturePaths.js";
 import { pageLoading, trackImage, trackTextures } from "./pageLoading.js";
 import {
@@ -24,18 +25,20 @@ import {
   type Selection,
 } from "./matchActions.js";
 import { buildNotices, deltaText, lifePercent, lifeSides, MAX_LIFE, type NoticeSide } from "./matchNotices.js";
-import { buildCardDetail } from "./cardDetail.js";
+import { buildCardDetail, buildMonsterStats, slotMonsterBonus } from "./cardDetail.js";
 import { applyCardArt } from "./cardArtImage.js";
 import { reusableHandSlots } from "./handReconcile.js";
 import { createCardView } from "./cardView.js";
 import { createDeckPicker } from "./deckPicker.js";
+import { selectionSound } from "./selectionSound.js";
 import { asDeckId, deckOptionFor, selectDeck } from "./deckSelect.js";
 import { aiOpponentLabel } from "./aiDuel.js";
-import { canSurrender, endSummary, rematchState } from "./matchEnd.js";
+import { canSurrender, endSummary, nextEndSound, rematchState } from "./matchEnd.js";
+import { describeWatchdog, isStepStuck, type WatchdogContext } from "./presentationWatchdog.js";
 import { actingPlayer, opponentNickname, secondsRemaining, timerLevel, turnBannerText } from "./turnTimer.js";
 import { arrivePresentationStep, beginPresentationStep, buildPresentationSteps, finishPresentationStep, type PresentationStep } from "../animations/boardPresentation.js";
 import { layoutBoard, type CardPlacement } from "../scene/layout.js";
-import { createMatchAudio } from "../animations/matchAudio.js";
+import { getAppAudio } from "../animations/matchAudio.js";
 import { playDamageFlash } from "../animations/hudEffects.js";
 
 const NOTICE_MS = 2200;
@@ -108,23 +111,10 @@ export const createMatchScreen = (): Screen => {
   const top = el("div", "hud-bar");
   const surrenderButton = el("button", "surrender-button", "Desistir");
   surrenderButton.type = "button";
-  const audio = createMatchAudio();
-  const soundButton = el("button", "sound-button");
-  soundButton.type = "button";
-  const soundIcon = el("span", "sound-icon");
-  soundIcon.setAttribute("aria-hidden", "true");
-  // Ícone próprio e estático: alto-falante com ondas, ou com risco quando silenciado.
-  soundIcon.innerHTML = '<svg viewBox="0 0 24 24" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4Z"/><path class="sound-waves" d="M16 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/><path class="sound-slash" d="m3 3 18 18"/></svg>';
-  soundButton.append(soundIcon);
-  const renderSound = () => {
-    soundButton.setAttribute("aria-pressed", String(audio.isEnabled()));
-    soundButton.setAttribute("aria-label", audio.isEnabled() ? "Desativar sons da partida" : "Ativar sons da partida");
-    soundButton.title = audio.isEnabled() ? "Som ligado: desativar sons" : "Som desligado: ativar sons";
-  };
-  soundButton.addEventListener("click", () => { audio.setEnabled(!audio.isEnabled()); renderSound(); });
-  renderSound();
+  const audio = getAppAudio();
+  const soundControl = createSoundButton();
   const topActions = el("div", "hud-top-actions");
-  topActions.append(soundButton, surrenderButton);
+  topActions.append(soundControl.element, surrenderButton);
   top.append(opponentInfo, turnInfo, topActions);
 
   const youInfo = infoBoxes.you.box;
@@ -185,13 +175,21 @@ export const createMatchScreen = (): Screen => {
 
   // Detalhe da carta sob o ponteiro (mão ou mesa). Guarda só o id; cartas ocultas (null) não mostram nada.
   let detailCardId: string | null = null;
-  const showDetail = (cardId: string | null) => {
-    if (cardId !== null && cardId === detailCardId && !detailPanel.hidden) return; // já mostrando: não recria (evita pisca da arte)
+  let detailBonus: number | null = null;
+  const showDetail = (cardId: string | null, attackBonus: number | null = null) => {
+    if (cardId !== null && cardId === detailCardId && attackBonus === detailBonus && !detailPanel.hidden) return; // já mostrando: não recria (evita pisca da arte)
     detailCardId = cardId;
+    detailBonus = attackBonus;
     detailPanel.dataset.cardId = cardId ?? "";
     const detail = buildCardDetail(cardId);
     detailPanel.hidden = !detail;
-    detailPanel.replaceChildren(...(detail ? [createCardView(detail)] : []));
+    // Monstro em campo: atributos atuais (com reforço) visíveis também sobre a arte.
+    const stats = attackBonus === null ? null : buildMonsterStats(cardId, attackBonus);
+    const statsBox = stats ? el("p", `card-detail-stats${stats.boosted ? " boosted" : ""}`) : null;
+    if (statsBox && stats) {
+      statsBox.append(el("span", undefined, stats.levelText), el("span", "atk", stats.attackText), el("span", undefined, stats.defenseText));
+    }
+    detailPanel.replaceChildren(...(detail ? [createCardView(detail)] : []), ...(statsBox ? [statsBox] : []));
   };
   // Um único ponto reconcilia hover/foco da mão após mudanças no DOM. O painel
   // fica fora do fluxo: mostrá-lo não desloca a carta que está sob o ponteiro.
@@ -230,6 +228,9 @@ export const createMatchScreen = (): Screen => {
   const lifeShown: Record<NoticeSide, { value: number }> = { you: { value: MAX_LIFE }, opponent: { value: MAX_LIFE } };
   const lifeTargets: Record<NoticeSide, number> = { you: MAX_LIFE, opponent: MAX_LIFE };
   let playing = false;
+  // Contenção do travamento (causa raiz não encontrada, issue #284): marca o passo em andamento para o watchdog.
+  let stepStartedAt: number | null = null;
+  let stepInfo = { kind: null as string | null, effectsDone: false, noticeDone: false };
   let noticeTimeline: { kill: () => void } | null = null;
   let effectTimer: ReturnType<typeof setTimeout> | null = null;
   let damageTimeline: { kill: () => void } | null = null;
@@ -249,6 +250,7 @@ export const createMatchScreen = (): Screen => {
     noticeQueue.length = 0;
     heldLife.clear();
     playing = false;
+    stepStartedAt = null;
     noticeTimeline?.kill();
     noticeTimeline = null;
     if (effectTimer) clearTimeout(effectTimer);
@@ -263,7 +265,41 @@ export const createMatchScreen = (): Screen => {
     eventNotice.hidden = true;
   };
 
+  const watchdogContext = (reason: WatchdogContext["reason"], error?: unknown): WatchdogContext => ({
+    reason,
+    elapsedMs: stepStartedAt === null ? null : Date.now() - stepStartedAt,
+    queueLength: noticeQueue.length,
+    stepKind: stepInfo.kind,
+    effectsDone: stepInfo.effectsDone,
+    noticeDone: stepInfo.noticeDone,
+    turn: lastMatch?.turn ?? null,
+    phase: lastMatch?.phase ?? null,
+    hidden: document.hidden,
+    userAgent: navigator.userAgent,
+    ...(error === undefined ? {} : { error: error instanceof Error ? `${error.message}
+${error.stack ?? ""}` : String(error) }),
+  });
+  /** Contenção: registra o contexto, descarta a fila e restaura o estado do servidor. */
+  const recoverPresentation = (reason: WatchdogContext["reason"], error?: unknown) => {
+    console.warn(...describeWatchdog(watchdogContext(reason, error)));
+    try {
+      stopNotices();
+    } catch (cause) {
+      console.warn("[partida] falha ao restaurar a apresentação", cause);
+      playing = false;
+      stepStartedAt = null;
+      noticeQueue.length = 0;
+    }
+    update();
+  };
   const pumpNotices = () => {
+    try {
+      runNextStep();
+    } catch (error) {
+      recoverPresentation("exception", error);
+    }
+  };
+  const runNextStep = () => {
     if (playing || !pageLoading.isReady()) return;
     const step = noticeQueue.shift();
     if (!step) {
@@ -275,6 +311,8 @@ export const createMatchScreen = (): Screen => {
       return;
     }
     playing = true;
+    stepStartedAt = Date.now();
+    stepInfo = { kind: step.feedback.notice?.kind ?? step.feedback.effects[0]?.kind ?? null, effectsDone: false, noticeDone: false };
     presentBoard(beginPresentationStep(shownBoard, step));
     const feedback = step.feedback;
     const generation = presentationGeneration;
@@ -284,6 +322,7 @@ export const createMatchScreen = (): Screen => {
     const finish = () => {
       if (generation !== presentationGeneration || finished || !effectsDone || !noticeDone) return;
       finished = true;
+      stepStartedAt = null;
       if (step.finish) presentBoard(finishPresentationStep(shownBoard, step));
       playing = false;
       pumpNotices();
@@ -293,6 +332,7 @@ export const createMatchScreen = (): Screen => {
       if (generation !== presentationGeneration) return;
       if (step.arrivals.length) presentBoard(arrivePresentationStep(shownBoard, step));
       effectsDone = true;
+      stepInfo.effectsDone = true;
       finish();
     };
     audio.play(feedback.sound);
@@ -306,9 +346,10 @@ export const createMatchScreen = (): Screen => {
     if (!notice) {
       eventNotice.hidden = true;
       if (feedback.sound && feedback.effects.length === 0) {
-        effectTimer = setTimeout(() => { effectTimer = null; noticeDone = true; finish(); }, 180);
+        effectTimer = setTimeout(() => { effectTimer = null; noticeDone = true; stepInfo.noticeDone = true; finish(); }, 180);
       } else {
         noticeDone = true;
+        stepInfo.noticeDone = true;
         finish();
       }
       return;
@@ -326,6 +367,7 @@ export const createMatchScreen = (): Screen => {
     const isEnd = notice.kind === "END";
     noticeTimeline = playNotice(eventNotice, isEnd ? END_HOLD : noticeQueue.length > 8 ? 0.05 : Math.min(NOTICE_HOLD, 0.35), !isEnd, () => {
       noticeDone = true;
+      stepInfo.noticeDone = true;
       finish();
     });
   };
@@ -379,13 +421,16 @@ export const createMatchScreen = (): Screen => {
       const view = getState().match;
       if (!view) return;
       const outcome = slotClick(view, selection, slot);
+      audio.play(selectionSound(selection, outcome.selection, outcome.action !== undefined));
       selection = outcome.selection;
       if (outcome.action) sendAction(outcome.action);
       update();
     });
     scene.onHover((slot) => {
       const cardId = slot ? scene?.cardAt(slot) ?? null : null;
-      if (cardId !== detailCardId) showDetail(cardId);
+      const view = getState().match;
+      const bonus = slot && view ? slotMonsterBonus(view, slot) : null;
+      if (cardId !== detailCardId || bonus !== detailBonus) showDetail(cardId, bonus);
     });
   } catch {
     canvasBox.append(el("p", "match-notice error", "Seu navegador não conseguiu iniciar o 3D (WebGL indisponível)."));
@@ -404,7 +449,12 @@ export const createMatchScreen = (): Screen => {
     countdown.className = `turn-countdown ${timerLevel(seconds)}`;
   };
   const countdownInterval = setInterval(renderCountdown, 250);
+  const watchdogInterval = setInterval(() => {
+    if (isStepStuck({ stepStartedAt, now: Date.now() })) recoverPresentation("timeout");
+  }, 1000);
 
+  // Armado ao ver a partida em andamento: o som do fim toca uma vez e não repete após reconexão.
+  let endSoundArmed = false;
   const render = () => {
     const { match, connection, ended, room, turnNotice, matchEvents } = getState();
     if (!match) return;
@@ -508,7 +558,9 @@ export const createMatchScreen = (): Screen => {
       card.addEventListener("click", () => {
         if (!lastMatch) return;
         showDetail(cardId);
-        selection = handClick(lastMatch, selection, index); // sempre o estado mais recente, nunca o de quando o botão foi criado
+        const next = handClick(lastMatch, selection, index);
+        audio.play(selectionSound(selection, next, false));
+        selection = next; // sempre o estado mais recente, nunca o de quando o botão foi criado
         update();
       });
       return card;
@@ -528,7 +580,11 @@ export const createMatchScreen = (): Screen => {
     surrenderButton.hidden = !surrenderAllowed;
     if (!surrenderAllowed) surrenderOverlay.hidden = true;
 
+    if (match.winner === null) endSoundArmed = nextEndSound(endSoundArmed, match.viewer, null).armed;
     if (match.winner && !playing && noticeQueue.length === 0) {
+      const endSound = nextEndSound(endSoundArmed, match.viewer, match.winner);
+      endSoundArmed = endSound.armed;
+      audio.play(endSound.sound);
       const summary = endSummary(match.viewer, match.winner, ended);
       selectedDeck ??= asDeckId(getState().deckId);
       const rematch = rematchState(ended, opponentInRoom(room?.players ?? []), selectedDeck, room?.vsAi === true);
@@ -583,9 +639,10 @@ export const createMatchScreen = (): Screen => {
       stopWaitingLoading();
       document.removeEventListener("visibilitychange", onVisibilityChange);
       clearInterval(countdownInterval);
+      clearInterval(watchdogInterval);
       if (toastTimer) clearTimeout(toastTimer);
       stopNotices();
-      audio.dispose();
+      audio.stop();
       observer?.disconnect();
       scene?.dispose();
     },
