@@ -34,6 +34,7 @@ import { selectionSound } from "./selectionSound.js";
 import { asDeckId, deckOptionFor, selectDeck } from "./deckSelect.js";
 import { aiOpponentLabel } from "./aiDuel.js";
 import { canSurrender, endSummary, nextEndSound, rematchState } from "./matchEnd.js";
+import { describeWatchdog, isStepStuck, type WatchdogContext } from "./presentationWatchdog.js";
 import { actingPlayer, opponentNickname, secondsRemaining, timerLevel, turnBannerText } from "./turnTimer.js";
 import { arrivePresentationStep, beginPresentationStep, buildPresentationSteps, finishPresentationStep, type PresentationStep } from "../animations/boardPresentation.js";
 import { layoutBoard, type CardPlacement } from "../scene/layout.js";
@@ -227,6 +228,9 @@ export const createMatchScreen = (): Screen => {
   const lifeShown: Record<NoticeSide, { value: number }> = { you: { value: MAX_LIFE }, opponent: { value: MAX_LIFE } };
   const lifeTargets: Record<NoticeSide, number> = { you: MAX_LIFE, opponent: MAX_LIFE };
   let playing = false;
+  // Contenção do travamento (causa raiz não encontrada, issue #284): marca o passo em andamento para o watchdog.
+  let stepStartedAt: number | null = null;
+  let stepInfo = { kind: null as string | null, effectsDone: false, noticeDone: false };
   let noticeTimeline: { kill: () => void } | null = null;
   let effectTimer: ReturnType<typeof setTimeout> | null = null;
   let damageTimeline: { kill: () => void } | null = null;
@@ -246,6 +250,7 @@ export const createMatchScreen = (): Screen => {
     noticeQueue.length = 0;
     heldLife.clear();
     playing = false;
+    stepStartedAt = null;
     noticeTimeline?.kill();
     noticeTimeline = null;
     if (effectTimer) clearTimeout(effectTimer);
@@ -260,7 +265,41 @@ export const createMatchScreen = (): Screen => {
     eventNotice.hidden = true;
   };
 
+  const watchdogContext = (reason: WatchdogContext["reason"], error?: unknown): WatchdogContext => ({
+    reason,
+    elapsedMs: stepStartedAt === null ? null : Date.now() - stepStartedAt,
+    queueLength: noticeQueue.length,
+    stepKind: stepInfo.kind,
+    effectsDone: stepInfo.effectsDone,
+    noticeDone: stepInfo.noticeDone,
+    turn: lastMatch?.turn ?? null,
+    phase: lastMatch?.phase ?? null,
+    hidden: document.hidden,
+    userAgent: navigator.userAgent,
+    ...(error === undefined ? {} : { error: error instanceof Error ? `${error.message}
+${error.stack ?? ""}` : String(error) }),
+  });
+  /** Contenção: registra o contexto, descarta a fila e restaura o estado do servidor. */
+  const recoverPresentation = (reason: WatchdogContext["reason"], error?: unknown) => {
+    console.warn(...describeWatchdog(watchdogContext(reason, error)));
+    try {
+      stopNotices();
+    } catch (cause) {
+      console.warn("[partida] falha ao restaurar a apresentação", cause);
+      playing = false;
+      stepStartedAt = null;
+      noticeQueue.length = 0;
+    }
+    update();
+  };
   const pumpNotices = () => {
+    try {
+      runNextStep();
+    } catch (error) {
+      recoverPresentation("exception", error);
+    }
+  };
+  const runNextStep = () => {
     if (playing || !pageLoading.isReady()) return;
     const step = noticeQueue.shift();
     if (!step) {
@@ -272,6 +311,8 @@ export const createMatchScreen = (): Screen => {
       return;
     }
     playing = true;
+    stepStartedAt = Date.now();
+    stepInfo = { kind: step.feedback.notice?.kind ?? step.feedback.effects[0]?.kind ?? null, effectsDone: false, noticeDone: false };
     presentBoard(beginPresentationStep(shownBoard, step));
     const feedback = step.feedback;
     const generation = presentationGeneration;
@@ -281,6 +322,7 @@ export const createMatchScreen = (): Screen => {
     const finish = () => {
       if (generation !== presentationGeneration || finished || !effectsDone || !noticeDone) return;
       finished = true;
+      stepStartedAt = null;
       if (step.finish) presentBoard(finishPresentationStep(shownBoard, step));
       playing = false;
       pumpNotices();
@@ -290,6 +332,7 @@ export const createMatchScreen = (): Screen => {
       if (generation !== presentationGeneration) return;
       if (step.arrivals.length) presentBoard(arrivePresentationStep(shownBoard, step));
       effectsDone = true;
+      stepInfo.effectsDone = true;
       finish();
     };
     audio.play(feedback.sound);
@@ -303,9 +346,10 @@ export const createMatchScreen = (): Screen => {
     if (!notice) {
       eventNotice.hidden = true;
       if (feedback.sound && feedback.effects.length === 0) {
-        effectTimer = setTimeout(() => { effectTimer = null; noticeDone = true; finish(); }, 180);
+        effectTimer = setTimeout(() => { effectTimer = null; noticeDone = true; stepInfo.noticeDone = true; finish(); }, 180);
       } else {
         noticeDone = true;
+        stepInfo.noticeDone = true;
         finish();
       }
       return;
@@ -323,6 +367,7 @@ export const createMatchScreen = (): Screen => {
     const isEnd = notice.kind === "END";
     noticeTimeline = playNotice(eventNotice, isEnd ? END_HOLD : noticeQueue.length > 8 ? 0.05 : Math.min(NOTICE_HOLD, 0.35), !isEnd, () => {
       noticeDone = true;
+      stepInfo.noticeDone = true;
       finish();
     });
   };
@@ -404,6 +449,9 @@ export const createMatchScreen = (): Screen => {
     countdown.className = `turn-countdown ${timerLevel(seconds)}`;
   };
   const countdownInterval = setInterval(renderCountdown, 250);
+  const watchdogInterval = setInterval(() => {
+    if (isStepStuck({ stepStartedAt, now: Date.now() })) recoverPresentation("timeout");
+  }, 1000);
 
   // Armado ao ver a partida em andamento: o som do fim toca uma vez e não repete após reconexão.
   let endSoundArmed = false;
@@ -591,6 +639,7 @@ export const createMatchScreen = (): Screen => {
       stopWaitingLoading();
       document.removeEventListener("visibilitychange", onVisibilityChange);
       clearInterval(countdownInterval);
+      clearInterval(watchdogInterval);
       if (toastTimer) clearTimeout(toastTimer);
       stopNotices();
       audio.stop();
