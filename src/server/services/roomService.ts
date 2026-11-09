@@ -24,7 +24,7 @@ export const MAX_PLAYERS = 2;
 /** Tempo que o jogador do turno (ou o defensor, com resposta pendente) tem para agir. */
 export const TURN_TIME_MS = 100_000;
 /** Pausa padrão entre as ações da IA, para o humano animar uma por vez. */
-export const AI_DELAY_MS = 700;
+export const AI_DELAY_MS = 1500;
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const CODE_LENGTH = 4;
 const SEED_LIMIT = 2 ** 31 - 1;
