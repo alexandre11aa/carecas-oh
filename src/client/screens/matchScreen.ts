@@ -30,6 +30,7 @@ import { applyCardArt } from "./cardArtImage.js";
 import { reusableHandSlots } from "./handReconcile.js";
 import { createCardView } from "./cardView.js";
 import { createDeckPicker } from "./deckPicker.js";
+import { selectionSound } from "./selectionSound.js";
 import { asDeckId, deckOptionFor, selectDeck } from "./deckSelect.js";
 import { aiOpponentLabel } from "./aiDuel.js";
 import { canSurrender, endSummary, nextEndSound, rematchState } from "./matchEnd.js";
@@ -375,6 +376,7 @@ export const createMatchScreen = (): Screen => {
       const view = getState().match;
       if (!view) return;
       const outcome = slotClick(view, selection, slot);
+      audio.play(selectionSound(selection, outcome.selection, outcome.action !== undefined));
       selection = outcome.selection;
       if (outcome.action) sendAction(outcome.action);
       update();
@@ -508,7 +510,9 @@ export const createMatchScreen = (): Screen => {
       card.addEventListener("click", () => {
         if (!lastMatch) return;
         showDetail(cardId);
-        selection = handClick(lastMatch, selection, index); // sempre o estado mais recente, nunca o de quando o botão foi criado
+        const next = handClick(lastMatch, selection, index);
+        audio.play(selectionSound(selection, next, false));
+        selection = next; // sempre o estado mais recente, nunca o de quando o botão foi criado
         update();
       });
       return card;

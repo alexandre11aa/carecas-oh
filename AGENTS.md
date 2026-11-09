@@ -250,6 +250,7 @@ src/client/
     handReconcile.ts    lógica pura: quais botões da mão podem ser reaproveitados entre atualizações
     cardArtImage.ts     DOM: aplica o PNG de frente a uma carta HTML, com fallback de texto
     matchActions.ts     lógica pura (testável): PlayerView + seleção => comandos e `match:action` a enviar
+    selectionSound.ts   lógica pura: som do clique que seleciona carta na mão ou no campo (`click`; mudo ao desselecionar, sem efeito ou quando o clique envia ação)
     matchEnd.ts         lógica pura: textos de resultado, estado do botão de revanche (exige deck escolhido) e payload de `match:rematch`; com `vsAi` a revanche só exige o deck (sem voto nem espera pelo oponente)
     deckSelect.ts       lógica pura (testável): decks para exibir (id, nome, imagem), deck da partida (`deckOptionFor`), seleção, botão "Pronto" e payload de `room:ready`
     deckPicker.ts       componente HTML dos botões de imagem de deck (sala de espera e revanche)
@@ -348,7 +349,7 @@ O que cobrir:
 
 - **Engine:** cada regra, incluindo jogadas válidas e inválidas, e a garantia de que `playerView` não vaza informação oculta.
 - **Server:** cada evento, incluindo caminho feliz, payload inválido, sala inexistente, jogador sem permissão e reconexão.
-- **Client:** a lógica pura (`scene/layout.ts`, `screens/matchActions.ts`, `screens/matchEnd.ts`, `screens/matchNotices.ts`, `screens/scrollButton.ts`, `screens/loadingTracker.ts`, `screens/aiDuel.ts`, `screens/uiSounds.ts`, `screens/musicTrack.ts`, `screens/toasts.ts`, `screens/tutorialSections.ts`, `state.ts`) tem testes; DOM e WebGL não. Mantenha a decisão de qual ação enviar nos módulos puros. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
+- **Client:** a lógica pura (`scene/layout.ts`, `screens/matchActions.ts`, `screens/matchEnd.ts`, `screens/matchNotices.ts`, `screens/scrollButton.ts`, `screens/loadingTracker.ts`, `screens/aiDuel.ts`, `screens/uiSounds.ts`, `screens/selectionSound.ts`, `screens/musicTrack.ts`, `screens/toasts.ts`, `screens/tutorialSections.ts`, `state.ts`) tem testes; DOM e WebGL não. Mantenha a decisão de qual ação enviar nos módulos puros. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
 - **IA:** a decisão de cada nível tem testes (`ai/ai.test.ts`, `medium.test.ts`, `hard.test.ts`) e a simulação IA x IA (`ai/simulation.test.ts`, ver seção "IA") garante zero ação inválida e partidas sempre concluídas. O servidor testa a sala de IA no service (`aiRoom.test.ts`, `aiPlay.test.ts`, `aiLifecycle.test.ts`, com `Clock` injetado, sem esperar o tempo real) e nos sockets (`sockets/aiRoom.test.ts`).
 - **Correção de bug:** um teste que falharia antes da correção, quando o bug estiver em `engine` ou `server`.
 

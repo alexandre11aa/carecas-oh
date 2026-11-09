@@ -13,7 +13,7 @@ Os originais (24 bits, estéreo, 44,1 ou 48 kHz) ficam fora do repositório, na 
 | Arquivo | Uso | Fonte |
 |---|---|---|
 | `activate`, `attack`, `damage`, `destroyed`, `draw`, `equip`, `flip`, `gainlp`, `nextturn`, `phase`, `set`, `summon` | Partida | Mesmos nomes na pasta de origem |
-| `click` | Clique em botões e links de menu e lobby | `chatmessage.wav`, primeiros 0,4 s com fade-out |
+| `click` | Clique em botões e links de menu e lobby; também a seleção de carta por clique na partida (mão e campo) | `chatmessage.wav`, primeiros 0,4 s com fade-out |
 | `victory` | Fim da partida, para o vencedor (inclusive desistência do oponente e fim por tempo), uma vez | Faixa "You Win" (1-11) da trilha de Yu-Gi-Oh! Forbidden Memories, 7,9 s com fade-out |
 | `defeat` | Fim da partida, para o perdedor, uma vez | Faixa "You Lose" (2-13) da mesma trilha, 9,2 s com fade-out |
 | `confirm` | Criar, entrar, iniciar duelo e "Pronto" | `playerenter.wav`, primeiros 1,2 s com fade-out |
