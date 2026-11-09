@@ -233,7 +233,7 @@ src/client/
   state.ts              último estado recebido do servidor
   style.css
   public/cards/         imagens das cartas (WebP otimizado, proporção 1030:1500; PNG nas artes provisórias ainda sem arquivo)
-  public/sounds/        efeitos sonoros WAV mono PCM 16 bits, 32 kHz (README.md registra a origem e o aviso de material oficial)
+  public/sounds/        efeitos sonoros WAV mono PCM 16 bits, 32 kHz; músicas de fundo em OGG Vorbis (até 3 MB cada, feitas para loop sem emenda: `menu.ogg`, `lobby.ogg`) (README.md registra a origem e o aviso de material oficial)
   public/textures/      fundo e mesa (PNG, opcionais)
   public/decks/         imagens dos botões de deck da sala de espera (PNG, <deckId>.png)
   public/favicon-32.png, icon-192.png, apple-touch-icon.png   ícones da aba (logo reduzido, na raiz de public/; referenciados em index.html com caminho absoluto)
@@ -268,6 +268,7 @@ src/client/
     tutorialSections.ts lógica pura: seções do guia (dados tipados), catálogo de cartas agrupado por deck (composição de 20 cartas, cópias de cada carta e magia de efeito único), visibilidade e seção ativa
     tutorialScreen.ts   DOM das páginas `/guia` (menu de âncoras, blocos lista/tabela, seção ativa) e `/cartas` (catálogo por deck)
     scrollButton.ts     lógica pura: botão fixo único que alterna entre descer ao fim e subir ao topo (`pickScrollTarget`: `top`, `bottom` ou `null` sem rolagem) e rótulos
+    musicTrack.ts       lógica pura: música de fundo por página (`musicTrackFor`: `menu` em home/guia/cartas, `lobby` na sala de espera, nenhuma na partida ou com som desligado)
     uiSounds.ts         lógica pura: som de interface por elemento clicado (`uiSoundFor`: `confirm` em botão `primary`, `click` nos demais interativos) e páginas com som/botão de som (`showsSoundButton`, `playsUiClicks`)
     soundButtonView.ts  DOM do botão de som (mesmo ícone da partida) ligado à preferência compartilhada; `main.ts` monta um botão fixo persistente fora da partida e a mesa usa o mesmo no HUD
     scrollButtonView.ts DOM do botão fixo de subir/descer (só em `/guia` e `/cartas`, via `createPage`): usa `scrollButton.ts`, `scrollTo` com `auto`/`smooth` conforme `prefers-reduced-motion`, remove listeners no `destroy`
@@ -288,7 +289,7 @@ src/client/
     hudEffects.ts       GSAP do HUD: aviso de evento, variação flutuante e barra de vida
     matchFeedback.ts    lógica pura: eventos filtrados + visões anterior/atual => passos de som, aviso e efeito, sem inferir informação oculta
     boardPresentation.ts lógica pura: retém a mesa anterior e aplica saídas/chegadas ao cemitério em sincronia com os efeitos; o fim coincide com a visão do servidor
-    matchAudio.ts       Web Audio: cache após gesto, preferência de som salva, limite de vozes e descarte; `getAppAudio()` é o áudio global único do app (partida, `click` e `confirm` de menu e lobby), que sobrevive à troca de tela
+    matchAudio.ts       Web Audio: cache após gesto, preferência de som salva, limite de vozes e descarte; `getAppAudio()` é o áudio global único do app (partida, `click` e `confirm` de menu e lobby), que sobrevive à troca de tela; também toca a música de fundo (`setMusic`: `AudioBufferSourceNode` em loop, volume 0,15 abaixo dos efeitos, fade de 1,2 s na troca, só a faixa em uso fica decodificada, pausa com a aba oculta e libera os nós ao trocar, silenciar ou descartar)
 ```
 
 ### Padrão de código
@@ -347,7 +348,7 @@ O que cobrir:
 
 - **Engine:** cada regra, incluindo jogadas válidas e inválidas, e a garantia de que `playerView` não vaza informação oculta.
 - **Server:** cada evento, incluindo caminho feliz, payload inválido, sala inexistente, jogador sem permissão e reconexão.
-- **Client:** a lógica pura (`scene/layout.ts`, `screens/matchActions.ts`, `screens/matchEnd.ts`, `screens/matchNotices.ts`, `screens/scrollButton.ts`, `screens/loadingTracker.ts`, `screens/aiDuel.ts`, `screens/uiSounds.ts`, `screens/toasts.ts`, `screens/tutorialSections.ts`, `state.ts`) tem testes; DOM e WebGL não. Mantenha a decisão de qual ação enviar nos módulos puros. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
+- **Client:** a lógica pura (`scene/layout.ts`, `screens/matchActions.ts`, `screens/matchEnd.ts`, `screens/matchNotices.ts`, `screens/scrollButton.ts`, `screens/loadingTracker.ts`, `screens/aiDuel.ts`, `screens/uiSounds.ts`, `screens/musicTrack.ts`, `screens/toasts.ts`, `screens/tutorialSections.ts`, `state.ts`) tem testes; DOM e WebGL não. Mantenha a decisão de qual ação enviar nos módulos puros. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
 - **IA:** a decisão de cada nível tem testes (`ai/ai.test.ts`, `medium.test.ts`, `hard.test.ts`) e a simulação IA x IA (`ai/simulation.test.ts`, ver seção "IA") garante zero ação inválida e partidas sempre concluídas. O servidor testa a sala de IA no service (`aiRoom.test.ts`, `aiPlay.test.ts`, `aiLifecycle.test.ts`, com `Clock` injetado, sem esperar o tempo real) e nos sockets (`sockets/aiRoom.test.ts`).
 - **Correção de bug:** um teste que falharia antes da correção, quando o bug estiver em `engine` ou `server`.
 

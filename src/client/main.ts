@@ -12,6 +12,7 @@ import { createWaitingRoomScreen } from "./screens/waitingRoomScreen.js";
 import type { Screen } from "./screens/dom.js";
 import { getAppAudio } from "./animations/matchAudio.js";
 import { createSoundButton } from "./screens/soundButtonView.js";
+import { musicTrackFor } from "./screens/musicTrack.js";
 import { playsUiClicks, showsFloatingSoundButton, uiSoundFor } from "./screens/uiSounds.js";
 import { getState, loadNickname, roomPage, subscribe } from "./state.js";
 
@@ -68,6 +69,9 @@ const refreshFloatingSound = () => {
   floatingSound.element.hidden = !showsFloatingSoundButton(currentKey);
   floatingSound.refresh();
 };
+// Música de fundo: faixa decidida por `musicTrackFor` a cada troca de página e ao ligar/desligar o som.
+const syncMusic = () => getAppAudio().setMusic(musicTrackFor({ key: currentKey, soundEnabled: getAppAudio().isEnabled() }));
+getAppAudio().onEnabledChange(syncMusic);
 // Som de clique global: um único ouvinte delegado, decidido por `uiSoundFor` conforme a página aberta.
 document.addEventListener("click", (event) => {
   if (!playsUiClicks(currentKey) || !(event.target instanceof Element)) return;
@@ -94,6 +98,7 @@ const render = () => {
     rendering = false;
   }
   refreshFloatingSound();
+  syncMusic();
   refreshLoading();
 };
 
