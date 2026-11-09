@@ -8,6 +8,7 @@ import { leaveRoom, sendAction, sendRematch } from "../network/socket.js";
 import { createMatchScene, type MatchScene } from "../scene/scene.js";
 import { getState, loadNickname } from "../state.js";
 import { el, type Screen } from "./dom.js";
+import { createSoundButton } from "./soundButtonView.js";
 import { criticalTextureUrls } from "../scene/texturePaths.js";
 import { pageLoading, trackImage, trackTextures } from "./pageLoading.js";
 import {
@@ -35,7 +36,7 @@ import { canSurrender, endSummary, rematchState } from "./matchEnd.js";
 import { actingPlayer, opponentNickname, secondsRemaining, timerLevel, turnBannerText } from "./turnTimer.js";
 import { arrivePresentationStep, beginPresentationStep, buildPresentationSteps, finishPresentationStep, type PresentationStep } from "../animations/boardPresentation.js";
 import { layoutBoard, type CardPlacement } from "../scene/layout.js";
-import { createMatchAudio } from "../animations/matchAudio.js";
+import { getAppAudio } from "../animations/matchAudio.js";
 import { playDamageFlash } from "../animations/hudEffects.js";
 
 const NOTICE_MS = 2200;
@@ -108,23 +109,10 @@ export const createMatchScreen = (): Screen => {
   const top = el("div", "hud-bar");
   const surrenderButton = el("button", "surrender-button", "Desistir");
   surrenderButton.type = "button";
-  const audio = createMatchAudio();
-  const soundButton = el("button", "sound-button");
-  soundButton.type = "button";
-  const soundIcon = el("span", "sound-icon");
-  soundIcon.setAttribute("aria-hidden", "true");
-  // Ícone próprio e estático: alto-falante com ondas, ou com risco quando silenciado.
-  soundIcon.innerHTML = '<svg viewBox="0 0 24 24" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4Z"/><path class="sound-waves" d="M16 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/><path class="sound-slash" d="m3 3 18 18"/></svg>';
-  soundButton.append(soundIcon);
-  const renderSound = () => {
-    soundButton.setAttribute("aria-pressed", String(audio.isEnabled()));
-    soundButton.setAttribute("aria-label", audio.isEnabled() ? "Desativar sons da partida" : "Ativar sons da partida");
-    soundButton.title = audio.isEnabled() ? "Som ligado: desativar sons" : "Som desligado: ativar sons";
-  };
-  soundButton.addEventListener("click", () => { audio.setEnabled(!audio.isEnabled()); renderSound(); });
-  renderSound();
+  const audio = getAppAudio();
+  const soundControl = createSoundButton();
   const topActions = el("div", "hud-top-actions");
-  topActions.append(soundButton, surrenderButton);
+  topActions.append(soundControl.element, surrenderButton);
   top.append(opponentInfo, turnInfo, topActions);
 
   const youInfo = infoBoxes.you.box;
@@ -595,7 +583,7 @@ export const createMatchScreen = (): Screen => {
       clearInterval(countdownInterval);
       if (toastTimer) clearTimeout(toastTimer);
       stopNotices();
-      audio.dispose();
+      audio.stop();
       observer?.disconnect();
       scene?.dispose();
     },

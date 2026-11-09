@@ -1,18 +1,24 @@
 // src/client/animations/matchAudio.ts
-// Áudio opcional: desbloqueio por gesto, cache, limite de vozes e descarte por tela.
+// Áudio opcional: desbloqueio por gesto, cache, limite de vozes e descarte.
+// Também serve de áudio global do app (`getAppAudio`): uma instância única que sobrevive à troca de tela.
 import { SOUND_NAMES, type SoundName } from "./matchFeedback.js";
 
 const STORAGE_KEY = "carecas-oh:sound";
 
-export const createMatchAudio = () => {
+/** Efeitos da interface fora da partida: clique comum e confirmação (criar, entrar, pronto). */
+export const UI_SOUND_NAMES = ["click", "confirm"] as const;
+export type UiSoundName = typeof UI_SOUND_NAMES[number];
+export type AudioName = SoundName | UiSoundName;
+
+export const createMatchAudio = (names: readonly AudioName[] = SOUND_NAMES) => {
   let enabled = true;
   try { enabled = localStorage.getItem(STORAGE_KEY) !== "off"; } catch { /* Sem armazenamento, vale a escolha desta tela. */ }
   let context: AudioContext | null = null;
   let disposed = false;
   let generation = 0;
-  const buffers = new Map<SoundName, Promise<AudioBuffer | null>>();
+  const buffers = new Map<AudioName, Promise<AudioBuffer | null>>();
   const voices = new Set<AudioBufferSourceNode>();
-  const load = (name: SoundName): Promise<AudioBuffer | null> => {
+  const load = (name: AudioName): Promise<AudioBuffer | null> => {
     const audio = context;
     if (!audio) return Promise.resolve(null);
     let pending = buffers.get(name);
@@ -28,7 +34,7 @@ export const createMatchAudio = () => {
     try {
       context ??= new AudioContext();
       void context.resume().then(() => {
-        if (!disposed && enabled) SOUND_NAMES.forEach((name) => { void load(name); });
+        if (!disposed && enabled) names.forEach((name) => { void load(name); });
       }).catch(() => undefined);
     } catch { /* Falta de áudio não impede o duelo. */ }
   };
@@ -47,7 +53,7 @@ export const createMatchAudio = () => {
       try { localStorage.setItem(STORAGE_KEY, value ? "on" : "off"); } catch { /* Preferência apenas em memória. */ }
       if (value) unlock(); else stop();
     },
-    play: (name: SoundName | null) => {
+    play: (name: AudioName | null) => {
       if (!name || !enabled || disposed || document.hidden || context?.state !== "running") return;
       const expected = generation;
       // Não repete um som atrasado: o primeiro carregamento serve aos próximos eventos.
@@ -81,3 +87,10 @@ export const createMatchAudio = () => {
     },
   };
 };
+
+export type MatchAudio = ReturnType<typeof createMatchAudio>;
+
+let appAudio: MatchAudio | null = null;
+
+/** Áudio único do app (partida, menu e lobby): preferência e vozes compartilhadas entre telas. */
+export const getAppAudio = (): MatchAudio => (appAudio ??= createMatchAudio([...SOUND_NAMES, ...UI_SOUND_NAMES]));

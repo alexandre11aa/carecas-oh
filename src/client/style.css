@@ -347,6 +347,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .surrender-overlay { z-index: 10; }
 .surrender-button, .sound-button { box-sizing: border-box; height: 2.1rem; padding: 0 0.8rem; font-size: 0.85rem; line-height: 1; }
 .sound-button { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 2.1rem; padding: 0; }
+.sound-floating { position: fixed; top: max(0.75rem, env(safe-area-inset-top)); left: max(0.75rem, env(safe-area-inset-left)); z-index: 5; color: var(--c-text); background: var(--c-panel-alpha); border: var(--border-gold-thin); border-radius: 50%; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5); cursor: pointer; }
+.sound-floating[hidden] { display: none; }
 .sound-icon, .sound-icon svg { display: block; width: 1.2rem; height: 1.2rem; }
 .sound-icon .sound-slash, .sound-button[aria-pressed="false"] .sound-waves { display: none; }
 .sound-button[aria-pressed="false"] .sound-slash { display: block; }
