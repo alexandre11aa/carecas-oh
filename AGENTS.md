@@ -233,7 +233,7 @@ src/client/
   state.ts              último estado recebido do servidor
   style.css
   public/cards/         imagens das cartas (WebP otimizado, proporção 1030:1500; PNG nas artes provisórias ainda sem arquivo)
-  public/sounds/        efeitos sonoros WAV mono PCM 16 bits, 32 kHz; músicas de fundo em OGG Vorbis (até 3 MB cada, feitas para loop sem emenda: `menu.ogg`, `lobby.ogg`, `battle.ogg`) (README.md registra a origem e o aviso de material oficial)
+  public/sounds/        efeitos sonoros WAV mono PCM 16 bits, 32 kHz; músicas de fundo em OGG Vorbis (até 3 MB cada, feitas para loop sem emenda: `menu.ogg`, `lobby.ogg`, `battle.ogg`); `victory.wav` e `defeat.wav` tocam uma vez no fim da partida (README.md registra a origem e o aviso de material oficial)
   public/textures/      fundo e mesa (PNG, opcionais)
   public/decks/         imagens dos botões de deck da sala de espera (PNG, <deckId>.png)
   public/favicon-32.png, icon-192.png, apple-touch-icon.png   ícones da aba (logo reduzido, na raiz de public/; referenciados em index.html com caminho absoluto)
