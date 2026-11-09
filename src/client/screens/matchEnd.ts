@@ -1,6 +1,7 @@
 // src/client/screens/matchEnd.ts
 // Lógica pura da tela de fim: textos de resultado e estado do botão de revanche.
 import type { DeckId } from "../../engine/decks.js";
+import type { SoundName } from "../animations/matchFeedback.js";
 import type { PlayerId } from "../../engine/types.js";
 import type { MatchEnded } from "../state.js";
 
@@ -68,3 +69,16 @@ export const rematchPayload = (accept: boolean, deckId: DeckId | null): { deckId
 
 /** O botão "Desistir" só existe com a partida em andamento: sem vencedor e sem resultado. */
 export const canSurrender = (winner: PlayerId | null, ended: MatchEnded | null): boolean => winner === null && ended === null;
+
+/** Som do fim da partida: vitória para o vencedor (inclusive por desistência do oponente ou fim por tempo) e derrota para o perdedor. */
+export const endSoundFor = (viewer: PlayerId, winner: PlayerId): Extract<SoundName, "victory" | "defeat"> =>
+  winner === viewer ? "victory" : "defeat";
+
+/**
+ * Toca o som do fim uma vez por partida. `armed` fica verdadeiro ao ver a partida em andamento; uma tela aberta
+ * já com a partida encerrada (reconexão, recarga) nasce desarmada e não toca. A revanche (sem vencedor) rearma.
+ */
+export const nextEndSound = (armed: boolean, viewer: PlayerId, winner: PlayerId | null): { sound: SoundName | null; armed: boolean } => {
+  if (winner === null) return { sound: null, armed: true };
+  return armed ? { sound: endSoundFor(viewer, winner), armed: false } : { sound: null, armed: false };
+};

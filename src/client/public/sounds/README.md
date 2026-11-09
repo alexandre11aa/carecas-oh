@@ -14,7 +14,11 @@ Os originais (24 bits, estéreo, 44,1 ou 48 kHz) ficam fora do repositório, na 
 |---|---|---|
 | `activate`, `attack`, `damage`, `destroyed`, `draw`, `equip`, `flip`, `gainlp`, `nextturn`, `phase`, `set`, `summon` | Partida | Mesmos nomes na pasta de origem |
 | `click` | Clique em botões e links de menu e lobby | `chatmessage.wav`, primeiros 0,4 s com fade-out |
+| `victory` | Fim da partida, para o vencedor (inclusive desistência do oponente e fim por tempo), uma vez | Faixa "You Win" (1-11) da trilha de Yu-Gi-Oh! Forbidden Memories, 7,9 s com fade-out |
+| `defeat` | Fim da partida, para o perdedor, uma vez | Faixa "You Lose" (2-13) da mesma trilha, 9,2 s com fade-out |
 | `confirm` | Criar, entrar, iniciar duelo e "Pronto" | `playerenter.wav`, primeiros 1,2 s com fade-out |
+
+Fonte de `victory` e `defeat`: https://archive.org/details/yu-gi-oh-forbidden-memories-remastered-25th-anniversary (Internet Archive, MP3), pois a pasta `Desktop/sons` não tem som de vitória nem de derrota. Mesmo aviso de material oficial, sem licença de redistribuição, por decisão e risco do dono.
 
 Conversão: mistura para mono, reamostragem para 32 kHz, corte, fade-out, normalização de pico em 0,85 e 16 bits.
 

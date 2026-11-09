@@ -32,7 +32,7 @@ import { createCardView } from "./cardView.js";
 import { createDeckPicker } from "./deckPicker.js";
 import { asDeckId, deckOptionFor, selectDeck } from "./deckSelect.js";
 import { aiOpponentLabel } from "./aiDuel.js";
-import { canSurrender, endSummary, rematchState } from "./matchEnd.js";
+import { canSurrender, endSummary, nextEndSound, rematchState } from "./matchEnd.js";
 import { actingPlayer, opponentNickname, secondsRemaining, timerLevel, turnBannerText } from "./turnTimer.js";
 import { arrivePresentationStep, beginPresentationStep, buildPresentationSteps, finishPresentationStep, type PresentationStep } from "../animations/boardPresentation.js";
 import { layoutBoard, type CardPlacement } from "../scene/layout.js";
@@ -403,6 +403,8 @@ export const createMatchScreen = (): Screen => {
   };
   const countdownInterval = setInterval(renderCountdown, 250);
 
+  // Armado ao ver a partida em andamento: o som do fim toca uma vez e não repete após reconexão.
+  let endSoundArmed = false;
   const render = () => {
     const { match, connection, ended, room, turnNotice, matchEvents } = getState();
     if (!match) return;
@@ -526,7 +528,11 @@ export const createMatchScreen = (): Screen => {
     surrenderButton.hidden = !surrenderAllowed;
     if (!surrenderAllowed) surrenderOverlay.hidden = true;
 
+    if (match.winner === null) endSoundArmed = nextEndSound(endSoundArmed, match.viewer, null).armed;
     if (match.winner && !playing && noticeQueue.length === 0) {
+      const endSound = nextEndSound(endSoundArmed, match.viewer, match.winner);
+      endSoundArmed = endSound.armed;
+      audio.play(endSound.sound);
       const summary = endSummary(match.viewer, match.winner, ended);
       selectedDeck ??= asDeckId(getState().deckId);
       const rematch = rematchState(ended, opponentInRoom(room?.players ?? []), selectedDeck, room?.vsAi === true);
