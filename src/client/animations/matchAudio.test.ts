@@ -1,5 +1,6 @@
 // src/client/animations/matchAudio.test.ts
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { SOUND_NAMES } from "./matchFeedback.js";
 import { createMatchAudio, getAppAudio, MUSIC_VOLUME, UI_SOUND_NAMES } from "./matchAudio.js";
 
 describe("áudio da partida", () => {
@@ -40,13 +41,13 @@ describe("áudio da partida", () => {
     expect(fetch).not.toHaveBeenCalled();
     documentMock.dispatchEvent(new Event("pointerdown"));
     await settle();
-    expect(fetch).toHaveBeenCalledTimes(12);
+    expect(fetch).toHaveBeenCalledTimes(SOUND_NAMES.length);
     audio.play("damage");
     await settle();
     expect(sources[0]!.start).toHaveBeenCalledOnce();
     audio.play("damage");
     await settle();
-    expect(fetch).toHaveBeenCalledTimes(12);
+    expect(fetch).toHaveBeenCalledTimes(SOUND_NAMES.length);
     expect(sources).toHaveLength(2);
   });
 
@@ -115,7 +116,7 @@ describe("áudio da partida", () => {
     created.push(audio);
     documentMock.dispatchEvent(new Event("pointerdown"));
     await settle();
-    expect(fetch).toHaveBeenCalledTimes(12 + UI_SOUND_NAMES.length);
+    expect(fetch).toHaveBeenCalledTimes(SOUND_NAMES.length + UI_SOUND_NAMES.length);
     expect(fetch).toHaveBeenCalledWith("/sounds/click.wav");
     expect(fetch).toHaveBeenCalledWith("/sounds/confirm.wav");
     audio.play("click");

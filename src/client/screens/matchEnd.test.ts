@@ -1,7 +1,7 @@
 // src/client/screens/matchEnd.test.ts
 import { describe, expect, it } from "vitest";
 import type { MatchEnded } from "../state.js";
-import { canSurrender, endSummary, rematchPayload, rematchState } from "./matchEnd.js";
+import { canSurrender, endSoundFor, endSummary, nextEndSound, rematchPayload, rematchState } from "./matchEnd.js";
 
 const ended = (reason: MatchEnded["reason"], you = false, opponent = false): MatchEnded => ({
   winner: "P1",
@@ -133,5 +133,38 @@ describe("rematchState contra a IA", () => {
 
   it("sem_resultado_ainda_fica_desabilitado", () => {
     expect(rematchState(null, true, "magic", true).disabled).toBe(true);
+  });
+});
+
+describe("som do fim da partida", () => {
+  it("vencedor_ouve_vitoria_e_perdedor_derrota", () => {
+    expect(endSoundFor("P1", "P1")).toBe("victory");
+    expect(endSoundFor("P2", "P1")).toBe("defeat");
+  });
+
+  it("desistencia_do_oponente_toca_vitoria_para_quem_ficou", () => {
+    expect(nextEndSound(true, "P2", "P2")).toEqual({ sound: "victory", armed: false });
+  });
+
+  it("derrota_contra_a_ia_toca_derrota_uma_vez", () => {
+    const first = nextEndSound(true, "P1", "P2");
+    expect(first).toEqual({ sound: "defeat", armed: false });
+    expect(nextEndSound(first.armed, "P1", "P2")).toEqual({ sound: null, armed: false });
+  });
+
+  it("partida_em_andamento_arma_e_nao_toca", () => {
+    expect(nextEndSound(false, "P1", null)).toEqual({ sound: null, armed: true });
+  });
+
+  it("tela_aberta_com_partida_encerrada_nao_toca", () => {
+    expect(nextEndSound(false, "P1", "P1")).toEqual({ sound: null, armed: false });
+  });
+
+  it("revanche_reinicia_o_ciclo", () => {
+    let state = nextEndSound(true, "P1", "P1");
+    expect(state.sound).toBe("victory");
+    state = nextEndSound(state.armed, "P1", null);
+    state = nextEndSound(state.armed, "P1", "P2");
+    expect(state.sound).toBe("defeat");
   });
 });
