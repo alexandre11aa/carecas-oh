@@ -70,7 +70,14 @@ const refreshFloatingSound = () => {
   floatingSound.refresh();
 };
 // Música de fundo: faixa decidida por `musicTrackFor` a cada troca de página e ao ligar/desligar o som.
-const syncMusic = () => getAppAudio().setMusic(musicTrackFor({ key: currentKey, soundEnabled: getAppAudio().isEnabled() }));
+const syncMusic = () => {
+  const { match, ended } = getState();
+  getAppAudio().setMusic(musicTrackFor({
+    key: currentKey,
+    soundEnabled: getAppAudio().isEnabled(),
+    matchOver: match?.winner != null || ended !== null,
+  }));
+};
 getAppAudio().onEnabledChange(syncMusic);
 // Som de clique global: um único ouvinte delegado, decidido por `uiSoundFor` conforme a página aberta.
 document.addEventListener("click", (event) => {

@@ -10,8 +10,8 @@ export const UI_SOUND_NAMES = ["click", "confirm"] as const;
 export type UiSoundName = typeof UI_SOUND_NAMES[number];
 export type AudioName = SoundName | UiSoundName;
 
-/** Músicas de fundo em loop (OGG): uma para o menu e outra para o lobby. */
-export const MUSIC_TRACKS = ["menu", "lobby"] as const;
+/** Músicas de fundo em loop (OGG): menu, lobby e batalha. */
+export const MUSIC_TRACKS = ["menu", "lobby", "battle"] as const;
 export type MusicTrack = typeof MUSIC_TRACKS[number];
 /** Volume da música, abaixo dos efeitos (0,35). */
 export const MUSIC_VOLUME = 0.15;

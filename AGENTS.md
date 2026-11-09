@@ -233,7 +233,7 @@ src/client/
   state.ts              último estado recebido do servidor
   style.css
   public/cards/         imagens das cartas (WebP otimizado, proporção 1030:1500; PNG nas artes provisórias ainda sem arquivo)
-  public/sounds/        efeitos sonoros WAV mono PCM 16 bits, 32 kHz; músicas de fundo em OGG Vorbis (até 3 MB cada, feitas para loop sem emenda: `menu.ogg`, `lobby.ogg`) (README.md registra a origem e o aviso de material oficial)
+  public/sounds/        efeitos sonoros WAV mono PCM 16 bits, 32 kHz; músicas de fundo em OGG Vorbis (até 3 MB cada, feitas para loop sem emenda: `menu.ogg`, `lobby.ogg`, `battle.ogg`) (README.md registra a origem e o aviso de material oficial)
   public/textures/      fundo e mesa (PNG, opcionais)
   public/decks/         imagens dos botões de deck da sala de espera (PNG, <deckId>.png)
   public/favicon-32.png, icon-192.png, apple-touch-icon.png   ícones da aba (logo reduzido, na raiz de public/; referenciados em index.html com caminho absoluto)
@@ -268,7 +268,7 @@ src/client/
     tutorialSections.ts lógica pura: seções do guia (dados tipados), catálogo de cartas agrupado por deck (composição de 20 cartas, cópias de cada carta e magia de efeito único), visibilidade e seção ativa
     tutorialScreen.ts   DOM das páginas `/guia` (menu de âncoras, blocos lista/tabela, seção ativa) e `/cartas` (catálogo por deck)
     scrollButton.ts     lógica pura: botão fixo único que alterna entre descer ao fim e subir ao topo (`pickScrollTarget`: `top`, `bottom` ou `null` sem rolagem) e rótulos
-    musicTrack.ts       lógica pura: música de fundo por página (`musicTrackFor`: `menu` em home/guia/cartas, `lobby` na sala de espera, nenhuma na partida ou com som desligado)
+    musicTrack.ts       lógica pura: música de fundo por página (`musicTrackFor`: `menu` em home/guia/cartas, `lobby` na sala de espera, `battle` na partida em andamento, parada com fade no fim e de volta na revanche; nenhuma na tela de início do duelo ou com som desligado)
     uiSounds.ts         lógica pura: som de interface por elemento clicado (`uiSoundFor`: `confirm` em botão `primary`, `click` nos demais interativos) e páginas com som/botão de som (`showsSoundButton`, `playsUiClicks`)
     soundButtonView.ts  DOM do botão de som (mesmo ícone da partida) ligado à preferência compartilhada; `main.ts` monta um botão fixo persistente fora da partida e a mesa usa o mesmo no HUD
     scrollButtonView.ts DOM do botão fixo de subir/descer (só em `/guia` e `/cartas`, via `createPage`): usa `scrollButton.ts`, `scrollTo` com `auto`/`smooth` conforme `prefers-reduced-motion`, remove listeners no `destroy`

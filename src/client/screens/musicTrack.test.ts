@@ -14,10 +14,23 @@ describe("música de fundo por página", () => {
     expect(musicTrackFor({ key: "waiting", soundEnabled: true })).toBe("lobby");
   });
 
-  it("partida_e_inicio_do_duelo_nao_tocam_musica", () => {
-    expect(musicTrackFor({ key: "match", soundEnabled: true })).toBeNull();
+  it("partida_em_andamento_toca_a_faixa_de_batalha", () => {
+    expect(musicTrackFor({ key: "match", soundEnabled: true })).toBe("battle");
+    expect(musicTrackFor({ key: "match", soundEnabled: true, matchOver: false })).toBe("battle");
+  });
+
+  it("fim_de_partida_para_a_batalha_e_a_revanche_a_traz_de_volta", () => {
+    expect(musicTrackFor({ key: "match", soundEnabled: true, matchOver: true })).toBeNull();
+    expect(musicTrackFor({ key: "match", soundEnabled: true, matchOver: false })).toBe("battle");
+  });
+
+  it("inicio_do_duelo_nao_toca_musica", () => {
     expect(musicTrackFor({ key: "starting", soundEnabled: true })).toBeNull();
     expect(musicTrackFor({ key: "", soundEnabled: true })).toBeNull();
+  });
+
+  it("som_desligado_silencia_a_batalha", () => {
+    expect(musicTrackFor({ key: "match", soundEnabled: false, matchOver: false })).toBeNull();
   });
 
   it("som_desligado_silencia_todas_as_paginas", () => {
