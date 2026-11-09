@@ -4,7 +4,7 @@ import { createMatch } from "../../engine/createMatch.js";
 import { playerView } from "../../engine/playerView.js";
 import { getCard } from "../../engine/cards.js";
 import { allSlots } from "../scene/layout.js";
-import { buildCardDetail, describeSpellEffect, slotCardId } from "./cardDetail.js";
+import { buildCardDetail, buildMonsterStats, describeSpellEffect, slotCardId, slotMonsterBonus } from "./cardDetail.js";
 
 describe("buildCardDetail", () => {
   it("monta_textos_de_monstro_com_efeito_e_mecanica", () => {
@@ -44,6 +44,45 @@ describe("slotCardId", () => {
     expect(slotCardId(withCards, slot("you", "graveyard"))).toBe("ash_dragon");
     expect(slotCardId(withCards, slot("opponent", "monster"))).toBeNull();
     expect(slotCardId(withCards, slot("you", "monster"))).toBeNull();
+  });
+});
+
+describe("buildMonsterStats", () => {
+  it("mostra_valores_base_sem_reforco", () => {
+    expect(buildMonsterStats("ash_dragon")).toEqual({ levelText: "Nível 7", attackText: "ATK 2800", defenseText: "DEF 2100", boosted: false });
+  });
+
+  it("mostra_atk_atual_e_destaca_o_reforco", () => {
+    expect(buildMonsterStats("ash_dragon", 700)).toEqual({ levelText: "Nível 7", attackText: "ATK 3500 (+700)", defenseText: "DEF 2100", boosted: true });
+  });
+
+  it("carta_oculta_magia_ou_desconhecida_nao_revela_atributos", () => {
+    expect(buildMonsterStats(null, 500)).toBeNull();
+    expect(buildMonsterStats("healing_spring")).toBeNull();
+    expect(buildMonsterStats("nao_existe")).toBeNull();
+  });
+});
+
+describe("slotMonsterBonus", () => {
+  const view = playerView(createMatch(7, { P1: "balanced", P2: "strategic" }), "P1");
+  const slot = (side: "you" | "opponent", kind: "monster" | "graveyard", zone = 0) => allSlots().find((s) => s.side === side && s.kind === kind && s.zone === zone)!;
+  const monster = { cardId: "ash_dragon", position: "ATTACK", faceDown: false, summonedOnTurn: 1, hasAttacked: false, changedPositionOnTurn: null };
+  const withMonsters = {
+    ...view,
+    you: { ...view.you, monsters: [{ ...monster, attackBonus: 700 }, { ...monster, position: "DEFENSE" }, null, null, null] },
+    opponent: { ...view.opponent, monsters: [{ cardId: null, faceDown: true }, { ...monster, attackBonus: 300 }, null, null, null] },
+  } as unknown as typeof view;
+
+  it("devolve_o_bonus_do_monstro_visivel_inclusive_em_defesa", () => {
+    expect(slotMonsterBonus(withMonsters, slot("you", "monster", 0))).toBe(700);
+    expect(slotMonsterBonus(withMonsters, slot("you", "monster", 1))).toBe(0);
+    expect(slotMonsterBonus(withMonsters, slot("opponent", "monster", 1))).toBe(300);
+  });
+
+  it("devolve_null_para_slot_vazio_monstro_virado_e_outros_slots", () => {
+    expect(slotMonsterBonus(withMonsters, slot("you", "monster", 2))).toBeNull();
+    expect(slotMonsterBonus(withMonsters, slot("opponent", "monster", 0))).toBeNull();
+    expect(slotMonsterBonus(withMonsters, slot("you", "graveyard"))).toBeNull();
   });
 });
 

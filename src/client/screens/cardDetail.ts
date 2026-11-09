@@ -43,6 +43,39 @@ export const slotCardId = (view: PlayerView, slot: Slot): string | null => {
   return null;
 };
 
+/** Atributos atuais de um monstro em campo, prontos para exibição. */
+export type MonsterStats = {
+  levelText: string;
+  attackText: string;
+  defenseText: string;
+  /** Verdadeiro quando o ATK atual difere do base (reforço). */
+  boosted: boolean;
+};
+
+/** Atributos atuais (base + `attackBonus`) de um monstro; null para carta oculta, desconhecida ou que não é monstro. */
+export const buildMonsterStats = (cardId: string | null | undefined, attackBonus = 0): MonsterStats | null => {
+  if (!cardId) return null;
+  const card = getCard(cardId);
+  if (!card || card.type !== "MONSTER") return null;
+  const bonus = attackBonus;
+  const sign = bonus > 0 ? "+" : "";
+  return {
+    levelText: `Nível ${card.level}`,
+    attackText: bonus === 0 ? `ATK ${card.attack}` : `ATK ${card.attack + bonus} (${sign}${bonus})`,
+    defenseText: `DEF ${card.defense}`,
+    boosted: bonus !== 0,
+  };
+};
+
+/** `attackBonus` do monstro visível (virado para cima) no slot; null se o slot não tem monstro visível. */
+export const slotMonsterBonus = (view: PlayerView, slot: Slot): number | null => {
+  if (slot.kind !== "monster") return null;
+  const side = slot.side === "you" ? view.you : view.opponent;
+  const monster = side.monsters[slot.zone];
+  if (!monster || monster.cardId === null || monster.faceDown) return null;
+  return "attackBonus" in monster ? monster.attackBonus ?? 0 : 0;
+};
+
 /** Texto de efeito e de mecânica de um efeito de magia (rótulos em português). */
 export const describeSpellEffect = (effect: SpellEffect): { effect: string; mechanic: string } => {
   switch (effect.kind) {
