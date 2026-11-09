@@ -246,6 +246,7 @@ src/client/
     dom.ts              helper `el` para criar elementos e o tipo `Screen`
     errorMessages.ts    `code` de erro => mensagem em português
     nickname.ts         lógica pura: validação do apelido (`canSubmitNickname`)
+    presentationWatchdog.ts lógica pura: watchdog da fila de apresentação (`isStepStuck`, `STEP_TIMEOUT_MS` 6 s, tempo injetável) e `describeWatchdog` (mensagem e contexto do `console.warn`)
     turnTimer.ts        lógica pura: relógio do turno a partir de `turnDeadline` (segundos restantes, nível de alerta, quem age)
     handReconcile.ts    lógica pura: quais botões da mão podem ser reaproveitados entre atualizações
     cardArtImage.ts     DOM: aplica o PNG de frente a uma carta HTML, com fallback de texto
@@ -321,6 +322,7 @@ src/client/
 - A cena apenas representa o estado: animações não alteram regras nem decidem resultados.
 - Ao receber um novo estado, a interface executa as animações em ordem e termina mostrando exatamente o estado do servidor.
 - Uma reconexão interrompe as animações e restaura diretamente o estado atual.
+- Contenção de travamento (issue #284): `pumpNotices` captura exceções e um watchdog (a cada 1 s, limite `STEP_TIMEOUT_MS`) chama `stopNotices()` se um passo não concluir; ambos registram `console.warn` com contexto e restauram o estado do servidor. A causa raiz do travamento ocasional da página durante a partida NÃO foi encontrada: isto é contenção e o bug ainda pode existir.
 
 ## Eventos (`docs/events.md`)
 
