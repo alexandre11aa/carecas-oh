@@ -4,7 +4,7 @@ import { CARDS } from "./cards.js";
 
 describe("cards", () => {
   // Só ids e nomes são únicos: a descrição pode repetir quando duas cartas têm o mesmo efeito
-  // e a arte traz o mesmo texto (ex.: Raio de Fogo e Revide Pessoal, "Causa 800 de dano direto ao oponente.").
+  // e a arte traz o mesmo texto (ex.: Pensamento Negativo e Revide Pessoal, "Causa 800 de dano direto ao oponente.").
   it("tem_ids_e_nomes_unicos", () => {
     expect(CARDS).toHaveLength(60);
     expect(new Set(CARDS.map((c) => c.id)).size).toBe(60);
@@ -42,9 +42,9 @@ describe("cards", () => {
     }
   });
 
-  it("fonte_curativa_usa_o_flavor_definido", () => {
+  it("por_uns_trocados_usa_o_flavor_e_a_descricao_da_arte", () => {
     expect(CARDS.find((c) => c.id === "healing_spring")?.flavor).toBe(
-      "Fonte abençoada que concede refrigério a quem disfruta da oportunidade de beber sua água.",
+      "Por alguns trocados, nenhum serviço pode ser dispensado pelo usuário, mesmo os mais degradantes.",
     );
   });
 
