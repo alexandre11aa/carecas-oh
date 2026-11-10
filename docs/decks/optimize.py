@@ -10,7 +10,7 @@ PUBLIC = ROOT / "src" / "client" / "public" / "cards"
 
 def optimize():
     total_original = total_webp = 0
-    for folder in ("control", "magic", "shared"):
+    for folder in ("control", "magic", "balanced", "shared"):
         for source in sorted((ORIGINALS / folder).glob("*.png")):
             target = PUBLIC / (source.stem + ".webp")
             with Image.open(source) as image:
