@@ -12,7 +12,7 @@ describe("buildCardDetail", () => {
     expect(buildCardDetail("ash_dragon")).toEqual({
       id: "ash_dragon",
       kind: "monster",
-      name: "Dragão de Cinzas",
+      name: "Gado Apaixonado",
       typeLabel: "Monstro · Nível 7",
       stats: "ATK 2800 / DEF 2100",
       effect: card.description,

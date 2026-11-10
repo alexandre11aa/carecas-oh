@@ -164,12 +164,12 @@ src/engine/
 ```ts
 {
   id: "ash_dragon",
-  name: "Dragão de Cinzas",
+  name: "Gado Apaixonado",
   type: "MONSTER",
   attack: 1600,
   defense: 1200,
-  image: "/cards/ash_dragon.png",
-  description: "Um dragão que renasce das próprias cinzas.",
+  image: "/cards/gado_apaixonado.webp",
+  description: "Uma besta solitária que parte em jornadas impossíveis.",
 }
 ```
 

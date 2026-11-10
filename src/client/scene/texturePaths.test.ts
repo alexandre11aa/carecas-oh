@@ -62,8 +62,8 @@ describe("texturas criticas do estado inicial", () => {
       BACKGROUND_PATH,
       TABLE_PATH,
       CARD_BACK_PATH,
-      "/cards/ash_sprite.png",
-      "/cards/fire_bolt.png",
+      "/cards/o_bixo_do_dedo_torado.webp",
+      "/cards/pensamento_negativo.webp",
       "/cards/peido_fatal.webp",
       "/cards/reversao_de_acusacao_absurda.webp",
     ]);
