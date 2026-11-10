@@ -351,7 +351,7 @@ describe("janela de resposta", () => {
       { label: "Ativar Esquiva da Glória Divina", action: { type: "ACTIVATE_TRAP", zone: 0 } },
       { label: "Passar", action: { type: "PASS_RESPONSE" } },
     ]);
-    expect(labels(responseCommands(defender("SUMMON")))).toEqual(["Ativar Laço Escondido", "Passar"]);
+    expect(labels(responseCommands(defender("SUMMON")))).toEqual(["Ativar O Amigo da Onça", "Passar"]);
   });
 
   it("nao_oferece_armadilha_baixada_neste_turno", () => {

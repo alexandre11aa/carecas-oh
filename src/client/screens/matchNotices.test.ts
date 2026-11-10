@@ -8,7 +8,7 @@ const ev = (event: EventView): EventView => event;
 describe("buildNotices", () => {
   it("magia_ativada_mostra_nome_e_jogador", () => {
     const [notice] = buildNotices([ev({ type: "SPELL_ACTIVATED", player: "P1", cardId: "ash_sprite", targetZone: null })], "P1");
-    expect(notice).toEqual({ kind: "CARD", side: "you", text: "Você ativou a magia Fagulha de Cinzas", cardId: "ash_sprite" });
+    expect(notice).toEqual({ kind: "CARD", side: "you", text: "Você ativou a magia o bixo do Dedo Torado", cardId: "ash_sprite" });
   });
 
   it("armadilha_ativada_do_oponente_e_publica", () => {
@@ -35,9 +35,9 @@ describe("buildNotices", () => {
       ],
       "P1",
     );
-    expect(attack.text).toBe("Oponente invocou Batedor das Dunas em ataque");
+    expect(attack.text).toBe("Oponente invocou Cachorro Vagabundo: Rolê com Amigos em ataque");
     expect(attack.cardId).toBe("dune_scout");
-    expect(defense.text).toBe("Você invocou Batedor das Dunas em defesa");
+    expect(defense.text).toBe("Você invocou Cachorro Vagabundo: Rolê com Amigos em defesa");
   });
 
   it("invocacao_virada_nao_revela_a_carta", () => {
@@ -55,7 +55,7 @@ describe("buildNotices", () => {
 
   it("cemiterio_gera_aviso_do_lado_certo", () => {
     const [notice] = buildNotices([ev({ type: "CARD_SENT_TO_GRAVEYARD", player: "P2", cardId: "ash_sprite" })], "P1");
-    expect(notice).toEqual({ kind: "GRAVEYARD", side: "opponent", text: "Fagulha de Cinzas foi ao cemitério (Oponente)", cardId: "ash_sprite" });
+    expect(notice).toEqual({ kind: "GRAVEYARD", side: "opponent", text: "o bixo do Dedo Torado foi ao cemitério (Oponente)", cardId: "ash_sprite" });
   });
 
   it("dano_e_cura_trazem_valor", () => {
