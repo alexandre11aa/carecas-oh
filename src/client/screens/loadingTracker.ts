@@ -93,6 +93,35 @@ export const createLoadingTracker = (options: LoadingTrackerOptions = {}): Loadi
   };
 };
 
+export type LoadingGate = {
+  /** Chamada pelo render: devolve se os recursos estão prontos e, se não estiverem, passa a esperar a liberação. */
+  observe: () => boolean;
+  /** Chama `onReady` só na liberação esperada (render que ficou retido pelo loading); devolve o cancelamento. */
+  subscribe: (onReady: () => void) => () => void;
+};
+
+/**
+ * Faz o novo render depender de uma mudança real: só uma transição de pendente para pronto que o render
+ * anterior observou (e reteve avisos por causa dela) pede outro render. Imagem criada e resolvida durante
+ * o próprio render (inclusive em 404) não retém nada e, por isso, não dispara render em laço (issue #302).
+ */
+export const createLoadingGate = (tracker: LoadingTracker): LoadingGate => {
+  let waiting = false;
+  return {
+    observe: () => {
+      const ready = tracker.isReady();
+      waiting = !ready;
+      return ready;
+    },
+    subscribe: (onReady) =>
+      tracker.subscribe(() => {
+        if (!waiting || !tracker.isReady()) return;
+        waiting = false;
+        onReady();
+      }),
+  };
+};
+
 export type LoadingDecisionInput = {
   /** Servidor ainda não respondeu à primeira conexão. */
   booting: boolean;
