@@ -82,7 +82,7 @@ describe("apresentação dos eventos da partida", () => {
 
   it("compra_oculta_tem_som_sem_buscar_identidade_ou_imagem", () => {
     const after = playerView(initial(), "P1");
-    expect(buildFeedback(null, after, [{ type: "CARD_DRAWN", player: "P2", cardId: null }])).toEqual([{ sound: "draw", notice: null, effects: [] }]);
+    expect(buildFeedback(null, after, [{ type: "CARD_DRAWN", player: "P2", cardId: null }])).toEqual([{ sound: "draw", notice: null, effects: [], drewSide: "opponent" }]);
   });
 
   it("mapeia_invocacao_baixa_ativacao_reforco_virada_turno_e_fase", () => {

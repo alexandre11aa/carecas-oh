@@ -11,6 +11,8 @@ import { el, type Screen } from "./dom.js";
 import { createSoundButton } from "./soundButtonView.js";
 import { criticalTextureUrls } from "../scene/texturePaths.js";
 import { pageLoading, trackImage, trackTextures } from "./pageLoading.js";
+import { createCommandSlots, createRenderScheduler, createSizeGuard, type RenderScheduler } from "./renderScheduler.js";
+import { createLoadingGate } from "./loadingTracker.js";
 import {
   connectionNotice,
   handClick,
@@ -194,15 +196,20 @@ export const createMatchScreen = (): Screen => {
   // Um único ponto reconcilia hover/foco da mão após mudanças no DOM. O painel
   // fica fora do fluxo: mostrá-lo não desloca a carta que está sob o ponteiro.
   let pointerPosition: { x: number; y: number } | null = null;
+  // `elementFromPoint` força layout: só é lido quando a mão foi reconstruída (botões novos sob um ponteiro
+  // parado). Movimento do ponteiro usa o alvo do próprio evento e nunca reconstrói o DOM (issue #303).
   const refreshHandDetail = () => {
     const pointed = pointerPosition ? document.elementFromPoint(pointerPosition.x, pointerPosition.y)?.closest<HTMLButtonElement>(".hand-card") : null;
     const focused = !pointerPosition && document.activeElement instanceof HTMLButtonElement && hand.contains(document.activeElement) ? document.activeElement : null;
     const button = pointed ?? focused;
-    if (button && hand.contains(button)) showDetail(button.dataset.cardId ?? null);
+    if (!button || !hand.contains(button)) return false;
+    showDetail(button.dataset.cardId ?? null);
+    return true;
   };
   element.addEventListener("pointermove", (event) => {
     pointerPosition = { x: event.clientX, y: event.clientY };
-    refreshHandDetail();
+    const target = event.target instanceof Element ? event.target.closest<HTMLButtonElement>(".hand-card") : null;
+    if (target && hand.contains(target)) showDetail(target.dataset.cardId ?? null);
   });
   element.addEventListener("pointerleave", () => { pointerPosition = null; showDetail(null); });
 
@@ -397,6 +404,13 @@ ${error.stack ?? ""}` : String(error) }),
     leaveRoom();
   });
 
+  const commandSlots = createCommandSlots<Command>();
+  commandsBox.addEventListener("click", (event) => {
+    const button = event.target instanceof Element ? event.target.closest<HTMLButtonElement>("button[data-index]") : null;
+    if (!button || button.disabled) return;
+    const command = commandSlots.get(Number(button.dataset.index));
+    if (command) runCommand(command);
+  });
   const runCommand = (command: Command) => {
     if (command.action) {
       selection = null;
@@ -411,11 +425,24 @@ ${error.stack ?? ""}` : String(error) }),
   trackTextures(criticalTextureUrls(getState().match));
   let scene: MatchScene | null = null;
   let observer: ResizeObserver | null = null;
+  let resizeScheduler: RenderScheduler | null = null;
   try {
     scene = createMatchScene(canvasBox);
-    const resize = () => scene?.resize(canvasBox.clientWidth, canvasBox.clientHeight);
-    observer = new ResizeObserver(resize);
+    // O observer só pede o redimensionamento ao próximo quadro e ignora medida repetida: o que o próprio
+    // render (ou `renderer.setSize`) causa sem mudar o tamanho real não volta a disparar trabalho.
+    const sizeGuard = createSizeGuard();
+    resizeScheduler = createRenderScheduler({
+      run: () => {
+        const width = canvasBox.clientWidth;
+        const height = canvasBox.clientHeight;
+        if (sizeGuard.changed(width, height)) scene?.resize(width, height);
+      },
+      requestFrame: (cb) => requestAnimationFrame(cb),
+      cancelFrame: (handle) => cancelAnimationFrame(handle as number),
+    });
+    observer = new ResizeObserver(() => resizeScheduler?.request());
     observer.observe(canvasBox);
+    resizeScheduler.flush(); // tamanho inicial sem esperar o quadro
     scene.onPick((slot) => {
       if (presentationBusy()) return;
       const view = getState().match;
@@ -455,6 +482,7 @@ ${error.stack ?? ""}` : String(error) }),
 
   // Armado ao ver a partida em andamento: o som do fim toca uma vez e não repete após reconexão.
   let endSoundArmed = false;
+  const loadingGate = createLoadingGate(pageLoading);
   const render = () => {
     const { match, connection, ended, room, turnNotice, matchEvents } = getState();
     if (!match) return;
@@ -466,7 +494,7 @@ ${error.stack ?? ""}` : String(error) }),
       selection = null;
     }
     // Enquanto o loading cobre a tela, avisos e toasts esperam (as animações só começam depois dele).
-    const ready = pageLoading.isReady();
+    const ready = loadingGate.observe();
     if (matchEvents && matchEvents.seq !== shownEventSeq) {
       shownEventSeq = matchEvents.seq;
       receiveEvents(match, matchEvents, previousMatch);
@@ -520,12 +548,14 @@ ${error.stack ?? ""}` : String(error) }),
       ...phaseCommands(match),
       ...responseCommands(match),
     ];
+    // Delegação: um único listener no contêiner (registrado uma vez) lê o comando mais recente pelo índice.
+    const indexes = commandSlots.set(commands);
     commandsBox.replaceChildren(
-      ...commands.map((command) => {
-        const button = el("button", undefined, command.label);
+      ...indexes.map((index) => {
+        const button = el("button", undefined, commands[index]?.label);
         button.type = "button";
+        button.dataset.index = String(index);
         button.disabled = busy;
-        button.addEventListener("click", () => runCommand(command));
         return button;
       }),
     );
@@ -566,15 +596,18 @@ ${error.stack ?? ""}` : String(error) }),
       return card;
     });
     const focusedHand = hand.contains(document.activeElement) ? document.activeElement as HTMLElement : null;
-    if (buttons.some((button, index) => button !== handButtons[index]) || buttons.length !== handButtons.length) {
+    const handRebuilt = buttons.some((button, index) => button !== handButtons[index]) || buttons.length !== handButtons.length;
+    if (handRebuilt) {
       hand.replaceChildren(...buttons);
       if (focusedHand && hand.contains(focusedHand)) focusedHand.focus({ preventScroll: true });
       showDetail(null);
     }
     handButtons = buttons;
     handCardIds = [...you.hand];
-    refreshHandDetail();
-    scene?.refreshHover();
+    // Leituras de layout só quando algo mudou, depois de todas as escritas no DOM do render.
+    // A mão tem prioridade sobre a mesa: se o ponteiro está numa carta da mão, o hover da cena não disputa o painel.
+    const handOwnsDetail = handRebuilt ? refreshHandDetail() : false;
+    if (!handOwnsDetail && (match !== previousMatch || handRebuilt)) scene?.refreshHover();
 
     const surrenderAllowed = canSurrender(match.winner, ended);
     surrenderButton.hidden = !surrenderAllowed;
@@ -605,30 +638,25 @@ ${error.stack ?? ""}` : String(error) }),
     }
   };
 
-  // Uma imagem já em cache pode resolver trackImage de forma síncrona durante a
-  // reconciliação da mão. O loading só pede outra passagem depois do render atual.
-  let updating = false;
-  let updatePending = false;
+  // Renders agendados por quadro: vários pedidos no mesmo quadro geram um render e pedidos feitos de dentro
+  // do render (ex.: imagem em cache resolvida na reconciliação) vão para o próximo quadro, sem reentrar.
+  // Aba oculta não recebe quadros: renderiza na hora para não acumular estado antigo.
   let destroyed = false;
+  const renderScheduler = createRenderScheduler({
+    run: () => { if (!destroyed) render(); },
+    requestFrame: (cb) => requestAnimationFrame(cb),
+    cancelFrame: (handle) => cancelAnimationFrame(handle as number),
+  });
   const update = () => {
     if (destroyed) return;
-    if (updating) { updatePending = true; return; }
-    updating = true;
-    try {
-      render();
-    } finally {
-      updating = false;
-      if (updatePending) {
-        updatePending = false;
-        queueMicrotask(update);
-      }
-    }
+    if (document.hidden) renderScheduler.flush();
+    else renderScheduler.request();
   };
 
-  update();
-  const stopWaitingLoading = pageLoading.subscribe(() => {
-    if (pageLoading.isReady()) update();
-  });
+  renderScheduler.flush(); // primeiro render síncrono
+  // Só a liberação que o render esperava pede outro render: imagem criada e resolvida (ou em 404) dentro
+  // do próprio render não pode reiniciá-lo (issue #302).
+  const stopWaitingLoading = loadingGate.subscribe(update);
   const onVisibilityChange = () => { if (document.hidden) { stopNotices(); snapAllLife(); } };
   document.addEventListener("visibilitychange", onVisibilityChange);
   return {
@@ -636,6 +664,7 @@ ${error.stack ?? ""}` : String(error) }),
     update,
     destroy: () => {
       destroyed = true;
+      renderScheduler.cancel();
       stopWaitingLoading();
       document.removeEventListener("visibilitychange", onVisibilityChange);
       clearInterval(countdownInterval);
@@ -644,6 +673,7 @@ ${error.stack ?? ""}` : String(error) }),
       stopNotices();
       audio.stop();
       observer?.disconnect();
+      resizeScheduler?.cancel();
       scene?.dispose();
     },
   };

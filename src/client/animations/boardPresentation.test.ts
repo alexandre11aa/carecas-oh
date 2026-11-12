@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createMatch } from "../../engine/createMatch.js";
 import { playerView } from "../../engine/playerView.js";
 import type { MonsterOnField } from "../../engine/types.js";
-import { layoutBoard, slotPosition, type CardPlacement } from "../scene/layout.js";
+import { layoutBoard, pileTopY, slotPosition, type CardPlacement } from "../scene/layout.js";
 import { arrivePresentationStep, beginPresentationStep, buildPresentationSteps, finishPresentationStep } from "./boardPresentation.js";
 
 const monster = (cardId: string, extra: Partial<MonsterOnField> = {}): MonsterOnField => ({ cardId, faceDown: false, position: "ATTACK", hasAttacked: false, summonedOnTurn: 1, changedPositionOnTurn: null, ...extra });
@@ -25,9 +25,11 @@ describe("mesa durante envio ao cemitério", () => {
     const flight = beginPresentationStep(layoutBoard(before), step!);
     expect(flight.some((card) => card.key === "you:monster:3")).toBe(false);
     expect(top(flight)).toBe("moss_golem");
-    expect(step!.feedback.effects).toEqual([{ kind: "graveyard", cardId: "bone_knight", from: slotPosition("you", "monster", 3), to: slotPosition("you", "graveyard"), yaw: Math.PI / 2 }]);
+    expect(step!.feedback.effects).toEqual([{ kind: "graveyard", cardId: "bone_knight", from: slotPosition("you", "monster", 3), to: slotPosition("you", "graveyard"), yaw: Math.PI / 2, toY: pileTopY(2) }]);
     const arrived = arrivePresentationStep(flight, step!);
     expect(top(arrived)).toBe("bone_knight");
+    expect(layoutBoard(before).find((card) => card.key === "you:graveyard:0")?.layers).toBe(1);
+    expect(arrived.find((card) => card.key === "you:graveyard:0")).toMatchObject({ layers: 2, y: pileTopY(2) });
     expect(finishPresentationStep(arrived, step!)).toEqual(layoutBoard(after));
     expect(top(layoutBoard(before))).toBe("moss_golem");
   });
@@ -91,7 +93,7 @@ describe("mesa durante envio ao cemitério", () => {
       { type: "CARD_SENT_TO_GRAVEYARD", player: "P2", cardId: "moss_golem" },
     ]);
     expect(steps[0]!.start!.filter((card) => card.key.startsWith("opponent:monster:")).map((card) => card.cardId)).toEqual([null, null]);
-    expect(steps[0]!.feedback.effects).toEqual([{ kind: "graveyard", cardId: "bone_knight", from: { x: -6.1 * 0.65, z: -1.4 }, to: slotPosition("opponent", "graveyard") }]);
+    expect(steps[0]!.feedback.effects).toEqual([{ kind: "graveyard", cardId: "bone_knight", from: { x: -6.1 * 0.65, z: -1.4 }, to: slotPosition("opponent", "graveyard"), toY: pileTopY(1) }]);
     expect(steps[1]!.departures).toEqual([]);
   });
 
@@ -129,5 +131,69 @@ describe("mesa durante envio ao cemitério", () => {
     expect(step!.feedback).toEqual({ sound: null, effects: [], notice: null });
     expect(step!.start).toEqual(layoutBoard(after));
     expect(step!.finish).toEqual(layoutBoard(after));
+  });
+
+  it("copias_juntas_sobem_uma_camada_cada_e_o_topo_final_e_o_da_visao", () => {
+    const state = initial();
+    state.players.P1.monsters[0] = monster("bone_knight");
+    state.players.P1.monsters[4] = monster("bone_knight");
+    state.players.P1.graveyard = ["moss_golem"];
+    const before = structuredClone(playerView(state, "P1"));
+    state.players.P1.monsters.fill(null);
+    state.players.P1.graveyard.push("bone_knight", "bone_knight");
+    const after = playerView(state, "P1");
+    const [step] = buildPresentationSteps(before, after, [
+      { type: "CARD_SENT_TO_GRAVEYARD", player: "P1", cardId: "bone_knight" },
+      { type: "CARD_SENT_TO_GRAVEYARD", player: "P1", cardId: "bone_knight" },
+    ]);
+    expect(step!.feedback.effects.map((effect) => "toY" in effect ? effect.toY : null)).toEqual([pileTopY(2), pileTopY(3)]);
+    expect(step!.arrivals).toHaveLength(1);
+    expect(step!.arrivals[0]).toMatchObject({ layers: 3, y: pileTopY(3) });
+  });
+
+  it("chegadas_em_lotes_seguidos_crescem_sem_pular_nem_repetir_camada", () => {
+    const state = initial();
+    state.players.P1.monsters[0] = monster("bone_knight");
+    state.players.P1.monsters[1] = monster("moss_golem");
+    const before = structuredClone(playerView(state, "P1"));
+    state.players.P1.monsters.fill(null);
+    state.players.P1.graveyard.push("bone_knight", "moss_golem");
+    const after = playerView(state, "P1");
+    const steps = buildPresentationSteps(before, after, [
+      { type: "CARD_SENT_TO_GRAVEYARD", player: "P1", cardId: "bone_knight" },
+      { type: "CARD_SENT_TO_GRAVEYARD", player: "P1", cardId: "moss_golem" },
+    ]);
+    expect(steps.map((step) => step.arrivals[0]!.layers)).toEqual([1, 2]);
+    expect(steps.map((step) => step.arrivals[0]!.y)).toEqual([pileTopY(1), pileTopY(2)]);
+    let board = beginPresentationStep(layoutBoard(before), steps[0]!);
+    for (const step of steps) board = finishPresentationStep(arrivePresentationStep(beginPresentationStep(board, step), step), step);
+    expect(board).toEqual(layoutBoard(after));
+  });
+
+  it("compra_reduz_uma_camada_do_deck_sem_expor_a_carta", () => {
+    const state = initial();
+    const before = structuredClone(playerView(state, "P1"));
+    state.players.P1.deck.shift();
+    state.players.P1.hand.push("bone_knight");
+    const after = playerView(state, "P1");
+    const [step] = buildPresentationSteps(before, after, [{ type: "CARD_DRAWN", player: "P1", cardId: "bone_knight" }]);
+    const flight = beginPresentationStep(layoutBoard(before), step!);
+    expect(flight.find((card) => card.key === "you:deck:0")?.layers).toBe(before.you.deckCount);
+    const arrived = arrivePresentationStep(flight, step!);
+    expect(arrived.find((card) => card.key === "you:deck:0")).toMatchObject({ cardId: null, faceDown: true, layers: before.you.deckCount - 1, y: pileTopY(before.you.deckCount - 1) });
+    expect(finishPresentationStep(arrived, step!)).toEqual(layoutBoard(after));
+  });
+
+  it("compra_do_oponente_reduz_o_deck_dele_e_a_ultima_carta_remove_a_pilha", () => {
+    const state = initial();
+    state.players.P2.deck = ["moss_golem"];
+    const before = structuredClone(playerView(state, "P1"));
+    state.players.P2.deck = [];
+    state.players.P2.hand.push("moss_golem");
+    const after = playerView(state, "P1");
+    const [step] = buildPresentationSteps(before, after, [{ type: "CARD_DRAWN", player: "P2", cardId: null }]);
+    expect(step!.departures).toEqual(["opponent:deck:0"]);
+    expect(step!.arrivals).toEqual([]);
+    expect(finishPresentationStep(arrivePresentationStep(beginPresentationStep(layoutBoard(before), step!), step!), step!)).toEqual(layoutBoard(after));
   });
 });

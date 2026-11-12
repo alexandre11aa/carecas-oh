@@ -1,6 +1,6 @@
 // src/client/screens/loadingTracker.test.ts
 import { describe, expect, it, vi } from "vitest";
-import { createLoadingTracker, LOADING_TIMEOUT_MS, shouldShowLoading } from "./loadingTracker.js";
+import { createLoadingGate, createLoadingTracker, LOADING_TIMEOUT_MS, shouldShowLoading } from "./loadingTracker.js";
 
 const setup = () => {
   let next = 0;
@@ -119,11 +119,43 @@ describe("loadingTracker", () => {
     expect(tracker.expired()).toEqual(["a"]);
   });
 
-  it("resolver_tudo_cancela_o_timer", () => {
+  it("usa_um_unico_timer_por_ciclo_sem_criar_nem_cancelar_por_recurso", () => {
+    let created = 0;
+    let cleared = 0;
+    const tracker = createLoadingTracker({
+      setTimer: () => ++created,
+      clearTimer: () => {
+        cleared++;
+      },
+    });
+    for (let i = 0; i < 50; i++) {
+      tracker.track(`img:${i}`);
+      tracker.settle(`img:${i}`);
+    }
+    expect(created).toBe(1);
+    expect(cleared).toBe(0);
+    expect(tracker.isReady()).toBe(true);
+  });
+
+  it("timer_disparado_sem_pendentes_encerra_o_ciclo_e_o_proximo_track_arma_outro", () => {
+    const { tracker, timers, fire } = setup();
+    tracker.track("a");
+    tracker.settle("a");
+    expect(timers.size).toBe(1);
+    fire();
+    expect(timers.size).toBe(0);
+    expect(tracker.isReady()).toBe(true);
+    tracker.track("b");
+    expect(timers.size).toBe(1);
+    fire();
+    expect(tracker.expired()).toEqual(["b"]);
+  });
+
+  it("reset_cancela_o_timer_do_ciclo", () => {
     const { tracker, timers } = setup();
     tracker.track("a");
     expect(timers.size).toBe(1);
-    tracker.settle("a");
+    tracker.reset();
     expect(timers.size).toBe(0);
   });
 
@@ -217,5 +249,72 @@ describe("loadingTracker com texturas", () => {
     tracker.settle("tex:1:/cards/a.png"); // resolução tardia da tela anterior
     expect(tracker.pending()).toEqual(["tex:2:/cards/a.png"]);
     expect(tracker.isReady()).toBe(false);
+  });
+});
+
+describe("createLoadingGate (issue #302)", () => {
+  // Simula o render: cria uma imagem rastreada e, em seguida, ela falha (404) de forma assíncrona.
+  const simulate = (gated: boolean) => {
+    const { tracker } = setup();
+    const gate = createLoadingGate(tracker);
+    let renders = 0;
+    let seq = 0;
+    const failures: string[] = [];
+    const render = () => {
+      renders += 1;
+      if (renders > 50) throw new Error("laço de render");
+      gate.observe();
+      const key = `img:${++seq}`;
+      tracker.track(key);
+      failures.push(key);
+    };
+    const flushErrors = () => {
+      while (failures.length > 0) tracker.settle(failures.shift() as string);
+    };
+    if (gated) gate.subscribe(render);
+    else tracker.subscribe(() => { if (tracker.isReady()) render(); });
+    render();
+    try {
+      flushErrors();
+    } catch {
+      return renders;
+    }
+    return renders;
+  };
+
+  it("assinatura_ingenua_entra_em_laco_com_imagem_que_falha", () => {
+    expect(simulate(false)).toBeGreaterThan(50);
+  });
+
+  it("imagem_que_falha_dentro_do_render_nao_pede_outro_render", () => {
+    expect(simulate(true)).toBe(1);
+  });
+
+  it("render_retido_pelo_loading_renderiza_uma_vez_ao_liberar", () => {
+    const { tracker } = setup();
+    const gate = createLoadingGate(tracker);
+    const onReady = vi.fn();
+    gate.subscribe(onReady);
+    tracker.track("a");
+    tracker.track("b");
+    expect(gate.observe()).toBe(false);
+    tracker.settle("a");
+    expect(onReady).not.toHaveBeenCalled();
+    tracker.settle("b");
+    expect(onReady).toHaveBeenCalledTimes(1);
+    tracker.track("c");
+    tracker.settle("c"); // nada retido: sem novo render
+    expect(onReady).toHaveBeenCalledTimes(1);
+  });
+
+  it("timeout_libera_o_render_retido", () => {
+    const { tracker, fire } = setup();
+    const gate = createLoadingGate(tracker);
+    const onReady = vi.fn();
+    gate.subscribe(onReady);
+    tracker.track("a");
+    gate.observe();
+    fire();
+    expect(onReady).toHaveBeenCalledTimes(1);
   });
 });
