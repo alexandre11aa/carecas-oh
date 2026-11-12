@@ -1,10 +1,10 @@
 // src/client/scene/cardMesh.ts
-import { CanvasTexture, Mesh, MeshLambertMaterial, PlaneGeometry, SRGBColorSpace } from "three";
+import { BoxGeometry, CanvasTexture, Mesh, MeshLambertMaterial, PlaneGeometry, SRGBColorSpace } from "three";
 import { getCard } from "../../engine/cards.js";
 import { chooseFace, faceImageUrl } from "./cardArt.js";
 import { loadTexture } from "./textures.js";
 import { CARD_BACK_PATH } from "./texturePaths.js";
-import { CARD_HEIGHT, CARD_WIDTH, type CardPlacement } from "./layout.js";
+import { CARD_BASE_Y, CARD_HEIGHT, CARD_WIDTH, PILE_BODY_THICKNESS, type CardPlacement } from "./layout.js";
 
 // Canvas provisório na proporção 1030:1500 (412x600). Desenha-se em coordenadas lógicas de
 // 256 de largura (TEX_W) e a altura proporcional (TEX_H); o contexto é escalado para o canvas.
@@ -115,6 +115,19 @@ export const createCardMesh = (): Mesh => new Mesh(geometry, materialFor(null));
 /** Aplica identidade, posição e rotação de um `CardPlacement` à malha. */
 export const updateCardMesh = (mesh: Mesh, placement: CardPlacement): void => {
   mesh.material = materialFor(placement.faceDown ? null : placement.cardId);
-  mesh.position.set(placement.x, 0.02, placement.z);
+  mesh.position.set(placement.x, placement.y ?? CARD_BASE_Y, placement.z);
+  mesh.rotation.set(0, placement.yaw, 0);
+};
+
+/** Corpo de pilha: caixa fina única e material liso únicos, compartilhados por todas as placas (sem textura). */
+const pileBodyGeometry = new BoxGeometry(CARD_WIDTH, PILE_BODY_THICKNESS, CARD_HEIGHT);
+const pileBodyMaterial = new MeshLambertMaterial({ color: 0xe6dfc8 });
+
+/** Placa do corpo de uma pilha; geometria e material são compartilhados e nunca liberados por placa. */
+export const createPileBodyMesh = (): Mesh => new Mesh(pileBodyGeometry, pileBodyMaterial);
+
+/** Posiciona uma placa do corpo na altura `y`, alinhada à posição e ao giro da pilha. */
+export const updatePileBodyMesh = (mesh: Mesh, placement: CardPlacement, y: number): void => {
+  mesh.position.set(placement.x, y, placement.z);
   mesh.rotation.set(0, placement.yaw, 0);
 };

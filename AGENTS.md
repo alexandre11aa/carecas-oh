@@ -280,7 +280,7 @@ src/client/
     layout.ts           lógica pura (sem WebGL, testável): PlayerView -> posições das cartas na mesa e clique -> slot (`pickSlot`)
     table.ts            mesa com moldura e zonas
     tableDesign.ts      lógica pura (testável): medidas, cores por tipo de zona e degradê do fundo padrão
-    cardMesh.ts         criação e atualização das cartas
+    cardMesh.ts         criação e atualização das cartas e das placas do corpo das pilhas (caixa e material lisos compartilhados, sem textura; `pileBodyYs` em layout.ts)
     textures.ts         loadTexture: carrega PNG com cache, redução e fallback (null)
     blackHole.ts        vórtice decorativo atrás da mesa (planos com textura em canvas, rotação lenta, parado com prefers-reduced-motion)
     blackHoleDesign.ts  lógica pura (testável): camadas, posição e ângulo do vórtice

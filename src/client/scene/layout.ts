@@ -51,6 +51,21 @@ export const pileHeight = (layers: number): number => Math.max(0, layers) * PILE
 /** y do topo da pilha: a 1ª camada fica em `CARD_BASE_Y` e cada camada extra sobe a espessura. */
 export const pileTopY = (layers: number): number => CARD_BASE_Y + Math.max(0, layers - 1) * PILE_LAYER_THICKNESS;
 
+/** Espessura da placa do corpo: um pouco menor que a camada, para o vão marcar as bordas das cartas. */
+export const PILE_BODY_THICKNESS = PILE_LAYER_THICKNESS * 0.9;
+
+/**
+ * Alturas (y do centro) das placas do corpo de uma pilha: uma por camada abaixo do topo, pois a carta do topo
+ * é a própria malha da carta. Com `layers` camadas há `layers - 1` placas; 0 ou 1 camada não tem corpo.
+ * A face de cima de cada placa fica logo abaixo do plano da camada seguinte.
+ */
+export const pileBodyYs = (layers: number): number[] => {
+  const count = Math.max(0, Math.floor(Number.isFinite(layers) ? layers : 0)) - 1;
+  const ys: number[] = [];
+  for (let i = 0; i < count; i++) ys.push(CARD_BASE_Y + (i + 1) * PILE_LAYER_THICKNESS - PILE_BODY_THICKNESS / 2 - 0.001);
+  return ys;
+};
+
 /** Z de cada fileira (lado "you"); a altura externa da zona deve caber na distância entre fileiras. */
 export const ROW_Z: Record<SlotKind, number> = { monster: 1.4, spellTrap: 3.6, graveyard: 1.4, deck: 3.6 };
 /** Centro das pilhas: borda interna (6,1 - 0,765) fica além da carta de defesa da zona da ponta (4,2 + 1,0). */
