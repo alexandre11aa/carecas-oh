@@ -3,7 +3,20 @@ import { describe, expect, it } from "vitest";
 import { createMatch } from "../../engine/createMatch.js";
 import { playerView } from "../../engine/playerView.js";
 import type { MatchState } from "../../engine/types.js";
-import { allSlots, CARD_HEIGHT, CARD_WIDTH, layoutBoard, pickSlot, slotPosition } from "./layout.js";
+import {
+  allSlots,
+  CARD_BASE_Y,
+  CARD_HEIGHT,
+  CARD_WIDTH,
+  layoutBoard,
+  PILE_LAYER_THICKNESS,
+  PILE_MAX_LAYERS,
+  pickSlot,
+  pileHeight,
+  pileLayers,
+  pileTopY,
+  slotPosition,
+} from "./layout.js";
 import { zoneOuterSize } from "./tableDesign.js";
 
 const baseState = (): MatchState => createMatch(123, { P1: "balanced", P2: "strategic" });
@@ -143,5 +156,75 @@ describe("pickSlot", () => {
 describe("proporcao_da_carta", () => {
   it("usa_a_proporcao_1030_por_1500", () => {
     expect(CARD_WIDTH / CARD_HEIGHT).toBeCloseTo(1030 / 1500, 10);
+  });
+});
+
+describe("pilhas de deck e cemiterio", () => {
+  it("camadas_crescem_1_a_1_ate_o_teto_do_deck", () => {
+    expect(PILE_MAX_LAYERS).toBe(20);
+    expect([0, 1, 5, 20, 21, 100].map(pileLayers)).toEqual([0, 1, 5, 20, 20, 20]);
+    expect(pileLayers(-3)).toBe(0);
+  });
+
+  it("altura_e_y_do_topo_nao_colidem_com_a_mesa", () => {
+    expect(PILE_LAYER_THICKNESS).toBe(0.06);
+    expect(pileHeight(0)).toBe(0);
+    expect(pileHeight(5)).toBeCloseTo(0.3);
+    expect(pileTopY(1)).toBe(CARD_BASE_Y);
+    expect(pileTopY(5)).toBeCloseTo(0.26);
+    expect(pileTopY(20)).toBeCloseTo(1.16);
+    expect(pileTopY(0)).toBe(CARD_BASE_Y);
+  });
+
+  it("deck_cheio_tem_20_camadas_virado_e_sem_identidade", () => {
+    const byKey = new Map(layoutBoard(playerView(baseState(), "P1")).map((p) => [p.key, p]));
+    for (const key of ["you:deck:0", "opponent:deck:0"]) {
+      expect(byKey.get(key)).toMatchObject({ cardId: null, faceDown: true, layers: 16, y: pileTopY(16) });
+    }
+  });
+
+  it("deck_vazio_nao_gera_placement", () => {
+    const state = baseState();
+    state.players.P1.deck = [];
+    const keys = layoutBoard(playerView(state, "P1")).map((p) => p.key);
+    expect(keys).toEqual(["opponent:deck:0"]);
+  });
+
+  it("cemiterio_com_5_cartas_tem_5_camadas_e_topo_e_a_ultima", () => {
+    const state = baseState();
+    state.players.P1.graveyard = ["a", "b", "c", "d", "fire_bolt"];
+    const grave = layoutBoard(playerView(state, "P1")).find((p) => p.key === "you:graveyard:0");
+    expect(grave).toMatchObject({ cardId: "fire_bolt", faceDown: false, layers: 5 });
+    expect(grave?.y).toBeCloseTo(0.26);
+  });
+
+  it("cemiterio_acima_do_teto_limita_a_20_camadas", () => {
+    const state = baseState();
+    state.players.P1.graveyard = Array.from({ length: 25 }, () => "fire_bolt");
+    const grave = layoutBoard(playerView(state, "P1")).find((p) => p.key === "you:graveyard:0");
+    expect(grave?.layers).toBe(20);
+  });
+
+  it("jogador_e_oponente_sao_simetricos", () => {
+    const state = baseState();
+    state.players.P1.graveyard = ["fire_bolt", "wind_gust", "fire_bolt"];
+    state.players.P2.graveyard = ["fire_bolt", "wind_gust", "fire_bolt"];
+    const byKey = new Map(layoutBoard(playerView(state, "P1")).map((p) => [p.key, p]));
+    for (const kind of ["deck", "graveyard"]) {
+      const you = byKey.get(`you:${kind}:0`)!;
+      const opp = byKey.get(`opponent:${kind}:0`)!;
+      expect(opp.layers).toBe(you.layers);
+      expect(opp.y).toBe(you.y);
+      expect(opp.x).toBeCloseTo(-you.x);
+      expect(opp.z).toBeCloseTo(-you.z);
+    }
+  });
+
+  it("slots_de_campo_nao_ganham_layers_nem_y", () => {
+    const state = baseState();
+    state.players.P1.monsters[0] = { cardId: "ash_sprite", position: "ATTACK", faceDown: false, summonedOnTurn: 1, hasAttacked: false, changedPositionOnTurn: null };
+    const monster = layoutBoard(playerView(state, "P1")).find((p) => p.key === "you:monster:0")!;
+    expect(monster.layers).toBeUndefined();
+    expect(monster.y).toBeUndefined();
   });
 });

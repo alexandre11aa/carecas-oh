@@ -1,6 +1,7 @@
 // src/client/scene/layout.ts
 // Lógica pura (sem WebGL): converte o PlayerView em posições de cartas sobre a mesa.
 import type { PlayerView } from "../../engine/playerView.js";
+import { DECK_SIZE } from "../../engine/decks.js";
 import { zoneOuterSize } from "./tableDesign.js";
 
 export const CARD_HEIGHT = 2;
@@ -25,7 +26,30 @@ export type CardPlacement = {
   z: number;
   /** Rotação em torno do eixo vertical, em radianos. */
   yaw: number;
+  /** Camadas da pilha (só deck e cemitério): cresce com a quantidade real, limitado a `PILE_MAX_LAYERS`. */
+  layers?: number;
+  /** Altura (y) do topo da pilha (só deck e cemitério). */
+  y?: number;
 };
+
+/** Teto de camadas visíveis de uma pilha: o tamanho do deck. */
+export const PILE_MAX_LAYERS = DECK_SIZE;
+/** Altura da carta isolada sobre a mesa (mesma de uma pilha de 1 camada). */
+export const CARD_BASE_Y = 0.02;
+/** Espessura de cada camada da pilha. */
+export const PILE_LAYER_THICKNESS = 0.06;
+
+/** Camadas de uma pilha: 0 se vazia, 1 a 1 com a quantidade, limitada a `PILE_MAX_LAYERS`. */
+export const pileLayers = (count: number): number => {
+  if (!Number.isFinite(count) || count <= 0) return 0;
+  return Math.min(Math.floor(count), PILE_MAX_LAYERS);
+};
+
+/** Altura total da pilha acima da mesa (sem contar a folga de `CARD_BASE_Y`). */
+export const pileHeight = (layers: number): number => Math.max(0, layers) * PILE_LAYER_THICKNESS;
+
+/** y do topo da pilha: a 1ª camada fica em `CARD_BASE_Y` e cada camada extra sobe a espessura. */
+export const pileTopY = (layers: number): number => CARD_BASE_Y + Math.max(0, layers - 1) * PILE_LAYER_THICKNESS;
 
 /** Z de cada fileira (lado "you"); a altura externa da zona deve caber na distância entre fileiras. */
 export const ROW_Z: Record<SlotKind, number> = { monster: 1.4, spellTrap: 3.6, graveyard: 1.4, deck: 3.6 };
@@ -89,12 +113,30 @@ const sidePlacements = (
       ...slotPosition(side, "spellTrap", zone),
     });
   });
-  if (deckCount > 0) {
-    placements.push({ key: slotKey(side, "deck", 0), cardId: null, faceDown: true, yaw: baseYaw, ...slotPosition(side, "deck") });
+  const deckLayers = pileLayers(deckCount);
+  if (deckLayers > 0) {
+    placements.push({
+      key: slotKey(side, "deck", 0),
+      cardId: null,
+      faceDown: true,
+      yaw: baseYaw,
+      layers: deckLayers,
+      y: pileTopY(deckLayers),
+      ...slotPosition(side, "deck"),
+    });
   }
   const top = graveyard[graveyard.length - 1];
   if (top !== undefined) {
-    placements.push({ key: slotKey(side, "graveyard", 0), cardId: top, faceDown: false, yaw: baseYaw, ...slotPosition(side, "graveyard") });
+    const graveLayers = pileLayers(graveyard.length);
+    placements.push({
+      key: slotKey(side, "graveyard", 0),
+      cardId: top,
+      faceDown: false,
+      yaw: baseYaw,
+      layers: graveLayers,
+      y: pileTopY(graveLayers),
+      ...slotPosition(side, "graveyard"),
+    });
   }
   return placements;
 };
