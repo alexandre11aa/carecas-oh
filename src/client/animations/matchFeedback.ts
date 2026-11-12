@@ -11,9 +11,10 @@ type Point = { x: number; z: number };
 export type BoardEffect =
   | { kind: "attack"; from: Point; to: Point }
   | { kind: "impact" | "defend"; at: Point }
-  | { kind: "graveyard"; from: Point; to: Point; cardId: string; yaw?: number }
+  | { kind: "graveyard"; from: Point; to: Point; cardId: string; yaw?: number; toY?: number }
   | { kind: "damage" | "heal"; side: Side };
-export type FeedbackStep = { sound: SoundName | null; effects: BoardEffect[]; notice: Notice | null };
+/** `drewSide`: lado que comprou uma carta (o deck perde 1 camada na apresentação). */
+export type FeedbackStep = { sound: SoundName | null; effects: BoardEffect[]; notice: Notice | null; drewSide?: Side };
 
 const soundFor = (event: EventView): SoundName | null => {
   switch (event.type) {
@@ -84,7 +85,7 @@ export const buildFeedback = (before: PlayerView | null, after: PlayerView, even
     if (event.type === "LIFE_RESTORED" && event.amount > 0) effects.push({ kind: "heal", side });
     const sound = soundFor(event);
     const notice = buildNotices([event], after.viewer)[0] ?? null;
-    if (sound || effects.length || notice) steps.push({ sound, effects, notice });
+    if (sound || effects.length || notice) steps.push(event.type === "CARD_DRAWN" ? { sound, effects, notice, drewSide: side } : { sound, effects, notice });
     if (impact) steps.push({ sound: "damage", effects: [impact], notice: null });
   }
   return steps;

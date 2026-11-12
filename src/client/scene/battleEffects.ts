@@ -3,6 +3,7 @@
 import gsap from "gsap";
 import { AdditiveBlending, DoubleSide, Group, Mesh, MeshBasicMaterial, RingGeometry, SphereGeometry, Vector3, type Scene } from "three";
 import type { BoardEffect } from "../animations/matchFeedback.js";
+import { CARD_BASE_Y } from "./layout.js";
 import { createCardMesh, updateCardMesh } from "./cardMesh.js";
 
 export const createBattleEffects = (scene: Scene, reducedMotion: boolean) => {
@@ -39,10 +40,12 @@ export const createBattleEffects = (scene: Scene, reducedMotion: boolean) => {
         timeline.to(card.position, { y: 0.9, duration: 0.15, ease: "power2.out" }, 0);
         timeline.to(card.position, { x: effect.to.x, z: effect.to.z, duration: 0.45, ease: "power2.inOut" }, 0);
         timeline.to(card.rotation, { y: (effect.yaw ?? 0) + Math.PI, duration: 0.45 }, 0);
-        timeline.to(card.position, { y: 0.05, duration: 0.3 }, 0.15);
+        // Pousa na altura do topo da pilha (não no plano da mesa).
+        const landY = effect.toY ?? CARD_BASE_Y;
+        timeline.to(card.position, { y: landY, duration: 0.3 }, 0.15);
         timeline.to(card.scale, { x: 0.1, y: 0.1, z: 0.1, duration: 0.2 }, 0.25);
         const glow = new Mesh(ringGeometry, material(0xb87bff));
-        glow.position.set(effect.to.x, 0.06, effect.to.z);
+        glow.position.set(effect.to.x, (effect.toY ?? CARD_BASE_Y) + 0.04, effect.to.z);
         group.add(glow);
         timeline.to(glow.scale, { x: 1.7, y: 1.7, z: 1.7, duration: 0.45 }, 0);
         timeline.to(glow.material, { opacity: 0, duration: 0.25 }, 0.2);
@@ -69,7 +72,7 @@ export const createBattleEffects = (scene: Scene, reducedMotion: boolean) => {
         const at = "at" in effect ? effect.at : effect.kind === "attack" || effect.kind === "graveyard" ? effect.to : { x: 0, z: effect.side === "you" ? 4.8 : -4.8 };
         const color = effect.kind === "defend" ? 0x60cfff : effect.kind === "heal" ? 0x68ffb4 : effect.kind === "graveyard" ? 0xb87bff : 0xff7250;
         const ring = new Mesh(ringGeometry, material(color));
-        ring.position.set(at.x, 0.1, at.z);
+        ring.position.set(at.x, 0.1 + (effect.kind === "graveyard" ? effect.toY ?? 0 : 0), at.z);
         group.add(ring);
         if (effect.kind === "defend") {
           const shield = new Mesh(sphereGeometry, material(color, 0.28));
