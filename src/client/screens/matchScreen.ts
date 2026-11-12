@@ -11,6 +11,7 @@ import { el, type Screen } from "./dom.js";
 import { createSoundButton } from "./soundButtonView.js";
 import { criticalTextureUrls } from "../scene/texturePaths.js";
 import { pageLoading, trackImage, trackTextures } from "./pageLoading.js";
+import { createLoadingGate } from "./loadingTracker.js";
 import {
   connectionNotice,
   handClick,
@@ -455,6 +456,7 @@ ${error.stack ?? ""}` : String(error) }),
 
   // Armado ao ver a partida em andamento: o som do fim toca uma vez e não repete após reconexão.
   let endSoundArmed = false;
+  const loadingGate = createLoadingGate(pageLoading);
   const render = () => {
     const { match, connection, ended, room, turnNotice, matchEvents } = getState();
     if (!match) return;
@@ -466,7 +468,7 @@ ${error.stack ?? ""}` : String(error) }),
       selection = null;
     }
     // Enquanto o loading cobre a tela, avisos e toasts esperam (as animações só começam depois dele).
-    const ready = pageLoading.isReady();
+    const ready = loadingGate.observe();
     if (matchEvents && matchEvents.seq !== shownEventSeq) {
       shownEventSeq = matchEvents.seq;
       receiveEvents(match, matchEvents, previousMatch);
@@ -626,9 +628,9 @@ ${error.stack ?? ""}` : String(error) }),
   };
 
   update();
-  const stopWaitingLoading = pageLoading.subscribe(() => {
-    if (pageLoading.isReady()) update();
-  });
+  // Só a liberação que o render esperava pede outro render: imagem criada e resolvida (ou em 404) dentro
+  // do próprio render não pode reiniciá-lo (issue #302).
+  const stopWaitingLoading = loadingGate.subscribe(update);
   const onVisibilityChange = () => { if (document.hidden) { stopNotices(); snapAllLife(); } };
   document.addEventListener("visibilitychange", onVisibilityChange);
   return {

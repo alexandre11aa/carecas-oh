@@ -322,7 +322,7 @@ src/client/
 - A cena apenas representa o estado: animações não alteram regras nem decidem resultados.
 - Ao receber um novo estado, a interface executa as animações em ordem e termina mostrando exatamente o estado do servidor.
 - Uma reconexão interrompe as animações e restaura diretamente o estado atual.
-- Contenção de travamento (issue #284): `pumpNotices` captura exceções e um watchdog (a cada 1 s, limite `STEP_TIMEOUT_MS`) chama `stopNotices()` se um passo não concluir; ambos registram `console.warn` com contexto e restauram o estado do servidor. A causa raiz do travamento ocasional da página durante a partida NÃO foi encontrada: isto é contenção e o bug ainda pode existir.
+- Contenção de travamento (issue #284): `pumpNotices` captura exceções e um watchdog (a cada 1 s, limite `STEP_TIMEOUT_MS`) chama `stopNotices()` se um passo não concluir; ambos registram `console.warn` com contexto e restauram o estado do servidor. Causa raiz do travamento (issue #302): `render` cria `<img>` rastreadas (`showDetail` -> `applyCardArt` -> `trackImage`); a imagem em 404 dispara `error`, `settle` esvazia os pendentes e a assinatura de `pageLoading` chamava `update()` -> `render()` -> nova `<img>`, em laço assíncrono. Corrigido com `createLoadingGate` (`loadingTracker.ts`): só a liberação que um render retido pelo loading esperava pede novo render; imagem criada e resolvida (ou em 404) dentro do render não reinicia nada.
 
 ## Eventos (`docs/events.md`)
 
