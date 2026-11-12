@@ -19,8 +19,8 @@ import {
 } from "three";
 import type { PlayerView } from "../../engine/playerView.js";
 import { createBlackHole } from "./blackHole.js";
-import { createCardMesh, updateCardMesh } from "./cardMesh.js";
-import { allSlots, layoutBoard, pickSlot, type CardPlacement, type Slot } from "./layout.js";
+import { createCardMesh, createPileBodyMesh, updateCardMesh, updatePileBodyMesh } from "./cardMesh.js";
+import { allSlots, layoutBoard, pickSlot, pileBodyYs, type CardPlacement, type Slot } from "./layout.js";
 import { backgroundCover, pickSurface } from "./surfaces.js";
 import { createTable } from "./table.js";
 import { CAMERA_TARGET, cameraDistanceScale, cameraPosition } from "./framing.js";
@@ -127,6 +127,8 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
   frameCamera(1);
 
   const meshes = new Map<string, Mesh>();
+  // Corpo das pilhas (deck e cemitério): placas por chave de slot; geometria e material são compartilhados.
+  const pileBodies = new Map<string, Mesh[]>();
   let shownPlacements: readonly CardPlacement[] = [];
 
   // Marcadores de destaque: um por slot, criados uma vez e só alternados entre visível/oculto.
@@ -159,7 +161,7 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
     // A carta em defesa ultrapassa a largura da zona. Intersecta a malha real antes
     // do plano das zonas; o hover independe do carregamento da textura.
     scene.updateMatrixWorld();
-    const hit = raycaster.intersectObjects([...meshes.values()], false)[0];
+    const hit = raycaster.intersectObjects([...meshes.values(), ...[...pileBodies.values()].flat()], false)[0];
     if (hit) return allSlots().find((slot) => slot.key === hit.object.userData.slotKey) ?? null;
     const point = raycaster.ray.intersectPlane(tablePlane, new Vector3());
     return point ? pickSlot(point.x, point.z) : null;
@@ -195,7 +197,31 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
           meshes.delete(key);
         }
       }
+      for (const [key, bodies] of pileBodies) {
+        if (!keep.has(key)) {
+          for (const body of bodies) scene.remove(body);
+          pileBodies.delete(key);
+        }
+      }
       for (const placement of placements) {
+        const ys = pileBodyYs(placement.layers ?? 0);
+        if (ys.length > 0) {
+          const bodies = pileBodies.get(placement.key) ?? [];
+          pileBodies.set(placement.key, bodies);
+          while (bodies.length > ys.length) scene.remove(bodies.pop() as Mesh);
+          while (bodies.length < ys.length) {
+            const body = createPileBodyMesh();
+            bodies.push(body);
+            scene.add(body);
+          }
+          bodies.forEach((body, i) => {
+            updatePileBodyMesh(body, placement, ys[i] as number);
+            body.userData.slotKey = placement.key;
+          });
+        } else {
+          for (const body of pileBodies.get(placement.key) ?? []) scene.remove(body);
+          pileBodies.delete(placement.key);
+        }
         let mesh = meshes.get(placement.key);
         if (!mesh) {
           mesh = createCardMesh();
@@ -237,6 +263,8 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
     },
     dispose: () => {
       disposed = true;
+      for (const bodies of pileBodies.values()) for (const body of bodies) scene.remove(body);
+      pileBodies.clear();
       cancelAnimationFrame(frame);
       window.removeEventListener("resize", invalidateRect);
       window.removeEventListener("scroll", invalidateRect, { capture: true });

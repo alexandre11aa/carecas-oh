@@ -15,6 +15,8 @@ import {
   pileHeight,
   pileLayers,
   pileTopY,
+  pileBodyYs,
+  PILE_BODY_THICKNESS,
   slotPosition,
 } from "./layout.js";
 import { zoneOuterSize } from "./tableDesign.js";
@@ -226,5 +228,28 @@ describe("pilhas de deck e cemiterio", () => {
     const monster = layoutBoard(playerView(state, "P1")).find((p) => p.key === "you:monster:0")!;
     expect(monster.layers).toBeUndefined();
     expect(monster.y).toBeUndefined();
+  });
+});
+
+describe("corpo da pilha", () => {
+  it("nao_desenha_corpo_com_0_ou_1_camada", () => {
+    expect(pileBodyYs(0)).toEqual([]);
+    expect(pileBodyYs(1)).toEqual([]);
+    expect(pileBodyYs(-3)).toEqual([]);
+    expect(pileBodyYs(Number.NaN)).toEqual([]);
+  });
+
+  it("tem_uma_placa_por_camada_abaixo_do_topo", () => {
+    expect(pileBodyYs(5)).toHaveLength(4);
+    expect(pileBodyYs(16)).toHaveLength(15);
+    expect(pileBodyYs(20)).toHaveLength(19);
+  });
+
+  it("placas_sobem_uma_espessura_e_ficam_abaixo_do_topo", () => {
+    const ys = pileBodyYs(16);
+    for (let i = 1; i < ys.length; i++) expect(ys[i]! - ys[i - 1]!).toBeCloseTo(PILE_LAYER_THICKNESS);
+    const topBottom = pileTopY(16);
+    expect((ys.at(-1) as number) + PILE_BODY_THICKNESS / 2).toBeLessThan(topBottom);
+    expect(ys[0]! - PILE_BODY_THICKNESS / 2).toBeGreaterThan(0);
   });
 });
