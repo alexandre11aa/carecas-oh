@@ -119,11 +119,43 @@ describe("loadingTracker", () => {
     expect(tracker.expired()).toEqual(["a"]);
   });
 
-  it("resolver_tudo_cancela_o_timer", () => {
+  it("usa_um_unico_timer_por_ciclo_sem_criar_nem_cancelar_por_recurso", () => {
+    let created = 0;
+    let cleared = 0;
+    const tracker = createLoadingTracker({
+      setTimer: () => ++created,
+      clearTimer: () => {
+        cleared++;
+      },
+    });
+    for (let i = 0; i < 50; i++) {
+      tracker.track(`img:${i}`);
+      tracker.settle(`img:${i}`);
+    }
+    expect(created).toBe(1);
+    expect(cleared).toBe(0);
+    expect(tracker.isReady()).toBe(true);
+  });
+
+  it("timer_disparado_sem_pendentes_encerra_o_ciclo_e_o_proximo_track_arma_outro", () => {
+    const { tracker, timers, fire } = setup();
+    tracker.track("a");
+    tracker.settle("a");
+    expect(timers.size).toBe(1);
+    fire();
+    expect(timers.size).toBe(0);
+    expect(tracker.isReady()).toBe(true);
+    tracker.track("b");
+    expect(timers.size).toBe(1);
+    fire();
+    expect(tracker.expired()).toEqual(["b"]);
+  });
+
+  it("reset_cancela_o_timer_do_ciclo", () => {
     const { tracker, timers } = setup();
     tracker.track("a");
     expect(timers.size).toBe(1);
-    tracker.settle("a");
+    tracker.reset();
     expect(timers.size).toBe(0);
   });
 
