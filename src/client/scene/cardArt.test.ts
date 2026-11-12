@@ -17,6 +17,13 @@ describe("cardArt", () => {
       expect(statSync(optimized).size).toBeLessThan(600_000);
     }
   });
+  // O deck Agressivo ainda usa PNG provisório sem arquivo (artes pendentes, registrado na issue #301);
+  // todas as demais cartas precisam de arquivo em public/cards. Ao entrar as artes dele, remova a exceção.
+  it("toda_carta_tem_arquivo_de_imagem_em_public_cards", () => {
+    const pendentes = new Set(getDeck("aggressive").cardIds);
+    const faltantes = CARDS.filter((card) => !pendentes.has(card.id) && !existsSync(new URL(`../public${card.image}`, import.meta.url))).map((card) => `${card.id} -> ${card.image}`);
+    expect(faltantes).toEqual([]);
+  });
   it("resolve_a_imagem_de_uma_carta_conhecida", () => {
     const card = CARDS[0]!;
     expect(faceImageUrl(card.id)).toBe(card.image);
