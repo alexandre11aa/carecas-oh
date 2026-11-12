@@ -249,6 +249,7 @@ src/client/
     presentationWatchdog.ts lógica pura: watchdog da fila de apresentação (`isStepStuck`, `STEP_TIMEOUT_MS` 6 s, tempo injetável) e `describeWatchdog` (mensagem e contexto do `console.warn`)
     turnTimer.ts        lógica pura: relógio do turno a partir de `turnDeadline` (segundos restantes, nível de alerta, quem age)
     handReconcile.ts    lógica pura: quais botões da mão podem ser reaproveitados entre atualizações
+    renderScheduler.ts  lógica pura: render por quadro com coalescência e anti-reentrada (`createRenderScheduler`, `requestFrame` injetável), `createSizeGuard` (ignora medida repetida do `ResizeObserver`) e `createCommandSlots` (delegação de eventos dos comandos); `loadingTracker.ts` usa um só timer de segurança por ciclo
     cardArtImage.ts     DOM: aplica o PNG de frente a uma carta HTML, com fallback de texto
     matchActions.ts     lógica pura (testável): PlayerView + seleção => comandos e `match:action` a enviar
     selectionSound.ts   lógica pura: som do clique que seleciona carta na mão ou no campo (`click`; mudo ao desselecionar, sem efeito ou quando o clique envia ação)
@@ -351,7 +352,7 @@ O que cobrir:
 
 - **Engine:** cada regra, incluindo jogadas válidas e inválidas, e a garantia de que `playerView` não vaza informação oculta.
 - **Server:** cada evento, incluindo caminho feliz, payload inválido, sala inexistente, jogador sem permissão e reconexão.
-- **Client:** a lógica pura (`scene/layout.ts`, `screens/matchActions.ts`, `screens/matchEnd.ts`, `screens/matchNotices.ts`, `screens/scrollButton.ts`, `screens/loadingTracker.ts`, `screens/aiDuel.ts`, `screens/uiSounds.ts`, `screens/selectionSound.ts`, `screens/musicTrack.ts`, `screens/toasts.ts`, `screens/tutorialSections.ts`, `state.ts`) tem testes; DOM e WebGL não. Mantenha a decisão de qual ação enviar nos módulos puros. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
+- **Client:** a lógica pura (`scene/layout.ts`, `screens/matchActions.ts`, `screens/matchEnd.ts`, `screens/matchNotices.ts`, `screens/scrollButton.ts`, `screens/loadingTracker.ts`, `screens/renderScheduler.ts`, `screens/aiDuel.ts`, `screens/uiSounds.ts`, `screens/selectionSound.ts`, `screens/musicTrack.ts`, `screens/toasts.ts`, `screens/tutorialSections.ts`, `state.ts`) tem testes; DOM e WebGL não. Mantenha a decisão de qual ação enviar nos módulos puros. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
 - **IA:** a decisão de cada nível tem testes (`ai/ai.test.ts`, `medium.test.ts`, `hard.test.ts`) e a simulação IA x IA (`ai/simulation.test.ts`, ver seção "IA") garante zero ação inválida e partidas sempre concluídas. O servidor testa a sala de IA no service (`aiRoom.test.ts`, `aiPlay.test.ts`, `aiLifecycle.test.ts`, com `Clock` injetado, sem esperar o tempo real) e nos sockets (`sockets/aiRoom.test.ts`).
 - **Correção de bug:** um teste que falharia antes da correção, quando o bug estiver em `engine` ou `server`.
 

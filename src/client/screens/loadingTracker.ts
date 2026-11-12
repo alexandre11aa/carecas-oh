@@ -51,6 +51,8 @@ export const createLoadingTracker = (options: LoadingTrackerOptions = {}): Loadi
     }
   };
 
+  // Um timer de segurança por ciclo: armado no primeiro `track` e nunca reiniciado por `settle`. Se
+  // disparar sem pendentes, o ciclo termina em silêncio e o próximo `track` arma outro.
   const onTimeout = (): void => {
     timer = null;
     if (pendingKeys.size === 0) return;
@@ -70,7 +72,7 @@ export const createLoadingTracker = (options: LoadingTrackerOptions = {}): Loadi
     },
     settle: (key) => {
       if (!pendingKeys.delete(key)) return;
-      if (pendingKeys.size === 0) stopTimer();
+      // O timer de segurança não é cancelado aqui: um por ciclo, sem criar/cancelar a cada recurso (issue #303).
       notify();
     },
     pending: () => [...pendingKeys],
