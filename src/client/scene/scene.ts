@@ -146,8 +146,14 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
   const tablePlane = new Plane(new Vector3(0, 1, 0), 0);
   let pickHandler: ((slot: Slot) => void) | null = null;
   let hoverHandler: ((slot: Slot | null) => void) | null = null;
+  // `getBoundingClientRect` força layout: a medida fica em cache e só é invalidada por resize da cena, da
+  // janela ou rolagem (issue #303). Evita leitura de layout a cada movimento do ponteiro e a cada render.
+  let cachedRect: DOMRect | null = null;
+  const invalidateRect = () => { cachedRect = null; };
+  window.addEventListener("resize", invalidateRect);
+  window.addEventListener("scroll", invalidateRect, { passive: true, capture: true });
   const slotAt = (event: { clientX: number; clientY: number }): Slot | null => {
-    const rect = renderer.domElement.getBoundingClientRect();
+    const rect = (cachedRect ??= renderer.domElement.getBoundingClientRect());
     const ndc = new Vector2(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
     raycaster.setFromCamera(ndc, camera);
     // A carta em defesa ultrapassa a largura da zona. Intersecta a malha real antes
@@ -220,6 +226,7 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
       hoverHandler = handler;
     },
     resize: (width, height) => {
+      invalidateRect();
       if (width === 0 || height === 0) return;
       renderer.setSize(width, height);
       viewAspect = width / height;
@@ -231,6 +238,8 @@ export const createMatchScene = (container: HTMLElement): MatchScene => {
     dispose: () => {
       disposed = true;
       cancelAnimationFrame(frame);
+      window.removeEventListener("resize", invalidateRect);
+      window.removeEventListener("scroll", invalidateRect, { capture: true });
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);
       renderer.domElement.removeEventListener("pointermove", onPointerMove);
       renderer.domElement.removeEventListener("pointerleave", onPointerLeave);
