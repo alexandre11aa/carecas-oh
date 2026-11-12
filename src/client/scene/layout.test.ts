@@ -200,6 +200,16 @@ describe("pilhas de deck e cemiterio", () => {
     expect(grave?.y).toBeCloseTo(0.26);
   });
 
+  it("cemiterio_troca_o_topo_e_cresce_1_camada_ao_entrar_carta_e_vazio_nao_desenha", () => {
+    const state = baseState();
+    const graveOf = () => layoutBoard(playerView(state, "P1")).find((p) => p.key === "you:graveyard:0");
+    expect(graveOf()).toBeUndefined();
+    state.players.P1.graveyard = ["fire_bolt", "wind_gust"];
+    expect(graveOf()).toMatchObject({ cardId: "wind_gust", layers: 2 });
+    state.players.P1.graveyard = ["fire_bolt", "wind_gust", "fire_bolt"];
+    expect(graveOf()).toMatchObject({ cardId: "fire_bolt", layers: 3 });
+  });
+
   it("cemiterio_acima_do_teto_limita_a_20_camadas", () => {
     const state = baseState();
     state.players.P1.graveyard = Array.from({ length: 25 }, () => "fire_bolt");
