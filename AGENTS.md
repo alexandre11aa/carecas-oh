@@ -277,10 +277,10 @@ src/client/
     scrollButtonView.ts DOM do botão fixo de subir/descer (só em `/guia` e `/cartas`, via `createPage`): usa `scrollButton.ts`, `scrollTo` com `auto`/`smooth` conforme `prefers-reduced-motion`, remove listeners no `destroy`
   scene/
     scene.ts            renderer, câmera, luzes e loop
-    layout.ts           lógica pura (sem WebGL, testável): PlayerView -> posições das cartas na mesa e clique -> slot (`pickSlot`)
+    layout.ts           lógica pura (sem WebGL, testável): PlayerView -> posições das cartas na mesa e clique -> slot (`pickSlot`); deck e cemitério viram pilhas: `pileLayers` (1 camada por carta real, 0 se vazia, teto `PILE_MAX_LAYERS` = `DECK_SIZE`), `pileTopY` (altura do topo), `pileBodyYs` (alturas das placas do corpo) e, no placement, `layers` e `y`; só o topo é uma carta (deck: verso, cemitério: a última carta)
     table.ts            mesa com moldura e zonas
     tableDesign.ts      lógica pura (testável): medidas, cores por tipo de zona e degradê do fundo padrão
-    cardMesh.ts         criação e atualização das cartas e das placas do corpo das pilhas (caixa e material lisos compartilhados, sem textura; `pileBodyYs` em layout.ts)
+    cardMesh.ts         criação e atualização das cartas e das placas do corpo das pilhas (caixa e material lisos compartilhados, sem textura; `pileBodyYs` em layout.ts); só a carta do topo recebe textura
     textures.ts         loadTexture: carrega PNG com cache, redução e fallback (null)
     blackHole.ts        vórtice decorativo atrás da mesa (planos com textura em canvas, rotação lenta, parado com prefers-reduced-motion)
     blackHoleDesign.ts  lógica pura (testável): camadas, posição e ângulo do vórtice
@@ -291,7 +291,7 @@ src/client/
   animations/           animações GSAP
     hudEffects.ts       GSAP do HUD: aviso de evento, variação flutuante e barra de vida
     matchFeedback.ts    lógica pura: eventos filtrados + visões anterior/atual => passos de som, aviso e efeito, sem inferir informação oculta
-    boardPresentation.ts lógica pura: retém a mesa anterior e aplica saídas/chegadas ao cemitério em sincronia com os efeitos; o fim coincide com a visão do servidor
+    boardPresentation.ts lógica pura: retém a mesa anterior e aplica saídas/chegadas ao cemitério e compras do deck em sincronia com os efeitos, ajustando as camadas e a altura (`toY`) da pilha a cada carta; o fim coincide com a visão do servidor
     matchAudio.ts       Web Audio: cache após gesto, preferência de som salva, limite de vozes e descarte; `getAppAudio()` é o áudio global único do app (partida, `click` e `confirm` de menu e lobby), que sobrevive à troca de tela; também toca a música de fundo (`setMusic`: `AudioBufferSourceNode` em loop, volume 0,15 abaixo dos efeitos, fade de 1,2 s na troca, só a faixa em uso fica decodificada, pausa com a aba oculta e libera os nós ao trocar, silenciar ou descartar)
 ```
 
@@ -317,6 +317,7 @@ src/client/
 - Menus, mão, botões e textos longos ficam em HTML sobre a cena.
 - Reaproveite geometrias, materiais e texturas entre cartas. Artes completas usam WebP de alta qualidade, com nomes derivados do nome atual da carta em snake_case sem acentos; os ids da engine permanecem estáveis. PNG continua aceito para artes ainda não convertidas e texturas.
 - Originais ficam em `docs/decks/<deckId>/`, com o verso compartilhado em `docs/decks/shared/`. Não são servidos pelo Vite nem enviados no contexto Docker (`.dockerignore`). `docs/decks/optimize.py` gera os WebP sem reduzir a resolução; detalhes em `docs/decks/README.md`.
+- Deck e cemitério são pilhas: a altura cresce com a quantidade real (uma camada por carta, teto de 20 camadas, `PILE_MAX_LAYERS`); o corpo é feito de placas lisas sem textura e só o topo tem textura (verso no deck, última carta no cemitério). Compra e envio ao cemitério animam de/para a altura do topo da pilha, e ao fim a mesa mostra exatamente as camadas da visão do servidor.
 - `scene/battleEffects.ts` usa geometrias simples e GSAP para projéteis, escudos, impactos e cartas em direção ao cemitério. Não usa modelos, física nem pós-processamento; os recursos transitórios são liberados ao terminar/cancelar.
 - Sons e efeitos seguem a ordem dos eventos já filtrados. O cliente não calcula dano ou destruição. Quando o evento não identifica uma zona de forma inequívoca (cópias saindo juntas), usa origem neutra, sem escolher uma cópia arbitrariamente. O estado permanente da mesa continua sendo a última visão do servidor.
 - O botão de som fica no HUD, persiste a escolha local e só desbloqueia áudio após gesto do usuário. A fila é cancelada na reconexão, revanche, saída e ao ocultar a aba; não reapresenta eventos antigos. Fila acima de 32 passos é descartada para restaurar o estado atual. Movimento reduzido substitui deslocamentos 3D por realces breves e desativa a vinheta de dano.
