@@ -308,6 +308,7 @@ src/client/
 - Todo erro (`app:error`, conexão, cópia, validação de formulário) aparece como toast; as telas não têm linha de erro própria.
 - Gate de loading por recursos: no primeiro carregamento da sessão, `main.ts` mantém o loading em tela cheia (`loadingScreen.ts`) enquanto o servidor não responde ou há recursos pendentes no `pageLoading` (`loadingTracker.ts`); toda `<img>` de tela se registra com `trackImage` e as texturas da cena entram na mesma contagem. Há um timeout de segurança de 10 s (`LOADING_TIMEOUT_MS`) e, depois do primeiro carregamento, trocar de tela não reabre o loading (`shouldShowLoading`).
 - Aviso de fim de jogo sem espaço: os avisos da tela de fim (como o de revanche, `statusKind` de `matchEnd.ts`) só existem quando têm texto; `statusKind: "none"` esconde o elemento (`hidden`) e ele não ocupa espaço no layout.
+- Celulares (`max-width: 40rem` ou `max-height: 34rem`): a mão vira uma faixa recolhida de uma linha, rolável na horizontal, com só o título de cada carta; a carta selecionada expande com a arte (`--peek`, até 30vh) e o painel de detalhe se oculta enquanto há carta da mão selecionada. É só CSS (`style.css`) mais o `scrollIntoView` da carta selecionada em `matchScreen.ts`; telas grandes não mudam.
 - Texto de interface, mensagens e comentários em português. Identificadores de código em inglês.
 
 ### Cena 3D

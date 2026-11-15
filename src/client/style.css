@@ -428,6 +428,21 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .card-view.has-art > :not(.card-art) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .card-view.has-art { padding: 0; border-width: 0; background: transparent; box-shadow: none; }
 
+/* Mão recolhível em celulares (retrato ou paisagem): uma faixa baixa, rolável na horizontal, com só o título de
+   cada carta; a carta selecionada expande e mostra a arte, sem cobrir o tabuleiro. Telas grandes não mudam. */
+@media (max-width: 40rem), (max-height: 34rem) {
+  .hand { --peek: min(8.5rem, 30vh); flex-wrap: nowrap; justify-content: flex-start; align-items: flex-end; gap: 0.35rem; overflow-x: auto; overflow-y: hidden; padding: 0.5rem 0.25rem 0.2rem; scroll-snap-type: x proximity; overscroll-behavior-x: contain; }
+  .hand-card { flex: none; scroll-snap-align: center; display: flex; align-items: center; justify-content: center; width: clamp(5rem, 26vw, 7rem); height: 2.4rem; aspect-ratio: auto; padding: 0 0.4rem; border-width: 2px; }
+  .hand-card:not(.selected) span { display: none; }
+  .hand-card.has-art:not(.selected) { border-width: 2px; background: linear-gradient(180deg, var(--c-parchment), var(--c-parchment-dark)); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.6); }
+  .hand-card.has-art:not(.selected) .card-art { display: none; }
+  .hand-card.has-art:not(.selected) b { position: static; width: auto; height: auto; max-width: 100%; margin: 0; padding: 0; overflow: hidden; clip-path: none; border: 0; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8rem; line-height: 1.2; }
+  .hand-card:not(.has-art) b { margin: 0; padding: 0; border: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hand-card.selected { width: calc(var(--peek) * 1030 / 1500); height: var(--peek); transform: none; }
+  .hand-card.selected:not(.has-art) { flex-direction: column; justify-content: flex-start; padding: 0.3rem; }
+  .hand-row:has(.hand-card.selected) .card-detail { display: none; }
+}
+
 /* Páginas do guia e das cartas */
 .tutorial-page { gap: 1rem; padding-bottom: 5rem; }
 .tutorial-page > .hero { box-sizing: border-box; width: 100%; max-width: 44rem; }
