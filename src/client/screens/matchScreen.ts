@@ -592,8 +592,6 @@ ${error.stack ?? ""}` : String(error) }),
         audio.play(selectionSound(selection, next, false));
         selection = next; // sempre o estado mais recente, nunca o de quando o botão foi criado
         update();
-        // Na faixa recolhida (celular) a carta expandida pode ficar fora da vista: traz ela para dentro.
-        if (next?.kind === "hand") requestAnimationFrame(() => card.scrollIntoView?.({ inline: "nearest", block: "nearest" })); // depois do render que expande a carta
       });
       return card;
     });
