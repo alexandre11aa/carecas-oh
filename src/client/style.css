@@ -468,3 +468,20 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .card-view.art-loading > :not(.art-spinner) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .card-view.art-loading { display: flex; align-items: center; justify-content: center; padding: 0; border-width: 0; background: transparent; box-shadow: none; min-height: 6rem; }
 .art-spinner { width: 1.6rem; height: 1.6rem; margin: 0; }
+
+/* Modal que amplia a carta em /cartas */
+.card-clickable { cursor: zoom-in; border-radius: var(--radius-md); }
+.card-clickable:focus-visible { outline: 3px solid var(--c-gold-light); outline-offset: 3px; }
+.card-modal { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 0.75rem; background: rgba(5, 3, 12, 0.85); }
+.card-modal-dialog { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.75rem; width: min(100%, 30rem, calc((100dvh - 6rem) * 1030 / 1500)); max-height: 100%; }
+.card-modal-dialog .card-view { width: 100%; max-height: calc(100dvh - 5rem); overflow-y: auto; font-size: 1rem; }
+.card-modal-dialog .card-view.has-art .card-art { width: 100%; max-height: calc(100dvh - 6rem); object-fit: contain; }
+.card-modal-close { flex: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .card-modal { animation: card-modal-in 0.18s ease-out; }
+  .card-modal-dialog { animation: card-modal-pop 0.2s ease-out; }
+  .card-modal.closing { animation: card-modal-out 0.15s ease-in forwards; }
+}
+@keyframes card-modal-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes card-modal-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes card-modal-pop { from { transform: scale(0.92); } to { transform: scale(1); } }
