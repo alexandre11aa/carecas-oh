@@ -6,6 +6,7 @@ import { createFooter } from "./footer.js";
 import { createHero } from "./hero.js";
 import { createScrollButton } from "./scrollButtonView.js";
 import { createCardView } from "./cardView.js";
+import { createCardModal } from "./cardModalView.js";
 import {
   GUIDE_SECTIONS,
   groupCardsByDeck,
@@ -136,6 +137,7 @@ export const createGuidePage = (): Screen => {
 
 /** Página `/cartas`: catálogo agrupado por deck, gerado de `DECKS`; destaca a magia de efeito único de cada deck. */
 export const createCardsPage = (): Screen => {
+  const modal = createCardModal();
   const catalog = el("div", "tutorial tutorial-catalog");
   for (const group of groupCardsByDeck()) {
     const { monsters, spells, traps } = group.composition;
@@ -161,11 +163,13 @@ export const createCardsPage = (): Screen => {
       if (card.id === group.signatureSpell?.id) view.classList.add("signature");
       const slot = el("div", "tutorial-card-slot");
       slot.append(view, el("span", "card-copies", `×${card.copies}`));
+      slot.setAttribute("aria-label", `Ampliar ${card.name}`);
+      modal.bind(slot, card.id);
       grid.append(slot);
     }
     const section = el("section", "deck-catalog");
     section.append(header, grid);
     catalog.append(section);
   }
-  return createPage("Cartas", [catalog]);
+  return createPage("Cartas", [catalog], modal.destroy);
 };

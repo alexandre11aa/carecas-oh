@@ -269,6 +269,8 @@ src/client/
     toasts.ts           lógica pura: toasts de erro (fila, dedup do mesmo erro visível, expiração, limite de empilhamento, dispensa) e armazém global; `socket.ts` e as telas só chamam `showErrorCode`/`showErrorMessage`
     toastView.ts        DOM dos toasts (`role="alert"`, botão de dispensar), montado uma vez em `main.ts` e persistente na troca de telas; animação em `hudEffects.ts`
     tutorialSections.ts lógica pura: seções do guia (dados tipados), catálogo de cartas agrupado por deck (composição de 20 cartas, cópias de cada carta e magia de efeito único), visibilidade e seção ativa
+    cardModal.ts        lógica pura: estado do modal que amplia a carta em `/cartas` (`openCardModal`, `closeCardModal`), teclas (`modalKeyAction`: Esc fecha, Tab circula) e foco preso (`nextFocusIndex`)
+    cardModalView.ts    DOM do modal (`role="dialog"`, `aria-modal`, foco preso, fecha por botão, fundo e Esc, devolve o foco à carta, bloqueia a rolagem); reaproveita `createCardView`
     tutorialScreen.ts   DOM das páginas `/guia` (menu de âncoras, blocos lista/tabela, seção ativa) e `/cartas` (catálogo por deck)
     scrollButton.ts     lógica pura: botão fixo único que alterna entre descer ao fim e subir ao topo (`pickScrollTarget`: `top`, `bottom` ou `null` sem rolagem) e rótulos
     musicTrack.ts       lógica pura: música de fundo por página (`musicTrackFor`: `menu` em home/guia/cartas, `lobby` na sala de espera, `battle` na partida em andamento, parada com fade no fim e de volta na revanche; nenhuma na tela de início do duelo ou com som desligado)
@@ -353,7 +355,7 @@ O que cobrir:
 
 - **Engine:** cada regra, incluindo jogadas válidas e inválidas, e a garantia de que `playerView` não vaza informação oculta.
 - **Server:** cada evento, incluindo caminho feliz, payload inválido, sala inexistente, jogador sem permissão e reconexão.
-- **Client:** a lógica pura (`scene/layout.ts`, `screens/matchActions.ts`, `screens/matchEnd.ts`, `screens/matchNotices.ts`, `screens/scrollButton.ts`, `screens/loadingTracker.ts`, `screens/renderScheduler.ts`, `screens/aiDuel.ts`, `screens/uiSounds.ts`, `screens/selectionSound.ts`, `screens/musicTrack.ts`, `screens/toasts.ts`, `screens/tutorialSections.ts`, `state.ts`) tem testes; DOM e WebGL não. Mantenha a decisão de qual ação enviar nos módulos puros. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
+- **Client:** a lógica pura (`scene/layout.ts`, `screens/matchActions.ts`, `screens/matchEnd.ts`, `screens/matchNotices.ts`, `screens/scrollButton.ts`, `screens/loadingTracker.ts`, `screens/renderScheduler.ts`, `screens/aiDuel.ts`, `screens/uiSounds.ts`, `screens/selectionSound.ts`, `screens/musicTrack.ts`, `screens/toasts.ts`, `screens/tutorialSections.ts`, `screens/cardModal.ts`, `state.ts`) tem testes; DOM e WebGL não. Mantenha a decisão de qual ação enviar nos módulos puros. A verificação mínima é `npm run check`, `npm run build` e uma partida manual em duas abas.
 - **IA:** a decisão de cada nível tem testes (`ai/ai.test.ts`, `medium.test.ts`, `hard.test.ts`) e a simulação IA x IA (`ai/simulation.test.ts`, ver seção "IA") garante zero ação inválida e partidas sempre concluídas. O servidor testa a sala de IA no service (`aiRoom.test.ts`, `aiPlay.test.ts`, `aiLifecycle.test.ts`, com `Clock` injetado, sem esperar o tempo real) e nos sockets (`sockets/aiRoom.test.ts`).
 - **Correção de bug:** um teste que falharia antes da correção, quando o bug estiver em `engine` ou `server`.
 
