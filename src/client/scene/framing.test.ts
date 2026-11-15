@@ -33,7 +33,10 @@ describe("cameraDistanceScale", () => {
     for (const a of [0, -1, NaN, Infinity]) expect(cameraDistanceScale(a)).toBe(1);
   });
   it("retrato_extremo_e_limitado_ao_recuo_maximo", () => {
-    expect(cameraDistanceScale(360 / 640)).toBe(MAX_CAMERA_SCALE);
+    expect(cameraDistanceScale(0.2)).toBe(MAX_CAMERA_SCALE);
+  });
+  it("retrato_de_celular_cabe_sem_atingir_o_recuo_maximo", () => {
+    for (const aspect of [360 / 640, 390 / 844, 0.45]) expect(cameraDistanceScale(aspect)).toBeLessThan(MAX_CAMERA_SCALE);
   });
   it("todos_os_cantos_externos_de_todos_os_slots_cabem_quando_nao_limitado", () => {
     const outer = zoneOuterSize();
