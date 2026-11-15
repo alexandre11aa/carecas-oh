@@ -9,8 +9,8 @@ export const CAMERA_POSITION = { x: 0, y: 11, z: 9 } as const;
 export const CAMERA_TARGET = { x: 0, y: 0, z: 0.8 } as const;
 /** Folga relativa na meia-largura visível (2%). */
 export const FRAMING_MARGIN = 1.02;
-/** Recuo máximo: em retrato extremo a mesa continua cortada (limitação anterior à #100). */
-export const MAX_CAMERA_SCALE = 1.6;
+/** Recuo máximo: retrato de celular (aspecto ~0,45) precisa de ~2,5; acima disso a mesa ainda corta. */
+export const MAX_CAMERA_SCALE = 3;
 
 /**
  * Fator k >= 1 pelo qual a distância câmera-alvo é multiplicada para a mesa caber na largura.
